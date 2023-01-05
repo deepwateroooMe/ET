@@ -46,7 +46,7 @@ namespace ET
             return dt.AddTicks(timeStamp * 10000);
         }
         
-        // 线程安全
+        // 线程安全：　是因为数据的读安全吗？不涉及任何数据的写操作　？
         public long ClientNow()
         {
             return (DateTime.UtcNow.Ticks - this.dt1970.Ticks) / 10000;

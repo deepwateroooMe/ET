@@ -4,7 +4,7 @@ namespace ET
 {
     public class CoroutineLockQueueType
     {
-        private readonly int type;
+        private readonly int type; // 
         
         private readonly Dictionary<long, CoroutineLockQueue> coroutineLockQueues = new Dictionary<long, CoroutineLockQueue>();
 

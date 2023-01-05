@@ -141,7 +141,7 @@ namespace ET
 
     public class IdGenerater: Singleton<IdGenerater>
     {
-        public const int Mask18bit = 0x03ffff;
+        public const int Mask18bit = 0x03ffff; // 数数看,这里有18个bit位
 
         public const int MaxZone = 1024;
         

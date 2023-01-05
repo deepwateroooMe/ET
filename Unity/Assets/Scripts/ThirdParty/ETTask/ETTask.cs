@@ -65,6 +65,7 @@ namespace ET
         {
         }
         
+// ETVoid: 这里这个ETVoid有个什么特别处理,区别于C#中的Void,为的是ET框架里对返回类型为Void的系统化管理, 要再理解一下
         [DebuggerHidden]
         private async ETVoid InnerCoroutine()
         {
@@ -290,9 +291,9 @@ namespace ET
 
             this.value = result;
 
-            Action c = this.callback as Action;
-            this.callback = null;
-            c?.Invoke();
+            Action c = this.callback as Action;  // 拿到索引
+            this.callback = null; // 置空:  以便回调之后当前异步任务的资源回收到类管理池
+            c?.Invoke(); 
         }
         
         [DebuggerHidden]

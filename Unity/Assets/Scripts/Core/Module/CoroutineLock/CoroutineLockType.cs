@@ -1,5 +1,6 @@
 namespace ET
 {
+    // 根据 可能会使用到协程 的不同 情境上下文 进行分组标记: 以便接下来可以区分处理
     public static class CoroutineLockType
     {
         public const int None = 0;

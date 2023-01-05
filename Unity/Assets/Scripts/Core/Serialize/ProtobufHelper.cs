@@ -14,6 +14,7 @@ namespace ET
         
 		static ProtobufHelper()
 		{
+			// 双端过程中,可能涉及的数据类型转换,初始化设置 
 			RuntimeTypeModel.Default.Add(typeof(float2), false).Add("x", "y");
 			RuntimeTypeModel.Default.Add(typeof(float3), false).Add("x", "y", "z");
 			RuntimeTypeModel.Default.Add(typeof(float4), false).Add("x", "y", "z", "w");

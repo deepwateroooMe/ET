@@ -10,6 +10,7 @@ namespace ET
 
         public CoroutineLockComponent()
         {
+// 100个:  是链表好，还是字典好  ？遍历
             for (int i = 0; i < CoroutineLockType.Max; ++i)
             {
                 CoroutineLockQueueType coroutineLockQueueType = new CoroutineLockQueueType(i);
@@ -40,7 +41,7 @@ namespace ET
             {
                 Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
             }
-
+            // 这里的level,更像是队列的元素个数计数,无关其它 锁引用次数,或资源回收相关
             this.nextFrameRun.Enqueue((coroutineLockType, key, level));
         }
 
@@ -52,7 +53,7 @@ namespace ET
 
         private void Notify(int coroutineLockType, long key, int level)
         {
-            CoroutineLockQueueType coroutineLockQueueType = this.list[coroutineLockType];
+            CoroutineLockQueueType coroutineLockQueueType = this.list[coroutineLockType];  // 链表的遍历:  相比于字典  ？  100  个
             coroutineLockQueueType.Notify(key, level);
         }
     }

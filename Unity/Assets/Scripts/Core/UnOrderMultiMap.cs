@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace ET
 {
+	// 无序多字典 自定义结构: 
 	public class UnOrderMultiMap<T, K>: Dictionary<T, List<K>>
 	{
 		public void Add(T t, K k)

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 
 namespace ET
 {
+    // 无序自定义字典:值为HashSet<K>
     public class UnOrderMultiMapSet<T, K>: Dictionary<T, HashSet<K>>
     {
         // 重用HashSet

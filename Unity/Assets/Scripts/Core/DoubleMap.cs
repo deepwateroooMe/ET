@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace ET
 {
+	// 双字典:  可以从键直接拿到值，也可以从值直接拿到键，便于双端书写
 	public class DoubleMap<K, V>
 	{
 		private readonly Dictionary<K, V> kv = new Dictionary<K, V>();
