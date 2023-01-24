@@ -12,7 +12,7 @@ namespace ET
     public static class BuildAssembliesHelper
     {
         public const string CodeDir = "Assets/Bundles/Code/";
-
+// 这个文件夹下,把它统一称作模型,用于热更新
         public static void BuildModel(CodeOptimization codeOptimization, GlobalConfig globalConfig)
         {
             List<string> codes;
@@ -37,7 +37,7 @@ namespace ET
                         "Assets/Scripts/Codes/Model/Client/",
                     };
                     break;
-                case CodeMode.ClientServer:
+                case CodeMode.ClientServer: // 那么把这如下部分的源码弄懂了,就大致知道这个框架是如何实现源码热更新的了
                     codes = new List<string>()
                     {
                         "Assets/Scripts/Codes/Model/Share/",

@@ -66,8 +66,7 @@ namespace ET {
         public Type GetType(ushort opcode) {
             return this.typeOpcode.GetKeyByValue(opcode);
         }
-#endregion
-        
+#endregion       
         
 #region 主线程
 // 网络连接，调用过程中可能会涉及到的所有回调事件的回调管理          

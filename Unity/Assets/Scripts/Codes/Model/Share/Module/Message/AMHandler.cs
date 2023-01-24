@@ -1,36 +1,25 @@
 using System;
 
-namespace ET
-{
-    public abstract class AMHandler<Message>: IMHandler where Message : class
-    {
-        protected abstract ETTask Run(Session session, Message message);
+namespace ET {
 
-        public void Handle(Session session, object msg)
-        {
+    public abstract class AMHandler<Message>: IMHandler where Message : class {
+        protected abstract ETTask Run(Session session, Message message);
+        public void Handle(Session session, object msg) {
             Message message = msg as Message;
-            if (message == null)
-            {
+            if (message == null) {
                 Log.Error($"消息类型转换错误: {msg.GetType().Name} to {typeof (Message).Name}");
                 return;
             }
-
-            if (session.IsDisposed)
-            {
+            if (session.IsDisposed) {
                 Log.Error($"session disconnect {msg}");
                 return;
             }
-
             this.Run(session, message).Coroutine();
         }
-
-        public Type GetMessageType()
-        {
+        public Type GetMessageType() {
             return typeof (Message);
         }
-
-        public Type GetResponseType()
-        {
+        public Type GetResponseType() {
             return null;
         }
     }

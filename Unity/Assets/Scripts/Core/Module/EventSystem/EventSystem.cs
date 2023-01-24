@@ -43,9 +43,10 @@ namespace ET {
         }
 
         private class EventInfo {
+
             public IEvent IEvent { get; } // Type
-            
             public SceneType SceneType {get; } // 情境 上下文标记 
+
             public EventInfo(IEvent iEvent, SceneType sceneType) {
                 this.IEvent = iEvent;
                 this.SceneType = sceneType;

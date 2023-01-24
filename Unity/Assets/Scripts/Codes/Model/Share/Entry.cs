@@ -20,12 +20,12 @@
         }
 
         private static async ETTask StartAsync() {
-            WinPeriod.Init();
+            WinPeriod.Init(); // Windows平台 Timer Tick的时间精度设置
             
-            MongoHelper.Init();
-            ProtobufHelper.Init();
+            MongoHelper.Init();   // MongoDB 数据库的初始化: 这里像是没作什么工程，但涉及类相关所有静态变量的初始化  
+            ProtobufHelper.Init();// 同上
             
-            Game.AddSingleton<NetServices>();
+            Game.AddSingleton<NetServices>(); // 网络连接初始化
             Game.AddSingleton<Root>();
             await Game.AddSingleton<ConfigComponent>().LoadAsync();
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent1());
