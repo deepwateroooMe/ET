@@ -8,7 +8,7 @@ namespace ET
 		public static void Start()
 		{
 			try
-			{	
+			{	// 捕捉各种异常
 				AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
 				{
 					Log.Error(e.ExceptionObject.ToString());
@@ -23,6 +23,7 @@ namespace ET
 					.WithParsed(Game.AddSingleton);
 				
 				Game.AddSingleton<TimeInfo>();
+// 下面是日志文件的具体的配置参数:　配置存放在配置文件里，同狠多其它配置文件一样，如数据库等　
 				Game.AddSingleton<Logger>().ILog = new NLogger(Options.Instance.AppType.ToString(), Options.Instance.Process, "../Config/NLog/NLog.config");
 				Game.AddSingleton<ObjectPool>();
 				Game.AddSingleton<IdGenerater>();

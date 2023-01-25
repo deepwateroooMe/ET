@@ -42,7 +42,9 @@ namespace ET {
                 lateUpdates.Enqueue(singleton);
             }
         }
-        public static async ETTask WaitFrameFinish() { // 这个类里,只有这个方法是,等待异步执行结果结束的,但是即便执行结束了,可能还没有设置结果,会晚些时候再设置结果
+
+// 这个类里,只有这个方法是,等待异步执行结果结束的,但是即便执行结束了,可能还没有设置结果,会晚些时候再设置结果
+        public static async ETTask WaitFrameFinish() { 
             ETTask task = ETTask.Create(true); // 从池里抓一个新的出来用
             frameFinishTask.Enqueue(task);     // 入队
 // <<<<<<<<<<<<<<<<<<<< 这里是，异步等待任务的执行吗？应该是 假如开启了池,await之后不能再操作ETTask，否则可能操作到再次从池中分配出来的ETTask，产生灾难性的后果
