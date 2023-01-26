@@ -6,7 +6,7 @@ namespace ET
 {
     [ChildOf(typeof(UnitComponent))]
     [DebuggerDisplay("ViewName,nq")]
-    public class Unit: Entity, IAwake<int>
+    public class Unit: Entity, IAwake<int> // 它是框架中组件的最小单位吗 ?
     {
         public int ConfigId { get; set; } //配置表id
 

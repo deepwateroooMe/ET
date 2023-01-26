@@ -14,7 +14,7 @@ namespace ET {
         public Scene Scene { get; private set; }
 
         public void Awake() {
-            this.Scene = EntitySceneFactory.CreateScene(0, SceneType.Process, "Process");
+            this.Scene = EntitySceneFactory.CreateScene(0, SceneType.Process, "Process"); // 这里是创建场景 
         }
 
         public override void Dispose() {
