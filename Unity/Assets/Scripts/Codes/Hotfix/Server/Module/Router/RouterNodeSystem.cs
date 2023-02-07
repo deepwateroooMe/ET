@@ -1,13 +1,12 @@
-﻿namespace ET.Server
-{
+﻿namespace ET.Server {
+
     [FriendOf(typeof(RouterNode))]
-    public static class RouterNodeSystem
-    {
+    public static class RouterNodeSystem {
+
+// Awake Destroy
         [ObjectSystem]
-        public class RouterNodeAwakeSystem: AwakeSystem<RouterNode>
-        {
-            protected override void Awake(RouterNode self)
-            {
+        public class RouterNodeAwakeSystem: AwakeSystem<RouterNode> {
+            protected override void Awake(RouterNode self) {
                 long timeNow = TimeHelper.ServerNow();
                 self.LastRecvInnerTime = timeNow;
                 self.LastRecvOuterTime = timeNow;
@@ -18,12 +17,9 @@
                 self.InnerConn = 0;
             }
         }
-
         [ObjectSystem]
-        public class RouterNodeDestroySystem: DestroySystem<RouterNode>
-        {
-            protected override void Destroy(RouterNode self)
-            {
+        public class RouterNodeDestroySystem: DestroySystem<RouterNode> {
+            protected override void Destroy(RouterNode self) {
                 self.OuterConn = 0;
                 self.InnerConn = 0;
                 self.LastRecvInnerTime = 0;
@@ -36,25 +32,19 @@
             }
         }
         
-        public static bool CheckOuterCount(this RouterNode self, long timeNow)
-        {
-            if (self.LastCheckTime == 0)
-            {
+        public static bool CheckOuterCount(this RouterNode self, long timeNow) {
+            if (self.LastCheckTime == 0) {
                 self.LastCheckTime = timeNow;
             }
             
-            if (timeNow - self.LastCheckTime > 1000)
-            {
-                //Log.Debug($"router recv packet per second: {self.LimitCountPerSecond}");
+            if (timeNow - self.LastCheckTime > 1000) {
+                // Log.Debug($"router recv packet per second: {self.LimitCountPerSecond}");
                 self.LimitCountPerSecond = 0;
                 self.LastCheckTime = timeNow;
             }
-
-            if (++self.LimitCountPerSecond > 1000)
-            {
+            if (++self.LimitCountPerSecond > 1000) {
                 return false;
             }
-
             return true;
         }
     }

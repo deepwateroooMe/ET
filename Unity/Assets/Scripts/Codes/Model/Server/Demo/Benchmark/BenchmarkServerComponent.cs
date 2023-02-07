@@ -1,8 +1,8 @@
-﻿namespace ET.Server
-{
+﻿namespace ET.Server {
+
     [ComponentOf(typeof(Scene))]
-    public class BenchmarkServerComponent: Entity, IAwake
-    {
+    public class BenchmarkServerComponent: Entity, IAwake {
+
         public int Count { get; set; }
     }
 }

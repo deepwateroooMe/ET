@@ -6,7 +6,7 @@
 * 综述
 - 这个框架相对比较平民化比较亲民，文档相对健全，关键模块和知识点讲解得相对透彻完善，更关键的是使用的人可能会比较多。自己遇到问题的时候能够网络上寻求的帮助来源多一点儿。会主要参考这个来搭写自己的框架
 
-* 帐户服 + 数据库 + 登录中心服 + 网关服: 具体设计林框架参考
+* 帐户服 + 数据库 + 登录中心服 + 网关服: 具体设计林框架参考: 今天上午终于感觉看懂一点儿了
 - 下面主要记录别人站在相对比较高的角度总结出来的架构：https://blog.csdn.net/Q540670228/article/details/123592622
   
 [[./pic/readme_20230124_102951.png]]
@@ -733,3 +733,75 @@ public partial class StartProcessConfig {
 - 感觉那么追日志看得好艰难，跟不上.就先把游戏中需要打包构建的几个主要的程序自己先理解一遍，不懂的上网查，再跟着日志看。现在看感觉仍然不知道在哪里
 * HotfixView程序域: 先看这部分,这里面的大部分的源码都还比较简单
 - 应快把样例工程中的源码爬一遍
+- 现在基本的原理能够懂得: 把大的版块基本能够看得懂的地方看懂,也稍微总结一下.不懂的地方就用安卓应用快速地整几个应用来测试掌握一下
+- *Awake, Load, Update, LateUpdate, Destroy:* 这个系统最简单,无处不在,类似Unity3d的组件，ET框架也提供了组件事件，例如Awake，Start，Update等。要给一个Component或者Entity加上这些事件，必须写一个辅助类。
+- ET中大致类等的特点总结：
+  - Entity：对应一个真实物体（至少也是一个逻辑实体）。特征：一定有一个代表这个实体的唯一Id。
+  - Component:一个实体针对某个特定片面的状态数据，比如位置数据。注意，要求只有数据不能有函数（基本的get,set类函数可以包含）
+  - System：对Entity中某些Component进行计算和更改的方法集合
+  - Utility函数：如果System之间相互依赖某些函数，则需要把这些函数提取为工具函数。也就是说，所有System之间需要确保不要太多相互依赖。
+  - 单例Component：如果某个状态是全局的，而不是和某个具体实体相关的，则需要提取
+
+* 消息机制的原理，类图，总体概念理解
+- https://www.jianshu.com/p/f2ecf148bc2f
+** 消息分类
+  
+[[./pic/readme_20230127_113555.png]]
+- 消息按照因果关系分类，可以分为Request和Response，当然也有直接继承至Message的，表示我这个消息发出去后我就不care了。Request和Response是成对的，我发了一个Request，你必须回我一个对应的Response消息。
+- 消息还可以按照类型分类，基本分为两大类，一般消息和Actor消息。Actor消息可以认为是战斗相关消息，战斗unit和玩家client之间发送的都是Actor消息，比如帧同步消息（AFrameMessage）就是一种ActorMessage，其他的都可以认为是一般消息，比如登陆，创角等。
+- Actor相关的消息在服务器间相互转发的时候，会被包装一下。想象一下，一个Client与GateServer之间的通信，消息里面是不用带玩家角色Id的，我们之间的Session对象就表明了我的身份。但是GateServe把这个消息转发给MapServer的时候，消息就得包装一下，带上UnitId的信息，这样MapServer收到这个消息后才知道是那个玩家发过来的。包装actor消息包括ActorRequest和ActorRPCRequest，AActorMessage不需要回复，就包装在ActorRequest中，而AActorRequest需要回复，包装在ActorRPCRequest中。所以ActorRequest和ActorRPCRequest包括他们的回复消息只在服务器之间传送Actor消息的时候用。
+- 其实按照消息的路径，还可以把消息分为内部消息和外部消息，内部就是服务器内部之间发送的，外部则是负责服务器和客户端通信的。在ET中，有InnerMessage和OuterMessage两个文件，里面定义的消息就分别是内部和外部消息。只有Realm服务器和Gate服务器有NetOuterComponent，可以与客户端通信，其他服务器都只有NetInnerComponent，Realm服务器作为初始登陆服务器，负责分配Gate服务器给玩家，之后玩家都直接与Gate服务器通信，之后其他服务器都通过Gate服务器与玩家通信。
+
+** ET 消息流程
+  
+[[./pic/readme_20230127_113503.png]]
+- 这里面弄清了几个原则，基本就清楚了消息的处理原则：
+- 1：Gate服务器既需要与客户端通信，也需要与其他服务器通信。所以需要同时拥有NetOuterComponent和NetInnerComponent。
+- 2：Map服务器不直接与客户端通信，需要通过Gate服务器转发，所以只有NetInnerComponent。
+- 3：客户端发送给Gate服务器的消息，都是通过NetOuterComponent走的，所以Actor消息都是AActorMessage或者AActorRequest类型（因为Gate服务器上接收消息的Session就表明了客户端的身份），而这些Actor消息是需要转发给Map服务器的，Gate服务器和每个Map服务器之间都只有一个Session（属于NetInnerComponent），所有Actor消息都通过这个Session发送，所以Actor消息在这里需要包装成ActorRequest或者ActorRpcRequest消息，带actorId，Map服务器接收到这个消息后通过actorId才知道交给哪个Actor处理。
+- 4：Map服务器发送给Gate服务器的ActorRequest或者ActorRpcRequest消息，Gate服务器只需要把包装里面的AMessage发送给对应的客户端即可。
+- 这里加个链接：latex graphcs .9倍的图片宽度，修改的话可以尝试：https://tex.stackexchange.com/questions/439918/set-default-value-for-max-width-of-includegraphics
+** 这里，我在讲一下我自己的理解，方便看完后还是一脸懵逼的同学理解。
+- 我们先别管那些类，我们先想想，我们需要发送的消息，都是些什么？
+  - 1. 客户端发送给服务器的消息
+  - 1. 不需要与其他服务器通信（普通消息）
+  - 1. 不需要返回结果（普通的普通消息）
+  - 2. 需要返回结果（普通的RPC消息）
+  - 2. 需要与其他服务通信（Actor消息）
+  - 1. 不需要返回结果（普通的Actor消息）
+  - 2. 需要返回结果（Actor RPC消息）
+  - 2. 服务器发送给客户端的消息
+  - 1. 返回客户端请求的消息（根据客户端的请求消息类型发送对应的回复类型）
+  - 2. 主动发送的消息，比如帧同步消息。
+- 以上的属于服务端与客户端之间的消息类型，皆属于OuterMessage。（外部消息）
+- 3. 服务器与其他服务器对话的消息（属于内部消息InnerMessage，且是Actor消息）
+  - 1. 需要返回结果（Actor RPC消息）
+  - 2. 不需要返回结果（普通的Actor消息）
+- 这里大家可以想象一下，服务器接收到其他服务器传来的Actor消息，其实就像是收到客户端传来的普通消息一样。所以InnerMessageDispatcher就没有必要再把消息发送给其他服务器上处理。
+- 简单的说，就是这样。
+  - 普通消息只要发送给一个服务器就能得到结果
+  - actor消息可能得通过其他服务器才能得到结果
+  - actor消息又分actor rpc消息，rpc消息会返回结果。
+* 几个链接需要再学习或是练习一下的：
+- https://www.jianshu.com/p/2aaf4ab0682e
+- https://blog.csdn.net/m0_48781656/article/details/123771424
+- https://blog.csdn.net/tong1993222/article/details/89026556?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-89026556-blog-123771424.pc_relevant_landingrelevant&spm=1001.2101.3001.4242.1&utm_relevant_index=3
+- https://blog.csdn.net/norman_lin/article/details/79929284
+- https://blog.csdn.net/weixin_34033624/article/details/86013121?spm=1001.2101.3001.6650.3&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EESLANDING%7Edefault-3-86013121-blog-123771424.pc_relevant_landingrelevant&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EESLANDING%7Edefault-3-86013121-blog-123771424.pc_relevant_landingrelevant&utm_relevant_index=6
+- https://blog.csdn.net/Tong1993222/article/details/89026556
+- https://blog.csdn.net/weixin_45029839/article/details/118491670
+- 爱表哥，爱生活！！！一定会嫁给偶亲爱的表哥！！！
+- 
+
+    
+    
+
+
+
+
+
+
+
+
+
+

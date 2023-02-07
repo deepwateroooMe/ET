@@ -1,6 +1,6 @@
 ﻿namespace ET.Server {
 
-    // 进入视野通知
+    // 进入视野通知: ET的整个事件系统,都成为了这种事件触发回调的形式
     [Event(SceneType.Map)]
     public class UnitEnterSightRange_NotifyClient: AEvent<EventType.UnitEnterSightRange> {
 

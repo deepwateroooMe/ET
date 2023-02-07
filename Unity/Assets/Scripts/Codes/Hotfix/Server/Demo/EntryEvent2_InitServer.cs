@@ -6,6 +6,7 @@ namespace ET.Server {
     public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
 
         protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
+// 当它身份定位为某个服的时候:就需要为它配置添加装载相应的组件,以便它能够行驶某个服的功能             
             // 发送普通actor消息
             Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>();
             // 发送location actor消息
@@ -16,6 +17,7 @@ namespace ET.Server {
             Root.Instance.Scene.AddComponent<ServerSceneManagerComponent>();
             Root.Instance.Scene.AddComponent<RobotCaseComponent>();
             Root.Instance.Scene.AddComponent<NavmeshComponent>();
+
             StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process);
             switch (Options.Instance.AppType) {
                 case AppType.Server: {
@@ -30,7 +32,7 @@ namespace ET.Server {
                 case AppType.Watcher: {
                     StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig();
                     WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>();
-                    watcherComponent.Start(Options.Instance.CreateScenes);
+                    watcherComponent.Start(Options.Instance.CreateScenes); // 服务器上会有几台这样的机器呢? 为什么遍历到一台,不break掉loop呢?
                     Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
                     break;
                 }

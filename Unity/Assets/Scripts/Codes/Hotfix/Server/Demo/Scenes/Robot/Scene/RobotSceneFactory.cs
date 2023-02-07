@@ -10,6 +10,7 @@ namespace ET.Server {
             SceneType sceneType,
             StartSceneConfig startSceneConfig = null
             ) {
+
             await ETTask.CompletedTask;
             Log.Info($"create scene: {sceneType} {name} {zone}");
             Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);

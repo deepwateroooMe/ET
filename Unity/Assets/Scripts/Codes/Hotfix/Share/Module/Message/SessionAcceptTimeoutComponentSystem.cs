@@ -1,37 +1,29 @@
 ﻿using System;
 
-namespace ET
-{
+namespace ET {
+
     [Invoke(TimerInvokeType.SessionAcceptTimeout)]
-    public class SessionAcceptTimeout: ATimer<SessionAcceptTimeoutComponent>
-    {
-        protected override void Run(SessionAcceptTimeoutComponent self)
-        {
-            try
-            {
+    public class SessionAcceptTimeout: ATimer<SessionAcceptTimeoutComponent> {
+
+        protected override void Run(SessionAcceptTimeoutComponent self) {
+            try {
                 self.Parent.Dispose();
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Log.Error($"move timer error: {self.Id}\n{e}");
             }
         }
     }
     
     [ObjectSystem]
-    public class SessionAcceptTimeoutComponentAwakeSystem: AwakeSystem<SessionAcceptTimeoutComponent>
-    {
-        protected override void Awake(SessionAcceptTimeoutComponent self)
-        {
+    public class SessionAcceptTimeoutComponentAwakeSystem: AwakeSystem<SessionAcceptTimeoutComponent> {
+        protected override void Awake(SessionAcceptTimeoutComponent self) {
             self.Timer = TimerComponent.Instance.NewOnceTimer(TimeHelper.ServerNow() + 5000, TimerInvokeType.SessionAcceptTimeout, self);
         }
     }
-
     [ObjectSystem]
-    public class SessionAcceptTimeoutComponentDestroySystem: DestroySystem<SessionAcceptTimeoutComponent>
-    {
-        protected override void Destroy(SessionAcceptTimeoutComponent self)
-        {
+    public class SessionAcceptTimeoutComponentDestroySystem: DestroySystem<SessionAcceptTimeoutComponent> {
+        protected override void Destroy(SessionAcceptTimeoutComponent self) {
             TimerComponent.Instance.Remove(ref self.Timer);
         }
     }

@@ -143,7 +143,7 @@ namespace ET
     {
         public const int Mask18bit = 0x03ffff; // 数数看,这里有18个bit位
 
-        public const int MaxZone = 1024;
+        public const int MaxZone = 1024; // 在分区分服务器的情况下,最多分 1024 个区 吗 ?
         
         private long epoch2020;
         private ushort value;

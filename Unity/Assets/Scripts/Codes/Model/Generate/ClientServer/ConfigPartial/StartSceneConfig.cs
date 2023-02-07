@@ -127,7 +127,7 @@ namespace ET
         {
             this.Type = EnumHelper.FromString<SceneType>(this.SceneType);
             InstanceIdStruct instanceIdStruct = new InstanceIdStruct(this.Process, (uint) this.Id);
-            this.InstanceId = instanceIdStruct.ToLong();
+            this.InstanceId = instanceIdStruct.ToLong(); // 就是那个ID 占18位,process占18位,移位生成的长数
         }
     }
 }

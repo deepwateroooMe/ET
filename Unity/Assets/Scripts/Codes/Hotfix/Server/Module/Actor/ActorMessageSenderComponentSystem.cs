@@ -73,10 +73,10 @@ namespace ET.Server {
                 throw new Exception($"actor id is 0: {message}");
             }
             
-            ProcessActorId processActorId = new(actorId); // 没有看懂这里生成实例的原理
+            ProcessActorId processActorId = new(actorId); // 没有看懂这里生成实例的原理: 它大概有个18位长的什么掩码,从而可以处理不同信息
             
             // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
-            if (processActorId.Process == Options.Instance.Process) { // 总之,就是处于同一个进程,优化处理
+            if (processActorId.Process == Options.Instance.Process) { // 就是处于同一个进程,优化处理
                 NetInnerComponent.Instance.HandleMessage(actorId, message);
                 return;
             }

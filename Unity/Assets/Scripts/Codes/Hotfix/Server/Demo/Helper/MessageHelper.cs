@@ -16,7 +16,8 @@ namespace ET.Server {
             MessageHelper.SendToClient(unit, removeUnits);
         }
 
-// 这里得搞明白:  什么情况下,用如下方法,谁向哪些人玩家广播消息,就是方法使用的上下文 ?        
+// 这里得搞明白:  什么情况下,用如下方法,谁向哪些人玩家广播消息,就是方法使用的上下文 ?
+// 这里是unit, 它身背一个所有可以看见它的玩家的列表,那么就可以如此调用,向所有可以看见它的玩家广播,就是广播给与他有关联,同一视野中的玩家        
         public static void Broadcast(Unit unit, IActorMessage message) {
             Dictionary<long, AOIEntity> dict = unit.GetBeSeePlayers();
             // 网络底层做了优化，同一个消息不会多次序列化: 这里注释仍是注释离底层原理千里之外,不明白他在说什么,还要细挖 

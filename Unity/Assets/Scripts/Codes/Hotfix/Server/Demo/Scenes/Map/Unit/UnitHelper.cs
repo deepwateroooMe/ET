@@ -33,7 +33,7 @@ namespace ET.Server {
             return unitInfo;
         }
         
-        // 获取看见unit的玩家，主要用于广播
+        // 获取看见unit的玩家，主要用于广播: 这里应该是说,获取所有可以看得见unit这个玩家的玩家,就是与当前这个有联系有关系,或同一地图确实可见的所有玩家,用于向这所有与他有关可以看见它的玩家广播
         public static Dictionary<long, AOIEntity> GetBeSeePlayers(this Unit self) {
             return self.GetComponent<AOIEntity>().GetBeSeePlayers();
         }

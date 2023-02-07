@@ -5,7 +5,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace ET {
 
     [Flags]
-    public enum EntityStatus: byte {
+    public enum EntityStatus: byte { // 它是用位来标记的,可能过程中某些地方相对能够提升一点儿速度.不是1 2 3 4 是 1 2 4 8 16
         None = 0,
         IsFromPool = 1,
         IsRegister = 1 << 1,
@@ -13,6 +13,11 @@ namespace ET {
         IsCreated = 1 << 3,
         IsNew = 1 << 4,
     }
+
+// ET中，所有数据都是Component，包括Entity，
+// Entity继承于ComponentWithId，ComponentWithId继承于Component，所以Entity本质上也是一个Component，只不过它可以挂载其它的Component。
+// 实际使用中你可以继承Component，ComponentWithId，Entity三者之一，区别是如果该类需要挂载组件则继承Entity，如果不需要挂载组件但是需要带个逻辑Id则继承ComponentWithId，剩下的继承Component。
+// ET的Entity是可以有数据成员的，通用的数据放在Entity身上作为成员，不太通用的数据可以作为组件挂在Entity身上。
 
     public partial class Entity: DisposeObject {
 #if ENABLE_VIEW && UNITY_EDITOR
@@ -597,7 +602,7 @@ namespace ET {
             T component = (T) Entity.Create(type, isFromPool);
             component.Id = IdGenerater.Instance.GenerateId();
             component.Parent = this;
-            EventSystem.Instance.Awake(component);
+            EventSystem.Instance.Awake(component); // 添加子Component组件的时候，自动调用了其Awake.具备嵌套性，若是该组件下有嵌套，相关的Awake会全部触发调用
             return component;
         }
         public T AddChild<T, A>(A a, bool isFromPool = false) where T : Entity, IAwake<A> {

@@ -37,7 +37,7 @@ namespace ET {
 // 这里不想读得太细了，简单把TCP弄懂，和它在框架中的前后上下文弄清楚就可以了    
     public class NetServices: Singleton<NetServices> {
 
-// 这里,为什么要管理, 主线程与异步线程? 回调的区分 ? 这个再好好想一下       
+// 这里,为什么要管理, 主线程与异步线程(它们回调,比如Update()的机理都不一样,调用时机好像与不一样)? 回调的区分 ? 网络调用有个方向问题： 有些是服务器回调给客户端,有些是客户端回调给服务器,这里还是没有想透,有点儿糊
         private readonly ConcurrentQueue<NetOperator> netThreadOperators = new ConcurrentQueue<NetOperator>();  // 网络线程
         private readonly ConcurrentQueue<NetOperator> mainThreadOperators = new ConcurrentQueue<NetOperator>(); // 主线程 
 
@@ -257,13 +257,12 @@ namespace ET {
             int count = this.queue.Count;
             while (count-- > 0) {
                 int serviceId = this.queue.Dequeue();
-                if (!this.services.TryGetValue(serviceId, out AService service)) { // AService: 是单例模式吗?
+                if (!this.services.TryGetValue(serviceId, out AService service)) { // 无效的,就从队列里清除了
                     continue;
                 }
-                this.queue.Enqueue(serviceId); // 不曾注册的,注册上
+                this.queue.Enqueue(serviceId); // 这里是轮循: 像Unity Component的Update()一样,就是调用了service.Update(),再把有效的serviceId给重新放回队列中去 
                 service.Update(); // <<<<<<<<<< 去找个实现方法,读一下
             }
-            
             this.RunNetThreadOperator();
         }
         public void OnAccept(int serviceId, long channelId, IPEndPoint ipEndPoint) {

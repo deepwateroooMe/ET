@@ -30,6 +30,7 @@ namespace ET.Server {
         
         public static Process StartProcess(int processId, int createScenes = 0) {
             StartProcessConfig startProcessConfig = StartProcessConfigCategory.Instance.Get(processId);
+// 下面的,就跟我昨天上午从emacs 中配置:  用VSCode打开当前emacs buffer文件并定位到某行某列是一样的,配置命令行工具,配置命令名称,参数等,用于执行服务器分区分服 某台特殊参数配置的 服务器的开启
             const string exe = "dotnet";
             string arguments = $"App.dll" + 
                 $" --Process={startProcessConfig.Id}" +

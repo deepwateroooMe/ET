@@ -1,4 +1,4 @@
-% Created 2023-01-25 Wed 22:29
+% Created 2023-01-27 Fri 11:58
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage{minted}
@@ -862,5 +862,77 @@ public partial class StartProcessConfig {
 \end{itemize}
 \section{HotfixView程序域: 先看这部分,这里面的大部分的源码都还比较简单}
 \label{sec-21}
+\begin{itemize}
+\item 应快把样例工程中的源码爬一遍
+\item 现在基本的原理能够懂得: 把大的版块基本能够看得懂的地方看懂,也稍微总结一下.不懂的地方就用安卓应用快速地整几个应用来测试掌握一下
+\item \textbf{Awake, Load, Update, LateUpdate, Destroy:} 这个系统最简单,无处不在,类似Unity3d的组件，ET框架也提供了组件事件，例如Awake，Start，Update等。要给一个Component或者Entity加上这些事件，必须写一个辅助类。
+\item ET中大致类等的特点总结：
+\begin{itemize}
+\item Entity：对应一个真实物体（至少也是一个逻辑实体）。特征：一定有一个代表这个实体的唯一Id。
+\item Component:一个实体针对某个特定片面的状态数据，比如位置数据。注意，要求只有数据不能有函数（基本的get,set类函数可以包含）
+\item System：对Entity中某些Component进行计算和更改的方法集合
+\item Utility函数：如果System之间相互依赖某些函数，则需要把这些函数提取为工具函数。也就是说，所有System之间需要确保不要太多相互依赖。
+\item 单例Component：如果某个状态是全局的，而不是和某个具体实体相关的，则需要提取
+\end{itemize}
+\end{itemize}
+
+\section{消息机制的原理，类图，总体概念理解}
+\label{sec-22}
+\begin{itemize}
+\item \url{https://www.jianshu.com/p/f2ecf148bc2f}
+\end{itemize}
+\subsection{消息分类}
+\label{sec-22-1}
+
+\includegraphics[width=.9\linewidth]{./pic/readme_20230127_113555.png}
+\begin{itemize}
+\item 消息按照因果关系分类，可以分为Request和Response，当然也有直接继承至Message的，表示我这个消息发出去后我就不care了。Request和Response是成对的，我发了一个Request，你必须回我一个对应的Response消息。
+\item 消息还可以按照类型分类，基本分为两大类，一般消息和Actor消息。Actor消息可以认为是战斗相关消息，战斗unit和玩家client之间发送的都是Actor消息，比如帧同步消息（AFrameMessage）就是一种ActorMessage，其他的都可以认为是一般消息，比如登陆，创角等。
+\item Actor相关的消息在服务器间相互转发的时候，会被包装一下。想象一下，一个Client与GateServer之间的通信，消息里面是不用带玩家角色Id的，我们之间的Session对象就表明了我的身份。但是GateServe把这个消息转发给MapServer的时候，消息就得包装一下，带上UnitId的信息，这样MapServer收到这个消息后才知道是那个玩家发过来的。包装actor消息包括ActorRequest和ActorRPCRequest，AActorMessage不需要回复，就包装在ActorRequest中，而AActorRequest需要回复，包装在ActorRPCRequest中。所以ActorRequest和ActorRPCRequest包括他们的回复消息只在服务器之间传送Actor消息的时候用。
+\item 其实按照消息的路径，还可以把消息分为内部消息和外部消息，内部就是服务器内部之间发送的，外部则是负责服务器和客户端通信的。在ET中，有InnerMessage和OuterMessage两个文件，里面定义的消息就分别是内部和外部消息。只有Realm服务器和Gate服务器有NetOuterComponent，可以与客户端通信，其他服务器都只有NetInnerComponent，Realm服务器作为初始登陆服务器，负责分配Gate服务器给玩家，之后玩家都直接与Gate服务器通信，之后其他服务器都通过Gate服务器与玩家通信。
+\end{itemize}
+
+\subsection{ET 消息流程}
+\label{sec-22-2}
+
+\includegraphics[width=.9\linewidth]{./pic/readme_20230127_113503.png}
+\begin{itemize}
+\item 这里面弄清了几个原则，基本就清楚了消息的处理原则：
+\item 1：Gate服务器既需要与客户端通信，也需要与其他服务器通信。所以需要同时拥有NetOuterComponent和NetInnerComponent。
+\item 2：Map服务器不直接与客户端通信，需要通过Gate服务器转发，所以只有NetInnerComponent。
+\item 3：客户端发送给Gate服务器的消息，都是通过NetOuterComponent走的，所以Actor消息都是AActorMessage或者AActorRequest类型（因为Gate服务器上接收消息的Session就表明了客户端的身份），而这些Actor消息是需要转发给Map服务器的，Gate服务器和每个Map服务器之间都只有一个Session（属于NetInnerComponent），所有Actor消息都通过这个Session发送，所以Actor消息在这里需要包装成ActorRequest或者ActorRpcRequest消息，带actorId，Map服务器接收到这个消息后通过actorId才知道交给哪个Actor处理。
+\item 4：Map服务器发送给Gate服务器的ActorRequest或者ActorRpcRequest消息，Gate服务器只需要把包装里面的AMessage发送给对应的客户端即可。
+\item 这里加个链接：latex graphcs .9倍的图片宽度，修改的话可以尝试：\url{https://tex.stackexchange.com/questions/439918/set-default-value-for-max-width-of-includegraphics}
+\end{itemize}
+\subsection{这里，我在讲一下我自己的理解，方便看完后还是一脸懵逼的同学理解。}
+\label{sec-22-3}
+\begin{itemize}
+\item 我们先别管那些类，我们先想想，我们需要发送的消息，都是些什么？
+\begin{itemize}
+\item 1. 客户端发送给服务器的消息
+\item 1. 不需要与其他服务器通信（普通消息）
+\item 1. 不需要返回结果（普通的普通消息）
+\item 2. 需要返回结果（普通的RPC消息）
+\item 2. 需要与其他服务通信（Actor消息）
+\item 1. 不需要返回结果（普通的Actor消息）
+\item 2. 需要返回结果（Actor RPC消息）
+\item 2. 服务器发送给客户端的消息
+\item 1. 返回客户端请求的消息（根据客户端的请求消息类型发送对应的回复类型）
+\item 2. 主动发送的消息，比如帧同步消息。
+\end{itemize}
+\item 以上的属于服务端与客户端之间的消息类型，皆属于OuterMessage。（外部消息）
+\item 3. 服务器与其他服务器对话的消息（属于内部消息InnerMessage，且是Actor消息）
+\begin{itemize}
+\item 1. 需要返回结果（Actor RPC消息）
+\item 2. 不需要返回结果（普通的Actor消息）
+\end{itemize}
+\item 这里大家可以想象一下，服务器接收到其他服务器传来的Actor消息，其实就像是收到客户端传来的普通消息一样。所以InnerMessageDispatcher就没有必要再把消息发送给其他服务器上处理。
+\item 简单的说，就是这样。
+\begin{itemize}
+\item 普通消息只要发送给一个服务器就能得到结果
+\item actor消息可能得通过其他服务器才能得到结果
+\item actor消息又分actor rpc消息，rpc消息会返回结果。
+\end{itemize}
+\end{itemize}
 % Emacs 27.2 (Org mode 8.2.7c)
 \end{document}

@@ -46,7 +46,7 @@ namespace ET
         }
 
         public async ETTask<CoroutineLock> Wait(int coroutineLockType, long key, int time = 60000)
-        {
+        { // 默认1 分钟
             CoroutineLockQueueType coroutineLockQueueType = this.list[coroutineLockType];
             return await coroutineLockQueueType.Wait(key, time);
         }
