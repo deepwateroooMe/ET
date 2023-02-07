@@ -1,4 +1,4 @@
-% Created 2023-01-24 Tue 19:12
+% Created 2023-01-25 Wed 11:09
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage{minted}
@@ -200,7 +200,7 @@
 
 \includegraphics[width=.9\linewidth]{./pic/readme_20230124_111807.png}
 
-\section{Bson 序列化与反序列化: Core/MongoHelper.cs}
+\section{Bson 序列化与反序列化: Core/MongoHelper.cs 零碎的知识点大概总结在这些部分}
 \label{sec-5}
 \begin{itemize}
 \item Mongo Bson非常完善，是我见过功能最全使用最强大的序列化库，有些功能十分贴心。其支持功能如下：
@@ -257,8 +257,16 @@ BsonSerializer.RegisterSerializer(new EnumSerializer<NumericType>(BsonType.Strin
 \item 这样完全的自动化注册，使用者也不需要关系类是否注册。
 \item 这里还有点儿别的比较有价值的，但是今天没有看完：\url{https://www.kktoo.com/wiki/etnotes/chapter1/3.2\%E5\%BC\%BA\%E5\%A4\%A7\%E7\%9A\%84MongoBson\%E5\%BA\%93.html}  就是感觉要看ET框架中的源码，看正看明白了才会懂，现在看剩下的部分仍然是不懂（改天再看）
 \end{itemize}
-\section{Init.cs: 程序真正的入口}
+\section{BuildModelAndHotfix: 一定要构建生成热更新程序集，项目狠大，两个程序集的内容没能消化好}
 \label{sec-6}
+
+\includegraphics[width=.9\linewidth]{./pic/readme_20230125_103303.png}
+\begin{itemize}
+\item 它有几种不同的启动模式，可以再具体区分一下
+\item 下面是根据范例加载过程的追踪来理解这么多个工程。自己项目的热更新等程序集都能弄懂并解决所有的问题。但是这个项目太大，感觉现在仍然有点儿无从下口的状态。。。。。
+\end{itemize}
+\section{Init.cs: 程序真正的入口}
+\label{sec-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class Init: MonoBehaviour {
 
@@ -303,7 +311,7 @@ public class Init: MonoBehaviour {
 }
 \end{minted}
 \section{Game.cs: 这个类会涉及到一些生命周期的管理等}
-\label{sec-7}
+\label{sec-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class Game {
     [StaticField]
@@ -412,7 +420,7 @@ public static class Game {
 }
 \end{minted}
 \section{CodeLoader.cs: 加载热更新等各种程序集}
-\label{sec-8}
+\label{sec-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class CodeLoader: Singleton<CodeLoader> {
 
@@ -478,7 +486,7 @@ public class CodeLoader: Singleton<CodeLoader> {
 }
 \end{minted}
 \section{Entry.cs: Assets/Scripts/Codes/Model/Share/Entry.cs 不是真正的入口}
-\label{sec-9}
+\label{sec-10}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET {
 
@@ -518,7 +526,333 @@ namespace ET {
     }
 }
 \end{minted}
-\section{}
-\label{sec-10}
+\section{Root.cs UI 的启动过程}
+\label{sec-11}
+
+\includegraphics[width=.9\linewidth]{./pic/readme_20230125_092445.png}
+\section{配置文件的加载过程:  就接上了ConfigComponent ?}
+\label{sec-12}
+\begin{itemize}
+\item 在加载完服务端的Hotfix和Model的dll后，开始后面就是开始读取服务端的配置，并根据配置加载相应的组件。
+\item 服务端的配置的读取方法使用的是CommandLine，该类用于读取命令行输入，并且将输入参数解析成Options类，存放在OptionComponent组件里面。[这里面的步骤还没有找]
+\item 这里的参数来自客户端的配置文件，在Config$\backslash$StartConfig目录下。
+\item 配置的读取是从客户端猫大写的工具里面读取的，具体在ServerCommandLineEditor类里面。
+\end{itemize}
+\section{ServerCommandLineEditor.cs:}
+\label{sec-13}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+  public enum DevelopMode {
+      正式 = 0,
+      开发 = 1,
+      压测 = 2,
+  }
+  public class ServerCommandLineEditor: EditorWindow {
+      [MenuItem("ET/ServerTools")]
+      public static void ShowWindow() {
+          GetWindow<ServerCommandLineEditor>(DockDefine.Types);
+      }
+      private int selectStartConfigIndex = 1;
+      private string[] startConfigs;
+      private string startConfig;
+      private DevelopMode developMode;
+
+      public void OnEnable() {
+          DirectoryInfo directoryInfo = new DirectoryInfo("../Config/Excel/s/StartConfig");
+          this.startConfigs = directoryInfo.GetDirectories().Select(x => x.Name).ToArray();
+      }
+
+      public void OnGUI() {
+          selectStartConfigIndex = EditorGUILayout.Popup(selectStartConfigIndex, this.startConfigs);
+          this.startConfig = this.startConfigs[this.selectStartConfigIndex];
+          this.developMode = (DevelopMode) EditorGUILayout.EnumPopup("起服模式：", this.developMode);
+          string dotnet = "dotnet.exe";
+#if UNITY_EDITOR_OSX
+          dotnet = "dotnet";
+#endif
+          if (GUILayout.Button("Start Server(Single Process)")) {
+              string arguments = $"App.dll --Process=1 --StartConfig=StartConfig/{this.startConfig} --Console=1";
+              ProcessHelper.Run(dotnet, arguments, "../Bin/");
+          }
+          if (GUILayout.Button("Start Watcher")) {
+              string arguments = $"App.dll --AppType=Watcher --StartConfig=StartConfig/{this.startConfig} --Console=1";
+              ProcessHelper.Run(dotnet, arguments, "../Bin/");
+          }
+          if (GUILayout.Button("Start Mongo")) {
+              ProcessHelper.Run("mongod", @"--dbpath=db", "../Database/bin/");
+          }
+      }
+  }
+\end{minted}
+\begin{itemize}
+\item 感觉上面的配置类的定义,仍然是看得不明不白,看来这里得加把劲儿了
+\item 启动服务器的时候，传递的参数如下：
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+string arguments = $"App.dll --appId={startConfig.AppId} --appType={startConfig.AppType} --config=../Config/StartConfig/{this.fileName}";
+ProcessStartInfo info = new ProcessStartInfo("dotnet", arguments) { UseShellExecute = true, WorkingDirectory = @"../Bin/" };
+\end{minted}
+\begin{itemize}
+\item 读取完配置后，将配置保存在StartConfigComponent组件里面，该组件在初始化时会根据配置的情况，分门别类将配置内容存进行缓存。接下来就是添加网络相关的组件OpcodeTypeComponent和MessageDispatherComponent组件，具体可看这篇文章《ET框架学习——OpcodeTypeComponent组件和MessageDispatherComponent组件》。\url{https://blog.csdn.net/Tong1993222/article/details/86600357}
+\item 最后就是根据配置的AppType类型，添加对应的组件，这里我选择的是AllServer类型，所有相关组件都会添加，具体可以参看源码。
+\item 当前链接: \url{https://blog.csdn.net/Tong1993222/article/details/88990234}
+\item 下面是自己的理解: 程序最开始加载程序集的时候,或是某个什么地方(没能理解透彻),会自动扫描程序集中的带配置标签的配置,进行配置
+\end{itemize}
+\section{ConfigComponent.cs: Config组件会扫描所有的有ConfigAttribute标签的配置,加载进来}
+\label{sec-14}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// Config组件会扫描所有的有ConfigAttribute标签的配置,加载进来
+public class ConfigComponent: Singleton<ConfigComponent> {
+
+    public struct GetAllConfigBytes {
+    }
+    public struct GetOneConfigBytes {
+        public string ConfigName;
+    }
+    private readonly Dictionary<Type, ISingleton> allConfig = new Dictionary<Type, ISingleton>();
+
+    public override void Dispose() {
+        foreach (var kv in this.allConfig) {
+            kv.Value.Destroy();
+        }
+    }
+    public object LoadOneConfig(Type configType) {
+        this.allConfig.TryGetValue(configType, out ISingleton oneConfig);
+        if (oneConfig != null) {
+            oneConfig.Destroy();
+        }
+        byte[] oneConfigBytes = EventSystem.Instance.Invoke<GetOneConfigBytes, byte[]>(0, new GetOneConfigBytes() {ConfigName = configType.FullName});
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length);
+        ISingleton singleton = category as ISingleton;
+        singleton.Register();
+            
+        this.allConfig[configType] = singleton;
+        return category;
+    }
+        
+    public void Load() {
+        this.allConfig.Clear();
+        Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(0, new GetAllConfigBytes());
+        foreach (Type type in configBytes.Keys) {
+            byte[] oneConfigBytes = configBytes[type];
+            this.LoadOneInThread(type, oneConfigBytes);
+        }
+    }
+        
+    public async ETTask LoadAsync() {
+        this.allConfig.Clear();
+        Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(0, new GetAllConfigBytes());
+        using ListComponent<Task> listTasks = ListComponent<Task>.Create();
+            
+        foreach (Type type in configBytes.Keys) {
+            byte[] oneConfigBytes = configBytes[type];
+            Task task = Task.Run(() => LoadOneInThread(type, oneConfigBytes)); // <<<<<<<<<<<<<<<<<<<< 
+            listTasks.Add(task);
+        }
+        await Task.WhenAll(listTasks.ToArray());
+        foreach (ISingleton category in this.allConfig.Values) {
+            category.Register();
+        }
+    }
+        
+    private void LoadOneInThread(Type configType, byte[] oneConfigBytes) {
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length); // <<<<<<<<<<<<<<<<<<<< 
+        lock (this) {
+            this.allConfig[configType] = category as ISingleton;    
+        }
+    }
+}
+\end{minted}
+\section{ConfigAttribute.cs: 就是空定义,用来标注这个标签就可以了}
+\label{sec-15}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[AttributeUsage(AttributeTargets.Class)]
+public class ConfigAttribute: BaseAttribute {
+}
+\end{minted}
+\begin{itemize}
+\item 上面的不是是扫描配置标签吗，扫描完了就根据配置标签来配置呀
+\end{itemize}
+\section{StartProcessConfig: ProtoObject, IConfig}
+\label{sec-16}
+\begin{itemize}
+\item 这些自动生成的文件，还没有搞明白：为什么它们是自动生成的？为什么要把配置的过程定义成自动生成？一类配置自动生成的方法定义，在这个框架中有什么好处？可以提精提纯简化这类标签配置的源码吗？
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+  [ProtoContract]
+[Config]
+public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
+    [ProtoIgnore]
+    [BsonIgnore]
+    private Dictionary<int, StartProcessConfig> dict = new Dictionary<int, StartProcessConfig>();
+
+    [BsonElement]
+    [ProtoMember(1)]
+    private List<StartProcessConfig> list = new List<StartProcessConfig>();
+
+    public void Merge(object o) {
+        StartProcessConfigCategory s = o as StartProcessConfigCategory;
+        this.list.AddRange(s.list);
+    }
+
+    [ProtoAfterDeserialization]        
+    public void ProtoEndInit() {
+        foreach (StartProcessConfig config in list) {
+            config.AfterEndInit();
+            this.dict.Add(config.Id, config);
+        }
+        this.list.Clear();
+
+        this.AfterEndInit();
+    }
+
+    public StartProcessConfig Get(int id) {
+        this.dict.TryGetValue(id, out StartProcessConfig item);
+        if (item == null) {
+            throw new Exception($"配置找不到，配置表名: {nameof (StartProcessConfig)}，配置id: {id}");
+        }
+        return item;
+    }
+
+    public bool Contain(int id) {
+        return this.dict.ContainsKey(id);
+    }
+    public Dictionary<int, StartProcessConfig> GetAll() {
+        return this.dict;
+    }
+    public StartProcessConfig GetOne() {
+        if (this.dict == null || this.dict.Count <= 0) {
+            return null;
+        }
+        return this.dict.Values.GetEnumerator().Current;
+    }
+}
+
+[ProtoContract]
+public partial class StartProcessConfig: ProtoObject, IConfig {
+    // <summary>Id</summary>
+    [ProtoMember(1)]
+    public int Id { get; set; }
+    // <summary>所属机器</summary>
+    [ProtoMember(2)]
+    public int MachineId { get; set; }
+    // <summary>内网端口</summary>
+    [ProtoMember(3)]
+    public int InnerPort { get; set; }
+}
+\end{minted}
+\end{itemize}
+\section{partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge}
+\label{sec-17}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ProtoContract]
+[Config]
+public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
+    [ProtoIgnore]
+    [BsonIgnore]
+    private Dictionary<int, StartProcessConfig> dict = new Dictionary<int, StartProcessConfig>();
+
+    [BsonElement]
+    [ProtoMember(1)]
+    private List<StartProcessConfig> list = new List<StartProcessConfig>();
+
+    public void Merge(object o) {
+        StartProcessConfigCategory s = o as StartProcessConfigCategory;
+        this.list.AddRange(s.list);
+    }
+
+    [ProtoAfterDeserialization] // 它说这里就是提供的狠好用的接口，方便在反序列化之后进行什么必要的操作       
+    public void ProtoEndInit() {
+        foreach (StartProcessConfig config in list) {
+            config.AfterEndInit(); // <<<<<<<<<<<<<<<<<<<< 
+            this.dict.Add(config.Id, config);
+        }
+        this.list.Clear();
+
+        this.AfterEndInit();
+    }
+
+    public StartProcessConfig Get(int id) {
+        this.dict.TryGetValue(id, out StartProcessConfig item);
+        if (item == null) {
+            throw new Exception($"配置找不到，配置表名: {nameof (StartProcessConfig)}，配置id: {id}");
+        }
+        return item;
+    }
+
+    public bool Contain(int id) {
+        return this.dict.ContainsKey(id);
+    }
+    public Dictionary<int, StartProcessConfig> GetAll() {
+        return this.dict;
+    }
+    public StartProcessConfig GetOne() {
+        if (this.dict == null || this.dict.Count <= 0) {
+            return null;
+        }
+        return this.dict.Values.GetEnumerator().Current;
+    }
+}
+\end{minted}
+\section{StartProcessConfig.cs:}
+\label{sec-18}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public partial class StartProcessConfig {
+
+    private IPEndPoint innerIPPort;
+    public long SceneId;
+
+    public IPEndPoint InnerIPPort {
+        get {
+            if (this.innerIPPort == null) {
+                this.innerIPPort = NetworkHelper.ToIPEndPoint($"{this.InnerIP}:{this.InnerPort}");
+            }
+            return this.innerIPPort;
+        }
+    }
+
+    public string InnerIP => this.StartMachineConfig.InnerIP;
+    public string OuterIP => this.StartMachineConfig.OuterIP;
+    public StartMachineConfig StartMachineConfig => StartMachineConfigCategory.Instance.Get(this.MachineId);
+
+    public override void AfterEndInit() {
+        InstanceIdStruct instanceIdStruct = new InstanceIdStruct((int)this.Id, 0);
+        this.SceneId = instanceIdStruct.ToLong();
+        Log.Info($"StartProcess info: {this.MachineId} {this.Id} {this.SceneId}");
+    }
+}
+\end{minted}
+\begin{itemize}
+\item 不知道今天上午用VSC出什么问题，程序跑不通了，等再关几个窗口，重新运行得通的时候才可以再追踪日志，先等等
+\end{itemize}
+
+\section{后面消息处理的部分大致逻辑：《参考网上的：可对对照源码，把它不懂的也解惑了。。。》}
+\label{sec-19}
+\begin{itemize}
+\item 在消息处理这方面，它的逻辑是这样的，
+\item \url{https://blog.csdn.net/qq_33574890/article/details/128244264?spm=1001.2101.3001.6650.3&utm_medium=distribute.pc_relevant.none-task-blog-2\%7Edefault\%7EYuanLiJiHua\%7EPosition-3-128244264-blog-88990234.pc_relevant_aa2&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2\%7Edefault\%7EYuanLiJiHua\%7EPosition-3-128244264-blog-88990234.pc_relevant_aa2&utm_relevant_index=4} 大家最开始也都同我一样，一知半解的，总有个熟悉的过程
+\item\relax [与自己项目的本区别：] 自己的不是网络游戏，手游移动端，不是实现游戏模型逻辑的部分热更新，而是游戏的全部逻辑除了游戏入口在正常游戏程序域，其它都可以都全部放入了热更新程序域。所以自己的热更新并不涉及任何游戏过程逻辑与游戏逻辑服的交互，简化了无限多的大型网络游戏的逻辑模型热更新的步骤。下面ET框架更多的是用于大型网游的吧。。。。。
+\item 在点击进入地图的按钮之后他会发送一个消息到服务器，服务器会发送一个玩家ID回来(这些都是，游戏过程中，一个客户端与游戏逻辑服的《实时？异步］交互)
+\item 这个玩家ID就是客户端的唯一标识
+\item 在收到服务器的回复消息时，再发送一个创建Unit的内部消息
+\item 这个内部消息的处理者会创建这个Unit并进行广播，为什么要广播，不是很懂》［不是要适配大型多人网络游戏吗，不广播新的玩家进来了，其它玩家如何知晓呢］？为什么不用事件而要用内部消息也很奇怪《事件系统可以区分不同玩家吗？消息机制可以跨进程，可以这个玩家发给同区不同区其它玩家跟发短信一样，广播消息都都用actor消息机制吗？为什么要用事件系统，事件系统定义了玩家生成，玩家步移，玩家跳动跑动，玩家打架，玩家失血，玩家挂掉了吗？本质上讲应该似乎两种都可以，但消息机制可能更为简单广泛通用？》？
+\item 在创建Unit的时候在他身上挂载了寻路组件和移动组件(如果是事件系统，就只有玩家生成，与玩家移动两个事件了吗？最主要的，事件系统是否定义了关于玩家这些逻辑的所有相关功能模块？没有，上面就是消息机制最为简单)。
+\item 而游戏场景里面有一个OperaCompoent，这个组件会实时监听按键的点击并且将点击的位置发送给服务器，服务器再传送回客户端
+\item 这边也挺奇怪的，[不奇怪，实现的是功能逻辑的元件组件化，可装载可卸载，相对更容易理解与精减维护源码]
+\item 客户端这边接收ClickMapActor消息后解析位置，调用unit的Path组件进行移动。大体流程就是这样。
+\item 但其实这样很不连贯，我发送一个消息，应该await等待获得消息，然后再做处理，这样就弄的 *很分散不够集中*[这个是说得很精准，以致于我现在入口加载都找上几十个文件弱弱拎不清楚。。。。。]
+\end{itemize}
+
+\section{事件处理}
+\label{sec-20}
+\begin{itemize}
+\item ET的所有逻辑全部用事件来处理了
+\item 这带来一个坏处，就是没办法高内聚。《为什么要高内聚呢？本来目的出发点就是要低内聚，减少功能模块逻辑的偶合decoupling呀》
+\item 本来属于一个业务模型里面的逻辑，通过事件分散到了两到三个脚本里面。增加了阅读难度和上下连贯性。《这是如亲爱的表哥眼中的弱弱活宝妹般，小弱弱们读大型多人网络游戏框架的必经之痛，都得有这个过程》
+\item 单纯举例来说，游戏初始化后发送了InitScenFinish事件。
+\item UI处理模块接收到事件创建UI物体并显示
+\item 在各个UI单独的组件比如LoginCom和LobbyCom里面进行UI逻辑撰写即并绑定事件
+\item 他把本属于Model层的代码全部写进了静态类Helper里面来调用。《是这样吗？？？》
+\item 也就是说View层直接调用了Model层代码。其实这样就强耦合了。《以小人之心度君子之腹，明明你自己也承认是帮助类，帮助类就不该是模型逻辑层？!在如亲爱的表哥眼中的活宝妹般弱弱的年代，这类错误概念设计上的理解，都是小弱弱们的辛酸泪，成长的代价。。。。。爱表哥，爱生活!!!》
+\item 直接调用MapHelper
+\end{itemize}
 % Emacs 27.2 (Org mode 8.2.7c)
 \end{document}

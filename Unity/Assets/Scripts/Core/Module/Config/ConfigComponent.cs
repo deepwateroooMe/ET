@@ -13,7 +13,7 @@ namespace ET {
             public string ConfigName;
         }
         private readonly Dictionary<Type, ISingleton> allConfig = new Dictionary<Type, ISingleton>();
-
+ 
 		public override void Dispose()
 		{
 			foreach (var kv in this.allConfig)
