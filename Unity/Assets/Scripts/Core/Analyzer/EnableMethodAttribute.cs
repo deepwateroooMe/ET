@@ -8,6 +8,5 @@ namespace ET
     [AttributeUsage(AttributeTargets.Class, Inherited = false)]
     public class EnableMethodAttribute : Attribute
     {
-        
     }
 }

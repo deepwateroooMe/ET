@@ -12,7 +12,7 @@ namespace ET
     {
         public Type Type;
 
-        public ComponentOfAttribute(Type type = null)
+        public ComponentOfAttribute(Type type = null) 
         {
             this.Type = type;
         }
