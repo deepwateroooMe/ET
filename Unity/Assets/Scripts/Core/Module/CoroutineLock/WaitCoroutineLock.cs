@@ -12,7 +12,8 @@ namespace ET {
             waitCoroutineLock.SetException(new Exception("coroutine is timeout!"));
         }
     }
-    
+
+    // 包含一个ETTask<CoroutineLock> Tcs;一个表示超时时间的Time。其中TCS用于其他类获取协程锁时，用于异步等待的类Task对象。
     public class WaitCoroutineLock {
 
         public static WaitCoroutineLock Create() {
@@ -20,7 +21,7 @@ namespace ET {
             waitCoroutineLock.tcs = ETTask<CoroutineLock>.Create(true);
             return waitCoroutineLock;
         }
-        
+        // 包含一个ETTask<CoroutineLock> Tcs;一个表示超时时间的Time。其中TCS用于其他类获取协程锁时，用于异步等待的类Task对象。
         private ETTask<CoroutineLock> tcs;
 
         public void SetResult(CoroutineLock coroutineLock) {
