@@ -110,7 +110,95 @@
 - 上面是别人总结出来的大框架, 现在看仍是如云里雾里.项目是可以运行起来,并有demo小项目可以参考的
 - 可以根据上面的步骤与日志,把运行过程中的游戏端(ServerClient模式)游戏热更新Model.dll Hotfix.dll的源码看懂,弄明白这个框架是如何实现登录相关,以及必要的游戏逻辑服务器热更新的(如果有多余时间的话),应该就会对这个框架有相对更好的理解,可以考虑开始适配自己的简单服务器
 - 可以比较两种不同的启动模式有什么不同?
-- 先去找游戏客户端里,程序的入口是在哪里,逻辑如何连贯起来的?
+- 先去找游戏客户端里,程序的入口是在哪里,逻辑如何连贯起来的? 因为项目比较大,看一次不曾自己真正实现过,狠容易就看一次忘记一次,所以记好笔记狠重要
 - MangoDB 数据库的连接,要把这个配置好,才能真正理解这个框架与范例
   
 [[./pic/readme_20230124_111807.png]]
+
+* Entry.cs: Assets/Scripts/Codes/Model/Share/Entry.cs 不是真正的入口
+  #+BEGIN_SRC csharp
+namespace ET {
+
+    namespace EventType {
+        public struct EntryEvent1 {
+        }   
+        public struct EntryEvent2 {
+        } 
+        public struct EntryEvent3 {
+        } 
+    }
+
+// 这是程序的固定入口吗 ?  不是   
+    public static class Entry {
+        public static void Init() {
+        }
+        public static void Start() {
+            StartAsync().Coroutine();
+        }
+
+        private static async ETTask StartAsync() {
+            WinPeriod.Init(); // Windows平台 Timer Tick的时间精度设置
+            
+            MongoHelper.Init();   // MongoDB 数据库的初始化: 这里像是没作什么工程，但涉及类相关所有静态变量的初始化  
+            ProtobufHelper.Init();// 同上: 这个没有太细看，改天用到可以补上
+            
+            Game.AddSingleton<NetServices>(); // 网络连接初始化: 还没有理解透彻
+            Game.AddSingleton<Root>(); // 它说是，管理场景根节点的，没看
+            await Game.AddSingleton<ConfigComponent>().LoadAsync(); // Config组件会扫描所有的有ConfigAttribute标签的配置,加载进来
+
+            await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent1());
+            await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent2());
+            await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent3());
+        }
+    }
+}
+  #+END_SRC
+* Bson 序列化与反序列化: Core/MongoHelper.cs
+- Mongo Bson非常完善，是我见过功能最全使用最强大的序列化库，有些功能十分贴心。其支持功能如下：
+  - 支持复杂的继承结构
+  - 支持忽略某些字段序列化
+  - 支持字段默认值
+  - 结构多出多余的字段照样可以反序列化，这对多版本协议非常有用
+  - 支持ISupportInitialize接口使用，这个在反序列化的时候简直就是神器
+  - 支持文本json和二进制bson序列化
+  - MongoDB数据库支持
+- 这里看一个关于反序列化时的继承关系所涉及到的点:
+- 支持复杂的继承结构
+- mongo bson库强大的地方在于完全支持序列化反序列化继承结构。需要注意的是， *继承反序列化需要注册所有的父类* ，有两种方法： 
+- a. 你可以在父类上面使用[BsonKnownTypes]标签声明继承的子类，这样mongo会自动注册，例如:
+#+BEGIN_SRC csharp
+    [BsonKnownTypes(typeof(Entity))]
+    public class Component
+    {
+    }
+    [BsonKnownTypes(typeof(Player))]
+    public class Entity: Component
+    {
+    }
+    public sealed class Player: Entity
+    {
+        public long Id;
+
+        public string Account { get; set; }
+
+        public long UnitId { get; set; }
+    }
+#+END_SRC
+- 这样有缺陷，因为框架并不知道一个类会有哪些子类， *这样做对框架代码有侵入性，我们希望能解除这个耦合 。*
+- b. 可以扫描程序集中所有子类父类的类型，将他们注册到mongo驱动中
+#+BEGIN_SRC csharp
+Type[] types = typeof(Game).Assembly.GetTypes();
+foreach (Type type in types)
+{
+    if (!type.IsSubclassOf(typeof(Component)))
+    {
+        continue;
+    }
+
+    BsonClassMap.LookupClassMap(type); // <<<<<<<<<<<<<<<<<<<< 
+}
+BsonSerializer.RegisterSerializer(new EnumSerializer<NumericType>(BsonType.String));
+#+END_SRC
+- 这样完全的自动化注册，使用者也不需要关系类是否注册。    
+- 这里还有点儿别的比较有价值的，但是今天没有看完：https://www.kktoo.com/wiki/etnotes/chapter1/3.2%E5%BC%BA%E5%A4%A7%E7%9A%84MongoBson%E5%BA%93.html  就是感觉要看ET框架中的源码，看正看明白了才会懂，现在看剩下的部分仍然是不懂（改天再看）
+* Init.cs: 程序真正的入口
