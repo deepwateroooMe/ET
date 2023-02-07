@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ET.Client {
 
     [UIEvent(UIType.UILogin)]
-    public class UILoginEvent: AUIEvent { // A B C D
+    public class UILoginEvent: AUIEvent { // 实现抽象类的两个回调方法：在创建  和  销毁  之后，分别需要做些什么  ？  是回调 
 
         public override async ETTask<UI> OnCreate(UIComponent uiComponent, UILayer uiLayer) {
             await uiComponent.DomainScene().GetComponent<ResourcesLoaderComponent>().LoadAsync(UIType.UILogin.StringToAB());

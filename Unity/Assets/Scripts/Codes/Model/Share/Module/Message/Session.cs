@@ -85,7 +85,7 @@ namespace ET {
         }
         public static async ETTask<IResponse> Call(this Session self, IRequest request) {
             int rpcId = ++Session.RpcId;
-            RpcInfo rpcInfo = new RpcInfo(request);
+            RpcInfo rpcInfo = new RpcInfo(request); // 会把当前的网络申请  包装成一个  异步网络申请任务
             self.requestCallbacks[rpcId] = rpcInfo;
             request.RpcId = rpcId;
             self.Send(request);
@@ -98,7 +98,7 @@ namespace ET {
         public static void Send(this Session self, long actorId, IMessage message) {
             self.LastSendTime = TimeHelper.ClientNow();
             OpcodeHelper.LogMsg(self.DomainZone(), message);
-            NetServices.Instance.SendMessage(self.ServiceId, self.Id, actorId, message);
+            NetServices.Instance.SendMessage(self.ServiceId, self.Id, actorId, message); // 网络模块负责这些申请回调之类的
         }
     }
     

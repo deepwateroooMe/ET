@@ -307,10 +307,11 @@ namespace ET {
                 }
             }
         }
+// 我记得这里，自己好像是看过一遍的：        
         public void Load() {
             Queue<long> queue = this.queues[(int)InstanceQueueIndex.Load];
             int count = queue.Count;
-            while (count-- > 0) {
+            while (count-- > 0) {  // 它会把这个队列遍历一遍，清除掉过期不合法的，只保留当前有效的，
                 long instanceId = queue.Dequeue();
                 Entity component = Root.Instance.Get(instanceId);
                 if (component == null) {
@@ -324,7 +325,7 @@ namespace ET {
                     continue;
                 }
                 queue.Enqueue(instanceId);
-                foreach (ILoadSystem iLoadSystem in iLoadSystems) {
+                foreach (ILoadSystem iLoadSystem in iLoadSystems) { // 会把队列中当前的合法元素，作必要的加载
                     try {
                         iLoadSystem.Run(component);
                     }

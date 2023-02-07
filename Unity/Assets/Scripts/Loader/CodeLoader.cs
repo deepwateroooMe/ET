@@ -105,7 +105,7 @@ namespace ET {
             byte[] assBytes;
             byte[] pdbBytes;
             if (!Define.IsEditor) {
-                Dictionary<string, UnityEngine.Object> dictionary = AssetsBundleHelper.LoadBundle("code.unity3d");
+                Dictionary<string, UnityEngine.Object> dictionary = AssetsBundleHelper.LoadBundle("code.unity3d"); // 这里的文件位置关系或是资源包的名字还没有弄清楚
                 assBytes = ((TextAsset)dictionary["Hotfix.dll"]).bytes;
                 pdbBytes = ((TextAsset)dictionary["Hotfix.pdb"]).bytes;
             } else {

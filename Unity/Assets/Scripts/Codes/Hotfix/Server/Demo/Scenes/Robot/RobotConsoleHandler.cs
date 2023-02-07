@@ -1,54 +1,42 @@
 using System;
 using System.Reflection;
 
-namespace ET.Server
-{
+namespace ET.Server {
+
     [ConsoleHandler(ConsoleMode.Robot)]
-    public class RobotConsoleHandler: IConsoleHandler
-    {
-        public async ETTask Run(ModeContex contex, string content)
-        {
+    public class RobotConsoleHandler: IConsoleHandler {
+
+        public async ETTask Run(ModeContex contex, string content) {
             string[] ss = content.Split(" ");
-            switch (ss[0])
-            {
+            switch (ss[0]) {
                 case ConsoleMode.Robot:
                     break;
-
-                case "Run":
-                {
+                case "Run": {
                     int caseType = int.Parse(ss[1]);
-
-                    try
-                    {
+                    try {
                         RobotLog.Debug($"run case start: {caseType}");
                         await EventSystem.Instance.Invoke<RobotInvokeArgs, ETTask>(caseType, new RobotInvokeArgs() { Content = content });
                         RobotLog.Debug($"run case finish: {caseType}");
                     }
-                    catch (Exception e)
-                    {
+                    catch (Exception e) {
                         RobotLog.Debug($"run case error: {caseType}\n{e}");
                     }
                     break;
                 }
-                case "RunAll":
-                {
+                case "RunAll": {
                     FieldInfo[] fieldInfos = typeof (RobotCaseType).GetFields();
-                    foreach (FieldInfo fieldInfo in fieldInfos)
-                    {
+                    foreach (FieldInfo fieldInfo in fieldInfos) {
                         int caseType = (int)fieldInfo.GetValue(null);
-                        if (caseType > RobotCaseType.MaxCaseType)
-                        {
+                        if (caseType > RobotCaseType.MaxCaseType) {
                             RobotLog.Debug($"case > {RobotCaseType.MaxCaseType}: {caseType}");
                             break;
                         }
-                        try
-                        {
+                        try {
                             RobotLog.Debug($"run case start: {caseType}");
                             await EventSystem.Instance.Invoke<RobotInvokeArgs, ETTask>(caseType, new RobotInvokeArgs() { Content = content});
                             RobotLog.Debug($"---------run case finish: {caseType}");
                         }
-                        catch (Exception e)
-                        {
+                        catch (Exception e) {
                             RobotLog.Debug($"run case error: {caseType}\n{e}");
                             break;
                         }

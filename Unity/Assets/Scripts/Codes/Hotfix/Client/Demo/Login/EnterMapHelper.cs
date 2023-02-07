@@ -1,14 +1,10 @@
 using System;
 
+namespace ET.Client {
+    public static class EnterMapHelper {
 
-namespace ET.Client
-{
-    public static class EnterMapHelper
-    {
-        public static async ETTask EnterMapAsync(Scene clientScene)
-        {
-            try
-            {
+        public static async ETTask EnterMapAsync(Scene clientScene) {
+            try {
                 G2C_EnterMap g2CEnterMap = await clientScene.GetComponent<SessionComponent>().Session.Call(new C2G_EnterMap()) as G2C_EnterMap;
                 clientScene.GetComponent<PlayerComponent>().MyId = g2CEnterMap.MyId;
                 
@@ -17,10 +13,9 @@ namespace ET.Client
                 
                 EventSystem.Instance.Publish(clientScene, new EventType.EnterMapFinish());
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Log.Error(e);
-            }	
+            }    
         }
     }
 }
