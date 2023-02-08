@@ -24,7 +24,8 @@ namespace ET {
             
             Debug.Log("ReGenerateProjectFiles finished.");
         }
-        
+ // 为什么我的unity里没有出现这些菜单? 就是说这个项目，要么还没有适配到这个unity 版本，要么还没有适配好mac 系统，会给自己的参考运行带来狠大的困难
+ // 那么就现在，自己会的，系统上能够运行的，比如先前那个数据库相关的，这个总是可以连通的吧，然后再考虑补加其它的逻辑
 #if ENABLE_CODES
         [MenuItem("ET/ChangeDefine/Remove ENABLE_CODES")]
         public static void RemoveEnableCodes() {
