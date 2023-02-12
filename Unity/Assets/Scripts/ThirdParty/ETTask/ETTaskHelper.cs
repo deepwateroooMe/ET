@@ -10,7 +10,7 @@ namespace ET {
             }
             return self.IsDispose();
         }
-        
+        // 私有类： 这里没有看懂，不知道是什么意思  
         private class CoroutineBlocker {
 
             private int count; // 它标记的是什么,与下面链表大小没有关系 像是锁的层级 ?
@@ -128,16 +128,17 @@ namespace ET {
             }
             return !cancellationToken.IsCancel();
         }
+        // 不是很懂： 弄了个并不觉得意义很大的计数器，等待链表里的异步任务一个一个地完成，然后完成后续工作        
         public static async ETTask<bool> WaitAll(List<ETTask> tasks, ETCancellationToken cancellationToken = null) {
             if (tasks.Count == 0) {
                 return false;
             }
-            CoroutineBlocker coroutineBlocker = new CoroutineBlocker(tasks.Count + 1);
+            CoroutineBlocker coroutineBlocker = new CoroutineBlocker(tasks.Count + 1); // 感觉它更像是：c++指针的引用计数一样，帮助计算所有异步任务是否完成 ？
             foreach (ETTask task in tasks) {
                 RunOneTask(task).Coroutine();
             }
             await coroutineBlocker.WaitAsync();
-            async ETVoid RunOneTask(ETTask task) {
+            async ETVoid RunOneTask(ETTask task) { // 内部 异步调用方法
                 await task;
                 await coroutineBlocker.WaitAsync();
             }

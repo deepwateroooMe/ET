@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-namespace ET {
 
+namespace ET {
     public enum TimerClass {
         None,
         OnceTimer,
@@ -9,7 +9,6 @@ namespace ET {
     }
 
     public class TimerAction {
-
         public static TimerAction Create(long id, TimerClass timerClass, long startTime, long time, int type, object obj) {
             TimerAction timerAction = ObjectPool.Instance.Fetch<TimerAction>();
             timerAction.Id = id;
@@ -41,6 +40,7 @@ namespace ET {
     public struct TimerCallback {
         public object Args;
     }
+    // 这个时间组件： 最显著的作用就是，可能能够帮助同步客户端.因为不同的客户端因为桢率等不一样，狠可能不同客户端之间会相互失调，服务器就必须得帮助他们同步，？？？
     public class TimerComponent: Singleton<TimerComponent>, ISingletonUpdate {
         // key: time, value: timer id
         private readonly MultiMap<long, long> TimeId = new();
@@ -50,6 +50,7 @@ namespace ET {
         private long idGenerator;
         // 记录最小时间，不用每次都去MultiMap取第一个值
         private long minTime = long.MaxValue;
+
         private long GetId() {
             return ++this.idGenerator;
         }

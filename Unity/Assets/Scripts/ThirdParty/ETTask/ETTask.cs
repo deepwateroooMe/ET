@@ -12,7 +12,7 @@ namespace ET {
         
         public static ETTaskCompleted CompletedTask {
             get {
-                return new ETTaskCompleted();
+                return new ETTaskCompleted(); // 每次都来个新的，但是类共享，静态成员变量，无数次调用，还是可以会有无数个实例
             }
         }
         private static readonly Queue<ETTask> queue = new Queue<ETTask>();
@@ -50,8 +50,8 @@ namespace ET {
         
 // ETVoid: 这里这个ETVoid有个什么特别处理,区别于C#中的Void,为的是ET框架里对返回类型为Void的系统化管理, 要再理解一下
         [DebuggerHidden]
-        private async ETVoid InnerCoroutine() {
-            await this;
+        private async ETVoid InnerCoroutine() { // 这步封装：就能够帮助把没有返回值的异步任务与有返回值的异步任务统一化管理，简化源码，方便维护
+            await this; // 不太懂： 这里等的是，这个任务类的初始化（和所有相关必要的回调注册连接，任务完成特殊类等所有）工作完成？
         }
         [DebuggerHidden]
         public void Coroutine() {
@@ -103,7 +103,7 @@ namespace ET {
             }
             this.state = AwaiterStatus.Succeeded;
             Action c = this.callback as Action;
-            this.callback = null;
+            this.callback = null; // 这些置空的目的，应该是方便已经完成后的任务，的资源释放，回收到线程池.我怎么去找那些关于回收的部分的逻辑呢？
             c?.Invoke();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

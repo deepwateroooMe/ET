@@ -20,8 +20,8 @@ namespace ET {
     }
 
     public enum ServiceType {
-        Outer,
-        Inner,
+        Outer, // 对外的，比如客户端去连服务器
+        Inner, // 对内的，比如注册登录服连Realm 服等
     }
 
     public sealed class KService: AService {

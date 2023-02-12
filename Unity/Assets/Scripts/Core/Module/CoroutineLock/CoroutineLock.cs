@@ -11,7 +11,7 @@ namespace ET {
             CoroutineLock coroutineLock = ObjectPool.Instance.Fetch<CoroutineLock>();
             coroutineLock.type = type;
             coroutineLock.key = k;
-            coroutineLock.level = count; // 
+            coroutineLock.level = count; // 这个，会是表示超时吗？不太像
             return coroutineLock;
         }
         

@@ -12,7 +12,7 @@ namespace ET {
             // 这里不用hash，数量比较少，直接for循环速度更快 [因为长度只有 4 ]
             public readonly bool[] QueueFlag = new bool[(int)InstanceQueueIndex.Max];
         }
-        // 双端 类型管理系统:　服务端客户端
+        // 类型管理系统: 服务端与客户端双端都用的，客户端有不同的实现逻辑（好像是把程序域里所有的类型，都分类管理在几个不同的字典里面）
         private class TypeSystems {
             private readonly Dictionary<Type, OneTypeSystems> typeSystemsMap = new(); // Dic [Type, Map/QueueFlag ]
             public OneTypeSystems GetOrCreateOneTypeSystems(Type type) {
@@ -45,7 +45,7 @@ namespace ET {
         private class EventInfo {
 
             public IEvent IEvent { get; } // Type
-            public SceneType SceneType {get; } // 情境 上下文标记 
+            public SceneType SceneType {get; } // 服务器端： 主要是根据不同服务器或是连接的客户端等的场景（使用上下文类型）类型来管理相应的事件
 
             public EventInfo(IEvent iEvent, SceneType sceneType) {
                 this.IEvent = iEvent;

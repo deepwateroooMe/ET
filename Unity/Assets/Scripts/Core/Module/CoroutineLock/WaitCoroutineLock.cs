@@ -14,6 +14,7 @@ namespace ET {
     }
 
     // 包含一个ETTask<CoroutineLock> Tcs;一个表示超时时间的Time。其中TCS用于其他类获取协程锁时，用于异步等待的类Task对象。
+    // 上面的，应该是看的其它什么地方的参考：这里并没有找到有什么表示设置超时，计算什么时间超时的逻辑
     public class WaitCoroutineLock {
 
         public static WaitCoroutineLock Create() {

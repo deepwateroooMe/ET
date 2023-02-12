@@ -2,10 +2,17 @@ using System;
 using System.Collections.Generic;
 namespace ET {
 
+    // 协程锁： 就像是多线程操作为保证线程安全，使用线程锁一样.在协程里，因为异步编程总会引起逻辑上一些先后关系给破坏掉了。为了保证逻辑上先后关系 引入协程锁。就跟线程的lock一样
+    // 增加协程锁组件，locationComponent跟actor都使用协程锁来实现队列机制，代码大大简化，并且非常好懂。让消息可以队列处理而已
+    // 协程锁原理很简单，同一个key只有一个协程能执行，其它同一个key的协程将队列，这个协程执行完会唤醒下一个协程。
+    //     协程锁是个非常方便的组件，比如服务端在处理登录或者下线过程中，每个异步操作都可能同一个账号会再次登录上来，
+    //     逻辑十分复杂，我们会希望登录某部分异步操作是原子操作，账号再次登录要等这个原子操作完成才能执行，
+    //     这样登录或者下线过程逻辑复杂度将会简化十倍以上。    
     public class CoroutineLockComponent: Singleton<CoroutineLockComponent>, ISingletonUpdate {
+
         // 主要封装一个List<CoroutineLockQueueType> list按照CoroutineLockType类型，对应存放每一个CoroutineLockQueueType。
         // 内部还增加了用于协程超时的各种超时相关的数据结构：MultiMap<long, CoroutineLockTimer> timers，Queue<long> timeOutIds，Queue<CoroutineLockTimer> timerOutTimer
-    private readonly List<CoroutineLockQueueType> list = new List<CoroutineLockQueueType>(CoroutineLockType.Max);
+        private readonly List<CoroutineLockQueueType> list = new List<CoroutineLockQueueType>(CoroutineLockType.Max);
         private readonly Queue<(int, long, int)> nextFrameRun = new Queue<(int, long, int)>();
 
         public CoroutineLockComponent() {
