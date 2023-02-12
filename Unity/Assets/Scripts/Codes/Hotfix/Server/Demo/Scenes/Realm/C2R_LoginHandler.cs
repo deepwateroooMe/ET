@@ -14,6 +14,7 @@ namespace ET.Server {
             // 一般一个区服下有一个Realm; 一个区服下一般有多个Gate，Realm通过与账户Id取模的方式固定分配给此账户一个Gate，向此Gate请求获取GateKey
             
             // 向gate请求一个key,客户端可以拿着这个key连接gate
+            // 需要关注的就是目标对象，即Call的第一个参数，普通actor消息通过ActorMessageSenderComponent发送需要知道对方的actorId, 这里使用的是配置生成的对应的InstanceId。
             G2R_GetLoginKey g2RGetLoginKey = (G2R_GetLoginKey) await ActorMessageSenderComponent.Instance.Call(
                 config.InstanceId, new R2G_GetLoginKey() {Account = request.Account});
             response.Address = config.InnerIPOutPort.ToString();

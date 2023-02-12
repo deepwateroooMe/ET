@@ -28,6 +28,9 @@ namespace ET {
                 self.Handlers.Clear();
             }
         }
+
+        // 这个方法会从所有组件中找到 标记有MessageHandlerAttribute的类遍历 => 反射创建该类的实例A  => 获取该Message的类型B,如下图的R2C_Ping
+        // => 把B的编码作为key 实例A作为value 缓存到  ActorMessageDispatcherComponent 组件的ActorMessageHandlers字典中
         private static void Load(this MessageDispatcherComponent self) {
             self.Handlers.Clear();
             HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));

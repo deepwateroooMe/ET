@@ -8,7 +8,7 @@ namespace ET.Server {
         protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
 // 当它身份定位为某个服的时候:就需要为它配置添加装载相应的组件,以便它能够行驶某个服的功能             
             // 发送普通actor消息
-            Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>();
+            Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>(); // 
             // 发送location actor消息
             Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>();
             // 访问location server的组件
@@ -21,7 +21,11 @@ namespace ET.Server {
             StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process);
             switch (Options.Instance.AppType) {
                 case AppType.Server: {
+
+                    // 内网通信组件 NetInnerComponent
+                    // 顾名思义 这个是内网通信用的 添加组件时候传入了内网的地址
                     Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.InnerIPPort);
+
                     var processScenes = StartSceneConfigCategory.Instance.GetByProcess(Options.Instance.Process);
                     foreach (StartSceneConfig startConfig in processScenes) {
                         await SceneFactory.CreateServerScene(ServerSceneManagerComponent.Instance, startConfig.Id, startConfig.InstanceId, startConfig.Zone, startConfig.Name,
@@ -33,6 +37,7 @@ namespace ET.Server {
                     StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig();
                     WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>();
                     watcherComponent.Start(Options.Instance.CreateScenes); // 服务器上会有几台这样的机器呢? 为什么遍历到一台,不break掉loop呢?
+                    
                     Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
                     break;
                 }

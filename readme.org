@@ -74,6 +74,18 @@
 - 一个区服下一般有多个Gate，Realm通过与账户Id取模的方式固定分配给此账户一个Gate，向此Gate请求获取GateKey
 - Gate网关服务器随机生成一个GateKey并将AccountId和GateKey的映射关系保存供后续验证，并发回Key
 - Realm服务器将Gate信息（key,address-配置文件得）发回客户端，客户端与Realm进行断开，准备连Gate
+- 连接Realm服务，验证登陆用户与密码
+- 如果验证通过玩家需要与其他服务模块进行交互，不会要求玩家再进行一次密码认证。使用一种认证机制，即通过Realm服向Gate服请求一个认证key，交给玩家。
+- 当玩家连接Gate服时，拿着申请好的key，直接登陆Gate服务即可通过Gate服的允许。
+- 这里可以看见源码中的一个小细节
+#+begin_SRC xml
+// ResponseType G2R_GetLoginKey: R2G ==> Realm to Game 从Realm服务发送给一条actor消息给Gate服，向它注册并申请一条登陆许可，即常说的token，或者叫key也行。
+message R2G_GetLoginKey // IActorRequest
+{
+    int32 RpcId = 1;
+    string Account = 2;
+}
+#+END_SRC
 *** 3. 建立Gate映射对象Player
 - 客户端一般会与Gate长时间连线，需要为Session添加心跳组件PingComponent，请求在Gate中创建映射对象Player
 - 步骤10 和 步骤11，主要是客户端与Gate建立连接后，将账户Id和区服号发送至登陆中心服务器进行注册添加，登录逻辑中会通过此服务器的记录进行顶号逻辑，通过区服号和AccountId利用Realm帮助类能唯一确定Gate,再给Gate发送下线消息即可。
@@ -791,17 +803,474 @@ public partial class StartProcessConfig {
 - https://blog.csdn.net/Tong1993222/article/details/89026556
 - https://blog.csdn.net/weixin_45029839/article/details/118491670
 - 爱表哥，爱生活！！！一定会嫁给偶亲爱的表哥！！！
-- 
+- 现在还没有还不曾弄清楚的：MongoDB的数据库：可视化界面 ：　可视化界面 Robo 3T： https://studio3t.com/download-now/#windows
+* ET中的事件系统: 事件机制EventSystem
+- ECS最重要的特性一是数据跟逻辑分离，二是数据驱动逻辑。什么是数据驱动逻辑呢？不太好理解，我们举个例子 一个moba游戏，英雄都有血条，血条会在人物头上显示，也会在左上方头像UI上显示。这时候服务端发来一个扣血消息。我们怎么处理这个消息？第一种方法，在消息处理函数中修改英雄的血数值，修改头像上血条显示，同时修改头像UI的血条。这种方式很明显造成了模块间的耦合。第二种方法，扣血消息处理函数中只是改变血值，血值的改变抛出一个hpchange的事件，人物头像模块跟UI模块都订阅血值改变事件，在订阅的方法中分别处理自己的逻辑，这样各个模块负责自己的逻辑，没有耦合。 ET提供了多种事件，事件都是可以多次订阅的:
+- 1.AwakeSystem，组件工厂创建组件后抛出，只抛出一次，可以带参数
+- 2.StartSystem，组件UpdateSystem调用前抛出
+- 3.UpdateSystem，组件每帧抛出
+- 4.DestroySystem，组件删除时抛出
+- 5.ChangeSystem，组件内容改变时抛出，需要开发者手动触发
+- 6.DeserializeSystem，组件反序列化之后抛出
+- 7.LoadSystem，EventSystem加载dll时抛出，用于服务端热更新，重新加载dll做一些处理，比如重新注册handler
+- 8.普通的Event，由开发者自己抛出，可以最多带三个参数。另外客户端热更层也可以订阅mono层的Event事件
+- 9.除此之外还有很多事件，例如消息事件。消息事件使用MessageHandler来声明，可以带参数指定哪种服务器需要订阅。
+#+begin_SRC csharp
+// 1.AwakeSystem，组件工厂创建组件后抛出，只抛出一次，可以带参数
+Player player = ComponentFactory.Create<Player>();
+// 订阅Player的Awake事件
+public class PlayerAwakeSystem: AwakeSystem<Player> {
+    public override void Awake(Player self) {
+    }
+}
 
-    
-    
+// 2.StartSystem，组件UpdateSystem调用前抛出
+// 订阅Player的Start事件
+public class PlayerStartSystem: StartSystem<Player> {
+    public override void Start(Player self) {
+    }
+}
 
+// 3.UpdateSystem，组件每帧抛出
+// 订阅Player的Update事件
+public class PlayerUpdateSystem: UpdateSystem<Player> {
+    public override void Update(Player self) {
+    }
+}
 
+// 4.DestroySystem，组件删除时抛出
+// 订阅Player的Destroy事件
+public class PlayerDestroySystem: DestroySystem<Player> {
+    public override void Destroy(Player self) {
+    }
+}
+Player player = ComponentFactory.Create<Player>();
+// 这里会触发Destroy事件
+player.Dispose();
 
+// 5.ChangeSystem，组件内容改变时抛出，需要开发者手动触发
+// 订阅Player的Destroy事件
+public class PlayerChangeSystem: ChangeSystem<Player> {
+    public override void Change(Player self) {
+    }
+}
+Player player = ComponentFactory.Create<Player>();
+// 需要手动触发ChangeSystem
+Game.EventSystem.Change(player);
 
+// 6.DeserializeSystem，组件反序列化之后抛出
+// 订阅Player的Deserialize事件
+public class PlayerDeserializeSystem: DeserializeSystem<Player> {
+    public override void Deserialize(Player self) {
+    }
+}
+// 这里player2会触发Deserialize事件
+Player player2 = MongoHelper.FromBson<Player>(player.ToBson());
 
+// 7.LoadSystem，EventSystem加载dll时抛出，用于服务端热更新，重新加载dll做一些处理，比如重新注册handler
+// 订阅Player的Load事件
+public class PlayerLoadSystem: LoadSystem<Player> {
+    public override void Load(Player self) {
+    }
+}
 
+// 8.普通的Event，由开发者自己抛出，可以最多带三个参数。另外客户端热更层也可以订阅mono层的Event事件
+int oldhp = 10;
+int newhp = 5;
+// 抛出hp改变事件
+Game.EventSystem.Run("HpChange", oldhp, newhp);
+// UI订阅hp改变事件
+[Event("HpChange")]
+public class HpChange_ShowUI: AEvent<int, int> {
+    public override void Run(int a, int b) {
+        throw new NotImplementedException();
+    }
+}
+// 模型头顶血条模块也订阅hp改变事件
+[Event("HpChange")]
+public class HpChange_ModelHeadChange: AEvent<int, int> {
+    public override void Run(int a, int b) {
+        throw new NotImplementedException();
+    }
+}
 
+// 9.除此之外还有很多事件，例如消息事件。消息事件使用MessageHandler来声明，可以带参数指定哪种服务器需要订阅。
+[MessageHandler(AppType.Gate)]
+public class C2G_LoginGateHandler : AMRpcHandler<C2G_LoginGate, G2C_LoginGate> {
+    protected override void Run(Session session, C2G_LoginGate message, Action<G2C_LoginGate> reply) {
+        G2C_LoginGate response = new G2C_LoginGate();
+        reply(response);
+    }
+} 
+#+END_SRC
+* ET的ACTOR的使用
+- 普通的Actor，我们可以参照Gate Session。map中[这里，它说的应该是一个游戏逻辑服务器]一个Unit，Unit身上保存了这个玩家对应的gate session。这样，map中的消息如果需要发给客户端，只需要把消息发送给gate session，gate session在收到消息的时候转发给客户端即可。map进程发送消息给gate session就是典型的actor模型。它不需要知道gate session的位置，只需要知道它的InstanceId即可。MessageHelper.cs中，通过GateSessionActorId获取一个ActorMessageSender，然后发送。
+#+begin_SRC csharp
+// 从Game.Scene上获取ActorSenderComponent，然后通过InstanceId获取ActorMessageSender
+ActorSenderComponent actorSenderComponent = Game.Scene.GetComponent<ActorSenderComponent>();
+ActorMessageSender actorMessageSender = actorSenderComponent.Get(unitGateComponent.GateSessionActorId);
+// send
+actorMessageSender.Send(message);
+// rpc
+var response = actorMessageSender.Call(message);
+#+END_SRC
+- 问题是map中怎么才能知道gate session的InstanceId呢？这就是你需要想方设法传过去了，比如ET中，玩家在登录gate的时候，gate session挂上一个信箱MailBoxComponent，C2G_LoginGateHandler.cs中
+#+begin_SRC csharp
+session.AddComponent<MailBoxComponent, string>(MailboxType.GateSession);
+#+END_SRC
+- 玩家登录map进程的时候会把这个gate session的InstanceId带进map中去，C2G_EnterMapHandler.cs中
+#+begin_SRC csharp
+M2G_CreateUnit createUnit = (M2G_CreateUnit)await mapSession.Call(new G2M_CreateUnit() { PlayerId = player.Id, GateSessionId = session.InstanceId });
+#+END_SRC
+* ACTOR消息的处理
+- 首先，消息到达MailboxComponent，MailboxComponent是有类型的，不同的类型邮箱可以做不同的处理。
+- 目前有两种邮箱类型GateSession跟MessageDispatcher。
+  - GateSession邮箱在收到消息的时候会立即转发给客户端，
+  - MessageDispatcher类型会再次对Actor消息进行分发到具体的Handler处理，
+- *默认的MailboxComponent类型是MessageDispatcher。*
+- 自定义一个邮箱类型也很简单，继承IMailboxHandler接口，加上MailboxHandler标签即可。
+- 那么为什么需要加这么个功能呢，在其它的actor模型中是不存在这个特点的，一般是收到消息就进行分发处理了。
+  - 原因是GateSession的设计，并不需要进行分发处理，因此我在这里加上了邮箱类型这种设计。
+- MessageDispatcher的处理方式有两种: 一种是处理对方Send过来的消息，一种是rpc消息<这里，我可以简单理解为需要返回的类型吗？所以会有第三个参数，返回消息的类型>
+#+begin_SRC csharp
+// 处理Send的消息, 需要继承AMActorHandler抽象类，抽象类第一个泛型参数是Actor的类型，第二个参数是消息的类型
+[ActorMessageHandler(AppType.Map)]
+public class Actor_TestHandler : AMActorHandler<Unit, Actor_Test> {
 
+    protected override ETTask Run(Unit unit, Actor_Test message) {
+        Log.Debug(message.Info);
+    }
+}
 
+// 处理Rpc消息, 需要继承AMActorRpcHandler抽象类，抽象类第一个泛型参数是Actor的类型，第二个参数是消息的类型，第三个参数是返回消息的类型
+[ActorMessageHandler(AppType.Map)]
+public class Actor_TransferHandler : AMActorRpcHandler<Unit, Actor_TransferRequest, Actor_TransferResponse> {
 
+    protected override async ETTask Run(Unit unit, Actor_TransferRequest message, Action<Actor_TransferResponse> reply) {
+        Actor_TransferResponse response = new Actor_TransferResponse();
+        try {
+            reply(response);
+        }
+        catch (Exception e) {
+            ReplyError(response, e, reply);
+        }
+    }
+}
+#+END_SRC
+- 我们需要注意一下，Actor消息有死锁的可能，比如A call消息给B，B call给C，C call给A。因为MailboxComponent本质上是一个消息队列，它开启了一个协程会一个一个消息处理，返回ETTask表示这个消息处理类会阻塞MailboxComponent队列的其它消息。所以如果出现死锁，我们就不希望某个消息处理阻塞掉MailboxComponent其它消息的处理，我们可以在消息处理类里面新开一个协程来处理就行了。例如:
+#+begin_SRC csharp
+[ActorMessageHandler(AppType.Map)]
+public class Actor_TestHandler : AMActorHandler<Unit, Actor_Test> {
+
+    protected override ETTask Run(Unit unit, Actor_Test message) {
+        RunAsync(unit, message).Coroutine();
+    }
+
+    public ETVoid RunAsync(Unit unit, Actor_Test message) {
+        Log.Debug(message.Info);
+    }
+}
+#+END_SRC
+- 我们可以感受到，Actor机制实质上就是一种消息的托管机制，类似我们经常用到的事件订阅与分发，我们只要把包含完整数据的消息发出去，不用管谁会接收消息，我们的代码根据ID找到相应的接受者。
+* ACTOR LOCATION
+- Actor模型只需要知道对方的InstanceId就能发送消息，十分方便，但是有时候我们可能无法知道对方的InstanceId，或者是一个Actor的InstanceId会发生变化。这种场景很常见，比如：
+  - 很多游戏是分线的，一个玩家可能从1线换到2线，
+  - 还有的游戏是分场景的，一个场景一个进程，玩家从场景1进入到场景2。
+- 因为做了进程迁移，玩家对象的InstanceId也就变化了。
+- ET提供了给这类对象发送消息的机制，叫做Actor Location机制。其原理比较简单：
+  - 1.因为InstanceId是变化的，对象的Entity.Id是不变的，所以我们首先可以想到使用Entity.Id来发送actor消息
+  - 2.提供一个位置进程(Location Server)，Actor对象可以将自己的Entity.Id跟InstanceId作为kv存到位置进程中。发送Actor消息前先去位置进程查询到Actor对象的InstanceId再发送actor消息。
+  - 3.Actor对象在一个进程创建时或者迁移到一个新的进程时，都需要把自己的Id跟InstanceId注册到Location Server上去
+  - 4.因为Actor对象是可以迁移的，消息发过去有可能Actor已经迁移到其它进程上去了，所以发送Actor Location消息需要提供一种可靠机制
+  - 5.ActorLocationSender提供两种方法，Send跟Call，Send一个消息也需要接受者返回一个消息，只有收到返回消息才会发送下一个消息。
+  - 6.Actor对象如果迁移走了，这时会返回Actor不存在的错误，发送者收到这个错误会等待1秒，然后重新去获取Actor的InstanceId，然后重新发送，目前会尝试5次，5次过后，抛出异常，报告错误
+  - 7.ActorLocationSender发送消息不会每次都去查询Location Server，因为对象迁移毕竟比较少见，只有第一次去查询，之后缓存InstanceId，以后发送失败再重新查询。
+  - 8.Actor对象在迁移过程中，有可能其它进程发送过来消息，这时会发生错误，所以location server提供了一种Lock的机制。对象在传送前，删掉在本进程的信息，然后在location server上加上锁，一旦锁上后，其它的对该key的请求会进行队列。
+  - 9.传送前因为对方删除了本进程的actor，所以其它进程会发送失败，这时候他们会进行重试。重试的时候会重新请求location server，这时候会发现被锁了，于是一直等待
+  - 10.传送完成后，要unlock location server上的锁，并且更新新的地址，然后响应其它的location请求。其它发给这个actor的请求继续进行下去。
+- 注意，Actor模型是纯粹的服务端消息通信机制，跟客户端是没什么关系的，很多用ET的新人看到ET客户端消息也有Actor接口，以为这是客户端跟服务端通信的机制，其实不是的。ET客户端使用这个Actor完全是因为Gate需要对客户端消息进行转发，我们可以正好利用服务端actor模型来进行转发，所以客户端有些消息也是继承了actor的接口。假如我们客户端不使用actor接口会怎么样呢？比如，Frame_ClickMap这个消息
+#+begin_SRC csharp
+message Frame_ClickMap // IActorLocationMessage {
+	int64 ActorId = 93;
+	int64 Id = 94;
+
+	float X = 1;
+	float Y = 2;
+	float Z = 3;
+}
+#+END_SRC
+- 我们可能就不需要ActorId这个字段，消息发送到Gate，gate看到是Frame_ClickMap消息，它需要转发给Map上的Unit，转发还好办，gate可以从session中获取对应的map的unit的位置，然后转发，问题来了，Frame_ClickMap消息到了map，map怎么知道消息需要给哪个对象呢？这时候有几种设计：
+  - 1.在转发的底层协议中带上unit的Id，需要比较复杂的底层协议支持。
+  - 2.用一个消息对Frame_ClickMap消息包装一下，包装的消息带上Unit的Id，用消息包装意味着更大的消耗，增加GC。 个人感觉这两种都很差，不好用，而且就算分发给unit对象处理了，怎么解决消息重入的问题呢？unit对象仍然需要挂上一个消息处理队列，然后收到消息扔到队列里面。这不跟actor模型重复了吗？目前ET在客户端发给unit的消息做了个设计，消息做成actor消息，gate收到发现是actor消息，直接发到对应的actor上，解决的可以说很漂亮。其实客户端仍然是使用session.send跟call发送消息，发送的时候也不知道消息是actor消息，只有到了gate，gate才进行了判断，参考OuterMessageDispatcher.cs
+* ACTOR LOCATION消息处理
+- ActorLocation消息发送
+#+begin_SRC csharp
+// 从Game.Scene上获取ActorLocationSenderComponent，然后通过Entity.Id获取ActorLocationSender
+ActorLocationSender actorLocationSender = Game.Scene.GetComponent<ActorLocationSenderComponent>().Get(unitId);
+// 通过ActorLocationSender来发送消息
+actorLocationSender.Send(actorLocationMessage);
+// 发送Rpc消息
+IResponse response = await actorLocationSender.Call(actorLocationRequest);
+#+END_SRC
+- ActorLocation消息的处理跟Actor消息几乎一样，不同的是继承的两个抽象类不同，注意actorlocation的抽象类多了个Location
+#+begin_SRC csharp
+// 处理send过来的消息， 需要继承AMActorLocationHandler抽象类，抽象类第一个泛型参数是Actor的类型，第二个参数是消息的类型
+[ActorMessageHandler(AppType.Map)]
+public class Frame_ClickMapHandler : AMActorLocationHandler<Unit, Frame_ClickMap> {
+
+    protected override ETTask Run(Unit unit, Frame_ClickMap message) {
+        Vector3 target = new Vector3(message.X, message.Y, message.Z);
+        unit.GetComponent<UnitPathComponent>().MoveTo(target).Coroutine();
+    }
+}
+// 处理Rpc消息, 需要继承AMActorRpcHandler抽象类，抽象类第一个泛型参数是Actor的类型，第二个参数是消息的类型，第三个参数是返回消息的类型
+[ActorMessageHandler(AppType.Map)]
+public class C2M_TestActorRequestHandler : AMActorLocationRpcHandler<Unit, C2M_TestActorRequest, M2C_TestActorResponse> {
+
+    protected override async ETTask Run(Unit unit, C2M_TestActorRequest message, Action<M2C_TestActorResponse> reply) {
+        reply(new M2C_TestActorResponse(){Info = "actor rpc response"});
+        await ETTask.CompletedTask;
+    }
+}
+#+END_SRC
+* WebSocket 服务器的大致步骤
+  
+[[./pic/readme_20230128_112514.png]]
+
+#+begin_SRC csharp
+// ET不一样的是在接收到websocket消息后 ,调用一个OnAccept方法 创建session组件 然后调用start方法
+public void OnAccept(AChannel channel) {
+    Session session = ComponentFactory.CreateWithParent<Session, AChannel>(this, channel);
+    this.sessions.Add(session.Id, session);
+    session.Start();
+}
+
+// start方法调用WChannel的StartRecv() StartSend()方法
+public async ETVoid StartRecv() {
+    if (this.IsDisposed) {
+        return;
+    }
+    try {
+        while (true) {
+#if SERVER
+            ValueWebSocketReceiveResult receiveResult;
+#else
+            WebSocketReceiveResult receiveResult;
+#endif
+            int receiveCount = 0;
+            do {
+#if SERVER
+                receiveResult = await this.webSocket.ReceiveAsync(
+                    new Memory<byte>(this.recvStream.GetBuffer(), receiveCount, this.recvStream.Capacity - receiveCount),
+                    cancellationTokenSource.Token);
+#else
+                receiveResult = await this.webSocket.ReceiveAsync(
+                    new ArraySegment<byte>(this.recvStream.GetBuffer(), receiveCount, this.recvStream.Capacity - receiveCount),
+                    cancellationTokenSource.Token);
+#endif
+                if (this.IsDisposed) {
+                    return;
+                }
+                receiveCount += receiveResult.Count;
+            }
+            while (!receiveResult.EndOfMessage);
+            if (receiveResult.MessageType == WebSocketMessageType.Close) {
+                this.OnError(ErrorCode.ERR_WebsocketPeerReset);
+                return;
+            }
+            if (receiveResult.Count > ushort.MaxValue) {
+                await this.webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, $"message too big: {receiveResult.Count}",
+                                                cancellationTokenSource.Token);
+                this.OnError(ErrorCode.ERR_WebsocketMessageTooBig);
+                return;
+            }
+            this.recvStream.SetLength(receiveResult.Count);
+            this.OnRead(this.recvStream);
+        }
+    }
+    catch (Exception e) {
+        Log.Error(e);
+        this.OnError(ErrorCode.ERR_WebsocketRecvError);
+    }
+}
+
+// 从message字节流中接受消息 交由Session.OnRead方法处理  onread方法如下
+// 包的前2个字节是opcode编码 后面的是消息体
+private void Run(MemoryStream memoryStream) {
+    memoryStream.Seek(Packet.MessageIndex, SeekOrigin.Begin);
+    ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.OpcodeIndex);
+            
+#if !SERVER
+    if (OpcodeHelper.IsClientHotfixMessage(opcode)) {
+        this.GetComponent<SessionCallbackComponent>().MessageCallback.Invoke(this, opcode, memoryStream);
+        return;
+    }
+#endif
+    object message;
+    try {
+        OpcodeTypeComponent opcodeTypeComponent = this.Network.Entity.GetComponent<OpcodeTypeComponent>();
+        object instance = opcodeTypeComponent.GetInstance(opcode);
+        message = this.Network.MessagePacker.DeserializeFrom(instance, memoryStream);
+                
+        if (OpcodeHelper.IsNeedDebugLogMessage(opcode)) {
+            Log.Msg(message);
+        }
+    }
+    catch (Exception e) {
+        // 出现任何消息解析异常都要断开Session，防止客户端伪造消息
+        Log.Error($"opcode: {opcode} {this.Network.Count} {e}, ip: {this.RemoteAddress}");
+        this.Error = ErrorCode.ERR_PacketParserError;
+        this.Network.Remove(this.Id);
+        return;
+    }
+    if (!(message is IResponse response)) {
+        this.Network.MessageDispatcher.Dispatch(this, opcode, message);
+        return;
+    }
+            
+    Action<IResponse> action;
+    if (!this.requestCallback.TryGetValue(response.RpcId, out action)) {
+        throw new Exception($"not found rpc, response message: {StringHelper.MessageToStr(response)}");
+    }
+    this.requestCallback.Remove(response.RpcId);
+    action(response);
+}
+
+// 如上代码所示, 解析出opcode后 从OpcodeTypeComponent组件中找到opcode对应的类型,把消息体反序列化成opcode对应的请求或者相应类
+// 如果非IResponse消息的话 会把消息转给InnerMessageDispatcher类进行处理
+public void Dispatch(Session session, ushort opcode, object message) {
+    // 收到actor消息,放入actor队列
+    switch (message) {
+        case IActorRequest iActorRequest: {
+            Entity entity = (Entity)Game.EventSystem.Get(iActorRequest.ActorId);
+            if (entity == null) {
+                Log.Warning($"not found actor: {message}");
+                ActorResponse response = new ActorResponse {
+                    Error = ErrorCode.ERR_NotFoundActor,
+                    RpcId = iActorRequest.RpcId
+                };
+                session.Reply(response);
+                return;
+            }
+
+            MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+            if (mailBoxComponent == null) {
+                ActorResponse response = new ActorResponse {
+                    Error = ErrorCode.ERR_ActorNoMailBoxComponent,
+                    RpcId = iActorRequest.RpcId
+                };
+                session.Reply(response);
+                Log.Error($"actor not add MailBoxComponent: {entity.GetType().Name} {message}");
+                return;
+            }
+
+            mailBoxComponent.Add(new ActorMessageInfo() { Session = session, Message = iActorRequest });
+            return;
+        }
+        case IActorMessage iactorMessage: {
+            Entity entity = (Entity)Game.EventSystem.Get(iactorMessage.ActorId);
+            if (entity == null) {
+                Log.Error($"not found actor: {message}");
+                return;
+            }
+
+            MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+            if (mailBoxComponent == null) {
+                Log.Error($"actor not add MailBoxComponent: {entity.GetType().Name} {message}");
+                return;
+            }
+
+            mailBoxComponent.Add(new ActorMessageInfo() { Session = session, Message = iactorMessage });
+            return;
+        }
+        default: {
+            Game.Scene.GetComponent<MessageDispatcherComponent>().Handle(session, new MessageInfo(opcode, message));
+            break;
+        }
+    }
+}
+// 如上代码 消息类型有2种  IActorRequest   IActorMessage
+// 然后根据ActorId获取消息处理类
+// 这个ActorId是啥时候加到eventsystem中的?
+// Game.EventSystem.Get(iActorRequest.ActorId);
+// 然后交由MailBoxComponent.Add方法 把消息放到队列中
+#+END_SRC
+* 我们终于走完了消息创建-打包-发送-接收-解包-分发到相对应处理器处理的整个流程。
+- 如果我们要自定义一个消息，怎么做呢？
+  - 确定这个消息是否是请求（需要回复）。如果需要回复，则实现IRequest接口并且定义自定义回复结构，继承IResponse。记得添加Message特性并且标注操作符，新的操作符可以添加到自定义枚举里。或者添加到InnerOpcode、Opcode、OuterOpcode里面。还得添加ProtoContract，这是Protobuf-net的用法。
+  - 定义消息结构，既消息的内容。消息的内容有必要的话得按照Protobuf-net的用法定义特性。
+  - 定义处理消息的类。根据消息类型继承AMRpcHandler或者AMHandler，并把消息类型当作泛型传入。处理消息的类需要添加MessageHandler特性并且标注AppType。
+  - 具体的处理消息方法需要重写处理类的Run方法。
+- 经过上面的步骤，我们的MessageDispatherComponent跟OpcodeTypeComponent就会识别这些类，并注册相应的事件。当我们接收到相应的消息时，也会正确分发给对应的处理器处理
+- 网络请求大致步骤过程，以及底层网络请求数据的包装等（ProtoBuf协议）讲得比较彻底详细，再看一遍https://blog.csdn.net/Tong1993222/article/details/88779223?spm=1001.2101.3001.6650.12&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-12-88779223-blog-86600357.pc_relevant_multi_platform_whitelistv4&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7ERate-12-88779223-blog-86600357.pc_relevant_multi_platform_whitelistv4&utm_relevant_index=13
+* unity篇-官方序列化接口 ISerializationCallbackReceiver
+- 这是过程中狠小的一个知识点，很简单，只作下笔记　
+** 官方提供的解决方案
+- 编写一个类继承ISerializationCallbackReceiver接口，通过编写2个回调让List类型代替Dictionary参与序列化
+#+begin_SRC csharp
+using UnityEngine;
+using System;
+using System.Collections.Generic;
+
+public class SerializationCallbackScript : MonoBehaviour, ISerializationCallbackReceiver {
+
+    public List<int> _keys = new List<int> { 3, 4, 5 };
+    public List<string> _values = new List<string> { "I", "Love", "Unity" };
+
+    // Unity doesn't know how to serialize a Dictionary
+    public Dictionary<int, string>  _myDictionary = new Dictionary<int, string>();
+
+    public void OnBeforeSerialize() {
+        _keys.Clear();
+        _values.Clear();
+        foreach (var kvp in _myDictionary) {
+            _keys.Add(kvp.Key);
+            _values.Add(kvp.Value);
+        }
+    }
+
+    public void OnAfterDeserialize() {
+        _myDictionary = new Dictionary<int, string>();
+        for (int i = 0; i != Math.Min(_keys.Count, _values.Count); i++)
+            _myDictionary.Add(_keys[i], _values[i]);
+    }
+
+    void OnGUI() {
+        foreach (var kvp in _myDictionary)
+            GUILayout.Label("Key: " + kvp.Key + " value: " + kvp.Value);
+    }
+}
+#+END_SRC
+** Dictionary的序列化的泛型解决方案
+- 但我们在unity使用Dictionary实在太频繁，不可能为每个类继承接口编写回调，一位牛人使用泛型编程为我们解决了这个问题
+#+begin_SRC csharp
+public class SerializationDictionary<TKey, TValue> : ISerializationCallbackReceiver {
+
+    [SerializeField]
+    private List<TKey> keys;
+
+    [SerializeField]
+    private List<TValue> values;
+
+    private Dictionary<TKey, TValue> target;
+    public Dictionary<TKey, TValue> ToDictionary() { return target; }
+
+    public SerializationDictionary(Dictionary<TKey, TValue> target) {
+        this.target = target;
+    }
+
+    public void OnBeforeSerialize() {
+        keys = new List<TKey>(target.Keys);
+        values = new List<TValue>(target.Values);
+    }
+
+    public void OnAfterDeserialize() {
+        var count = Math.Min(keys.Count, values.Count);
+        target = new Dictionary<TKey, TValue>(count);
+        for (var i = 0; i < count; ++i) {
+            target.Add(keys[i], values[i]);
+        }
+    }
+}
+#+END_SRC
+- *泛型实在太有魅力了，我等懒人必会之* 爱表哥，爱生活！！！一定会嫁给偶亲爱的表哥！！！

@@ -126,7 +126,7 @@ message ObjectGetResponse // IActorResponse
 	int64 InstanceId = 4;
 }
 
-//ResponseType G2R_GetLoginKey
+// ResponseType G2R_GetLoginKey: R2G ==> Realm to Game 从Realm服务发送给一条actor消息给Gate服，向它注册并申请一条登陆许可，即常说的token，或者叫key也行。
 message R2G_GetLoginKey // IActorRequest
 {
 	int32 RpcId = 1;
