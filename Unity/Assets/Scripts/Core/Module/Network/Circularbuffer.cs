@@ -168,7 +168,7 @@ namespace ET {
             return count;
         }
         // 把buffer写入CircularBuffer中：把字节数组中的数据写入到字节数组中
-        public override void Write(byte[] buffer, int offset, int count) {
+        public override void Write(byte[] buffer, int offset, int count) { // 这个写，带着当前下标的移动
             int alreadyCopyCount = 0;
             while (alreadyCopyCount < count) {
                 if (this.LastIndex == ChunkSize) {

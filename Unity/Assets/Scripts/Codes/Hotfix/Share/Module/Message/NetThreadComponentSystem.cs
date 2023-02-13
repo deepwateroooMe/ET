@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Threading;
-
 namespace ET {
-
+    
 // 把网络线程包装成了 可装载可卸载的 组件: 这个网络调用还比较重要,多看几遍    
     [FriendOf(typeof(NetThreadComponent))]
     public static class NetThreadComponentSystem {
-
 // Awake LateUpdate Destroy
         [ObjectSystem]
         public class AwakeSystem: AwakeSystem<NetThreadComponent> {

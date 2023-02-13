@@ -10,7 +10,7 @@ namespace ET {
         public long ActorId;
         public MemoryStream MemoryStream;
     }
-    
+    // 这里面，还是有狠多的方法没太看懂    
     public class KChannel : AChannel {
         public readonly KService Service;
         
@@ -28,10 +28,10 @@ namespace ET {
             }
         }
         public uint RemoteConn { get; set; }
-        private readonly byte[] sendCache = new byte[2 * 1024];
+        private readonly byte[] sendCache = new byte[2 * 1024]; // 发送前的缓存，如有必要，可以发送前先用这片地方准备需要发送的数据，再从这里读出并发送出去
         
         public bool IsConnected { get; set; }
-        public string RealAddress { get; set; }
+        public string RealAddress { get; set; } 
         
         private const int maxPacketSize = 10000;
         private readonly MemoryStream ms = new MemoryStream(maxPacketSize);
@@ -203,208 +203,206 @@ namespace ET {
                     this.OnError((int)SocketError.NetworkReset);
                     return;
                 }
-                if (this.needReadSplitCount > 0) // 说明消息分片了 {
+                if (this.needReadSplitCount > 0) { // 说明消息分片了 
                     byte[] buffer = readMemory.GetBuffer();
-                int count = Kcp.KcpRecv(this.kcp, buffer, (int)this.readMemory.Length - this.needReadSplitCount, n);
-                this.needReadSplitCount -= count;
-                if (n != count)
-                {
-                    Log.Error($"kchannel read error1: {this.LocalConn} {this.RemoteConn}");
-                    this.OnError(ErrorCore.ERR_KcpReadNotSame);
-                    return;
-                }
-                    
-                if (this.needReadSplitCount < 0)
-                {
-                    Log.Error($"kchannel read error2: {this.LocalConn} {this.RemoteConn}");
-                    this.OnError(ErrorCore.ERR_KcpSplitError);
-                    return;
-                }
-                                        
-                // 没有读完
-                if (this.needReadSplitCount != 0)
-                {
-                    continue;
-                }
-            } else {
-                this.readMemory = this.ms;
-                this.readMemory.SetLength(n);
-                this.readMemory.Seek(0, SeekOrigin.Begin);
-                    
-                byte[] buffer = readMemory.GetBuffer();
-                int count = Kcp.KcpRecv(this.kcp, buffer, 0, n);
-                if (n != count)
-                {
-                    break;
-                }
-                    
-                // 判断是不是分片
-                if (n == 8)
-                {
-                    int headInt = BitConverter.ToInt32(this.readMemory.GetBuffer(), 0);
-                    if (headInt == 0)
+                    int count = Kcp.KcpRecv(this.kcp, buffer, (int)this.readMemory.Length - this.needReadSplitCount, n);
+                    this.needReadSplitCount -= count;
+                    if (n != count)
                     {
-                        this.needReadSplitCount = BitConverter.ToInt32(readMemory.GetBuffer(), 4);
-                        if (this.needReadSplitCount <= maxPacketSize)
-                        {
-                            Log.Error($"kchannel read error3: {this.needReadSplitCount} {this.LocalConn} {this.RemoteConn}");
-                            this.OnError(ErrorCore.ERR_KcpSplitCountError);
-                            return;
-                        }
-                        this.readMemory = new MemoryStream(this.needReadSplitCount);
-                        this.readMemory.SetLength(this.needReadSplitCount);
-                        this.readMemory.Seek(0, SeekOrigin.Begin);
+                        Log.Error($"kchannel read error1: {this.LocalConn} {this.RemoteConn}");
+                        this.OnError(ErrorCore.ERR_KcpReadNotSame);
+                        return;
+                    }
+                    
+                    if (this.needReadSplitCount < 0)
+                    {
+                        Log.Error($"kchannel read error2: {this.LocalConn} {this.RemoteConn}");
+                        this.OnError(ErrorCore.ERR_KcpSplitError);
+                        return;
+                    }
+                                        
+                    // 没有读完
+                    if (this.needReadSplitCount != 0)
+                    {
                         continue;
                     }
+                } else {
+                    this.readMemory = this.ms;
+                    this.readMemory.SetLength(n);
+                    this.readMemory.Seek(0, SeekOrigin.Begin);
+                    
+                    byte[] buffer = readMemory.GetBuffer();
+                    int count = Kcp.KcpRecv(this.kcp, buffer, 0, n);
+                    if (n != count)
+                    {
+                        break;
+                    }
+                    
+                    // 判断是不是分片
+                    if (n == 8)
+                    {
+                        int headInt = BitConverter.ToInt32(this.readMemory.GetBuffer(), 0);
+                        if (headInt == 0)
+                        {
+                            this.needReadSplitCount = BitConverter.ToInt32(readMemory.GetBuffer(), 4);
+                            if (this.needReadSplitCount <= maxPacketSize)
+                            {
+                                Log.Error($"kchannel read error3: {this.needReadSplitCount} {this.LocalConn} {this.RemoteConn}");
+                                this.OnError(ErrorCore.ERR_KcpSplitCountError);
+                                return;
+                            }
+                            this.readMemory = new MemoryStream(this.needReadSplitCount);
+                            this.readMemory.SetLength(this.needReadSplitCount);
+                            this.readMemory.Seek(0, SeekOrigin.Begin);
+                            continue;
+                        }
+                    }
+                }
+                switch (this.Service.ServiceType) {
+                case ServiceType.Inner:
+                    this.readMemory.Seek(Packet.ActorIdLength + Packet.OpcodeLength, SeekOrigin.Begin);
+                    break;
+                case ServiceType.Outer:
+                    this.readMemory.Seek(Packet.OpcodeLength, SeekOrigin.Begin);
+                    break;
+                }
+                MemoryStream mem = this.readMemory;
+                this.readMemory = null;
+                this.OnRead(mem);
+            }
+        }
+        public void Output(IntPtr bytes, int count) { // 这里是向当前信道写一些什么结果
+            if (this.IsDisposed) {
+                return;
+            }
+            try {                
+                // 没连接上 kcp不往外发消息, 其实本来没连接上不会调用update，这里只是做一层保护
+                if (!this.IsConnected) {
+                    return;
+                }
+                
+                if (count == 0) {
+                    Log.Error($"output 0");
+                    return;
+                }
+                byte[] buffer = this.sendCache;
+                // 更新必要的当前信息：buffer 消息头相关必要信息            
+                buffer.WriteTo(0, KcpProtocalType.MSG); // 往当前的字节数组：更新什么相关的类型
+                // 每个消息头部写下该channel的id;
+                buffer.WriteTo(1, this.LocalConn); // 到这里为止，已经把必要的信息头更新完美了
+                Marshal.Copy(bytes, buffer, 5, count); // 那么就整片地，从非托管数据复制到托管数据，从下标5开始复制，复制固定的长度
+                this.socket.SendTo(buffer, 0, count + 5, SocketFlags.None, this.RemoteAddress);
+            }
+            catch (Exception e) {
+                Log.Error(e);
+                this.OnError(ErrorCore.ERR_SocketCantSend);
+            }
+        }
+        private void KcpSend(KcpWaitPacket kcpWaitPacket) {
+            if (this.IsDisposed) {
+                return;
+            }
+            MemoryStream memoryStream = kcpWaitPacket.MemoryStream;
+            
+            switch (this.Service.ServiceType) {
+            case ServiceType.Inner: {
+                memoryStream.GetBuffer().WriteTo(0, kcpWaitPacket.ActorId); // 就是更新内存流里字节数组头0位，接收消息的地址，ActorId 
+                break;
+            }
+            case ServiceType.Outer: {
+                // 外网不需要发送actorId，跳过
+                memoryStream.Seek(Packet.ActorIdLength, SeekOrigin.Begin); // 这里说外网消息不发送这个ActorId, 就直接路过写这个ActiorId 的8个字节了，接着去处理后面的
+                break;
+            }
+            }
+            int count = (int) (memoryStream.Length - memoryStream.Position);
+            // 超出maxPacketSize需要分片
+            if (count <= maxPacketSize) {
+                Kcp.KcpSend(this.kcp, memoryStream.GetBuffer(), (int)memoryStream.Position, count);
+            } else {
+                // 先发分片信息
+                this.sendCache.WriteTo(0, 0);
+                this.sendCache.WriteTo(4, count); // 更新必要的缓存头信息
+                Kcp.KcpSend(this.kcp, this.sendCache, 0, 8); // 从缓存发出去
+                // 分片发送: 就是维护一个指针，每发送一片，就把指针往后移动一片的长度
+                int alreadySendCount = 0;
+                while (alreadySendCount < count) {
+                    int leftCount = count - alreadySendCount;
+                    int sendCount = leftCount < maxPacketSize? leftCount: maxPacketSize;
+                    Kcp.KcpSend(this.kcp, memoryStream.GetBuffer(), (int)memoryStream.Position + alreadySendCount, sendCount);
+                    alreadySendCount += sendCount;
                 }
             }
-            switch (this.Service.ServiceType) {
-            case ServiceType.Inner:
-                this.readMemory.Seek(Packet.ActorIdLength + Packet.OpcodeLength, SeekOrigin.Begin);
-                break;
-            case ServiceType.Outer:
-                this.readMemory.Seek(Packet.OpcodeLength, SeekOrigin.Begin);
-                break;
-            }
-            MemoryStream mem = this.readMemory;
-            this.readMemory = null;
-            this.OnRead(mem);
+            this.Service.AddToUpdate(0, this.Id);
         }
-    }
-    public void Output(IntPtr bytes, int count) {
-        if (this.IsDisposed) {
-            return;
-        }
-        try {                
-            // 没连接上 kcp不往外发消息, 其实本来没连接上不会调用update，这里只是做一层保护
+        
+        public void Send(long actorId, MemoryStream stream) {
+            KcpWaitPacket kcpWaitPacket = new KcpWaitPacket() { ActorId = actorId, MemoryStream = stream };
             if (!this.IsConnected) {
+                this.sendBuffer.Enqueue(kcpWaitPacket);
                 return;
             }
-                
-            if (count == 0) {
-                Log.Error($"output 0");
-                return;
+            
+            if (this.kcp == IntPtr.Zero) {
+                throw new Exception("kchannel connected but kcp is zero!");
             }
-            byte[] buffer = this.sendCache;
-            buffer.WriteTo(0, KcpProtocalType.MSG);
-            // 每个消息头部写下该channel的id;
-            buffer.WriteTo(1, this.LocalConn);
-            Marshal.Copy(bytes, buffer, 5, count);
-            this.socket.SendTo(buffer, 0, count + 5, SocketFlags.None, this.RemoteAddress);
-        }
-        catch (Exception e) {
-            Log.Error(e);
-            this.OnError(ErrorCore.ERR_SocketCantSend);
-        }
-    }
-    private void KcpSend(KcpWaitPacket kcpWaitPacket) {
-        if (this.IsDisposed) {
-            return;
-        }
-        MemoryStream memoryStream = kcpWaitPacket.MemoryStream;
             
-        switch (this.Service.ServiceType) {
-        case ServiceType.Inner: {
-            memoryStream.GetBuffer().WriteTo(0, kcpWaitPacket.ActorId);
-            break;
-        }
-        case ServiceType.Outer: {
-            // 外网不需要发送actorId，跳过
-            memoryStream.Seek(Packet.ActorIdLength, SeekOrigin.Begin);
-            break;
-        }
-        }
-        int count = (int) (memoryStream.Length - memoryStream.Position);
-        // 超出maxPacketSize需要分片
-        if (count <= maxPacketSize) {
-            Kcp.KcpSend(this.kcp, memoryStream.GetBuffer(), (int)memoryStream.Position, count);
-        } else {
-            // 先发分片信息
-            this.sendCache.WriteTo(0, 0);
-            this.sendCache.WriteTo(4, count);
-            Kcp.KcpSend(this.kcp, this.sendCache, 0, 8);
-            // 分片发送
-            int alreadySendCount = 0;
-            while (alreadySendCount < count) {
-                int leftCount = count - alreadySendCount;
-                    
-                int sendCount = leftCount < maxPacketSize? leftCount: maxPacketSize;
-                    
-                Kcp.KcpSend(this.kcp, memoryStream.GetBuffer(), (int)memoryStream.Position + alreadySendCount, sendCount);
-                    
-                alreadySendCount += sendCount;
-            }
-        }
-        this.Service.AddToUpdate(0, this.Id);
-    }
-        
-    public void Send(long actorId, MemoryStream stream) {
-        KcpWaitPacket kcpWaitPacket = new KcpWaitPacket() { ActorId = actorId, MemoryStream = stream };
-        if (!this.IsConnected) {
-            this.sendBuffer.Enqueue(kcpWaitPacket);
-            return;
-        }
-            
-        if (this.kcp == IntPtr.Zero) {
-            throw new Exception("kchannel connected but kcp is zero!");
-        }
-            
-        // 检查等待发送的消息，如果超出最大等待大小，应该断开连接
-        int n = Kcp.KcpWaitsnd(this.kcp);
-        int maxWaitSize = 0;
-        switch (this.Service.ServiceType) {
-        case ServiceType.Inner:
-            maxWaitSize = Kcp.InnerMaxWaitSize;
-            break;
-        case ServiceType.Outer:
-            maxWaitSize = Kcp.OuterMaxWaitSize;
-            break;
-        default:
-            throw new ArgumentOutOfRangeException();
-        }
-            
-        if (n > maxWaitSize) {
-            Log.Error($"kcp wait snd too large: {n}: {this.LocalConn} {this.RemoteConn}");
-            this.OnError(ErrorCore.ERR_KcpWaitSendSizeTooLarge);
-            return;
-        }
-        this.KcpSend(kcpWaitPacket);
-    }
-        
-    private void OnRead(MemoryStream memoryStream) {
-        try {
-            long channelId = this.Id;
-            object message = null;
-            long actorId = 0;
+            // 检查等待发送的消息，如果超出最大等待大小，应该断开连接
+            int n = Kcp.KcpWaitsnd(this.kcp);
+            int maxWaitSize = 0;
             switch (this.Service.ServiceType) {
-            case ServiceType.Outer:
-            {
-                ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.KcpOpcodeIndex);
-                Type type = NetServices.Instance.GetType(opcode);
-                message = SerializeHelper.Deserialize(type, memoryStream);
-                break;
-            }
             case ServiceType.Inner:
-            {
-                actorId = BitConverter.ToInt64(memoryStream.GetBuffer(), Packet.ActorIdIndex);
-                ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.OpcodeIndex);
-                Type type = NetServices.Instance.GetType(opcode);
-                message = SerializeHelper.Deserialize(type, memoryStream);
+                maxWaitSize = Kcp.InnerMaxWaitSize;
                 break;
+            case ServiceType.Outer:
+                maxWaitSize = Kcp.OuterMaxWaitSize;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
             }
+            
+            if (n > maxWaitSize) {
+                Log.Error($"kcp wait snd too large: {n}: {this.LocalConn} {this.RemoteConn}");
+                this.OnError(ErrorCore.ERR_KcpWaitSendSizeTooLarge);
+                return;
             }
-            NetServices.Instance.OnRead(this.Service.Id, channelId, actorId, message);
+            this.KcpSend(kcpWaitPacket);
         }
-        catch (Exception e) {
-            Log.Error(e);
-            this.OnError(ErrorCore.ERR_PacketParserError);
-        }
-    }
         
-    public void OnError(int error) {
-        long channelId = this.Id;
-        this.Service.Remove(channelId, error);
-        NetServices.Instance.OnError(this.Service.Id, channelId, error);
+        private void OnRead(MemoryStream memoryStream) {
+            try {
+                long channelId = this.Id;
+                object message = null;
+                long actorId = 0;
+                switch (this.Service.ServiceType) {
+                case ServiceType.Outer:
+                {
+                    ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.KcpOpcodeIndex);
+                    Type type = NetServices.Instance.GetType(opcode);
+                    message = SerializeHelper.Deserialize(type, memoryStream);
+                    break;
+                }
+                case ServiceType.Inner:
+                {
+                    actorId = BitConverter.ToInt64(memoryStream.GetBuffer(), Packet.ActorIdIndex);
+                    ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.OpcodeIndex);
+                    Type type = NetServices.Instance.GetType(opcode);
+                    message = SerializeHelper.Deserialize(type, memoryStream);
+                    break;
+                }
+                }
+                NetServices.Instance.OnRead(this.Service.Id, channelId, actorId, message);
+            }
+            catch (Exception e) {
+                Log.Error(e);
+                this.OnError(ErrorCore.ERR_PacketParserError);
+            }
+        }
+        
+        public void OnError(int error) {
+            long channelId = this.Id;
+            this.Service.Remove(channelId, error);
+            NetServices.Instance.OnError(this.Service.Id, channelId, error);
+        }
     }
-}
 }

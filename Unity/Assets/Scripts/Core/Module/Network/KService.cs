@@ -5,10 +5,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-
 namespace ET {
-
     public static class KcpProtocalType {
+        // 这不是，几次握手，几次问答过程中，信息交互的类型? 
         public const byte SYN = 1;
         public const byte ACK = 2;
         public const byte FIN = 3;
@@ -26,6 +25,7 @@ namespace ET {
 
     public sealed class KService: AService {
         public const int ConnectTimeoutTime = 20 * 1000;
+        // 它像是信道管理器，管理XXX 下面的所有的信道
         public readonly Dictionary<IntPtr, KChannel> KcpPtrChannels = new Dictionary<IntPtr, KChannel>();
         
         // KService创建的时间
@@ -38,7 +38,7 @@ namespace ET {
         }
         private Socket socket;
 #region 回调方法
-        static KService() {
+        static KService() { // 感觉这里，好像是要写一个什么结果
             // Kcp.KcpSetLog(KcpLog);
             Kcp.KcpSetoutput(KcpOutput);
         }
@@ -168,10 +168,11 @@ namespace ET {
                 uint remoteConn = 0;
                 uint localConn = 0;
                 
+// 这里就涉及到：连接过程中等可能出现的那几种类型                
                 try {
                     KChannel kChannel = null;
                     switch (flag) {
-                    case KcpProtocalType.RouterReconnectSYN: {
+                    case KcpProtocalType.RouterReconnectSYN: { // 客户端重连
                         // 长度!=5，不是RouterReconnectSYN消息
                         if (messageLength != 13) {
                             break;
@@ -180,11 +181,12 @@ namespace ET {
                         remoteConn = BitConverter.ToUInt32(this.cache, 1);
                         localConn = BitConverter.ToUInt32(this.cache, 5);
                         uint connectId = BitConverter.ToUInt32(this.cache, 9);
-                        this.localConnChannels.TryGetValue(localConn, out kChannel);
+                        this.waitAcceptChannels.TryGetValue(localConn, out kChannel);
                         if (kChannel == null) {
                             Log.Warning($"kchannel reconnect not found channel: {localConn} {remoteConn} {realAddress}");
                             break;
                         }
+                        // 客户端重连：localConn 必须是一样的，重连的服务器另一端也一定是一样的                        
                         // 这里必须校验localConn，客户端重连，localConn一定是一样的
                         if (localConn != kChannel.LocalConn) {
                             Log.Warning($"kchannel reconnect localconn error: {localConn} {remoteConn} {realAddress} {kChannel.LocalConn}");
@@ -198,9 +200,9 @@ namespace ET {
                         if (!Equals(kChannel.RemoteAddress, this.ipEndPoint)) {
                             kChannel.RemoteAddress = this.CloneAddress();
                         }
-                        try {
+                        try { // 客户端重连：逻辑说，发个确认给客户端，说，你已经与我远程服务器连接上了，接下来你就可以发消息了? 
                             byte[] buffer = this.cache;
-                            buffer.WriteTo(0, KcpProtocalType.RouterReconnectACK);
+                            buffer.WriteTo(0, KcpProtocalType.RouterReconnectACK); // 固定常数类型
                             buffer.WriteTo(1, kChannel.LocalConn);
                             buffer.WriteTo(5, kChannel.RemoteConn);
                             buffer.WriteTo(9, connectId);
@@ -220,7 +222,7 @@ namespace ET {
                         string realAddress = null;
                         remoteConn = BitConverter.ToUInt32(this.cache, 1);
                         if (messageLength > 9) {
-                            realAddress = this.cache.ToStr(9, messageLength - 9);
+                            realAddress = this.cache.ToStr(9, messageLength - 9); // byte 数组转化为字符串：从固定起始位置，读固定的长度
                         }
                         remoteConn = BitConverter.ToUInt32(this.cache, 1);
                         localConn = BitConverter.ToUInt32(this.cache, 5);
@@ -233,10 +235,11 @@ namespace ET {
                             if (this.localConnChannels.ContainsKey(localConn)) {
                                 break;
                             }
+                            // 创建一个通信通道信道：当地，远程，socket ，IPEndAddress
                             kChannel = new KChannel(localConn, remoteConn, this.socket, this.CloneAddress(), this);
-                            this.waitAcceptChannels.Add(kChannel.RemoteConn, kChannel); // 连接上了或者超时后会删除
-                            this.localConnChannels.Add(kChannel.LocalConn, kChannel);
-                                
+                            this.waitAcceptChannels.Add(kChannel.RemoteConn, kChannel); // 连接上了或者超时后会删除（原注）.这里是等待远程来接收
+                            this.localConnChannels.Add(kChannel.LocalConn, kChannel);   // 本地的
+
                             kChannel.RealAddress = realAddress;
                             IPEndPoint realEndPoint = kChannel.RealAddress == null? kChannel.RemoteAddress : NetworkHelper.ToIPEndPoint(kChannel.RealAddress);
                             NetServices.Instance.OnAccept(this.Id, kChannel.Id, realEndPoint);

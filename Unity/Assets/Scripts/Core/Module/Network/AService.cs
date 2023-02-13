@@ -4,6 +4,7 @@ using System.Net;
 
 namespace ET {
 
+    // 抽象基类：提供一些必要的方法
     public abstract class AService: IDisposable {
 
         public int Id { get; set; }
