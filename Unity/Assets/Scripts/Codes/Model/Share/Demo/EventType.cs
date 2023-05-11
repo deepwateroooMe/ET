@@ -1,37 +1,24 @@
-﻿namespace ET
-{
-    namespace EventType
-    {
-        public struct SceneChangeStart
-        {
+﻿namespace ET {
+    namespace EventType {
+
+        public struct SceneChangeStart {
         }
-        
-        public struct SceneChangeFinish
-        {
-        }
-        
-        public struct AfterCreateClientScene
-        {
-        }
-        
-        public struct AfterCreateCurrentScene
-        {
+        public struct SceneChangeFinish {
         }
 
-        public struct AppStartInitFinish
-        {
+        public struct AfterCreateClientScene {
+        }
+        public struct AfterCreateCurrentScene {
         }
 
-        public struct LoginFinish
-        {
+        public struct AppStartInitFinish {
         }
-
-        public struct EnterMapFinish
-        {
+        public struct LoginFinish {
         }
-
-        public struct AfterUnitCreate
-        {
+        // public struct EnterMapFinish {
+        public struct EnterRoomFinish {
+        }
+        public struct AfterUnitCreate {
             public Unit Unit;
         }
     }
