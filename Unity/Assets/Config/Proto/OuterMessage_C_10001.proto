@@ -235,3 +235,33 @@ message G2C_Benchmark // IResponse
 	int32 Error = 2;
 	string Message = 3;
 }
+
+message C2G_StartMatch_Req // IRequest
+{
+	int32 RpcId = 90;
+
+}
+
+message G2C_StartMatch_Ack // IResponse
+{
+	int32 RpcId = 90;
+	int32 Error = 91;
+	string Message = 92;
+}
+
+message C2G_GetUserInfo_Req // IRequest
+{
+	int32 RpcId = 90;
+    int64 UserID = 1;
+}
+
+message G2C_GetUserInfo_Ack // IResponse
+{
+	int32 RpcId = 90;
+	int32 Error = 91;
+	string Message = 92;
+    string NickName = 1;
+    int32 Wins = 2;
+    int32 Loses = 3;
+    int64 Money = 4;
+}
