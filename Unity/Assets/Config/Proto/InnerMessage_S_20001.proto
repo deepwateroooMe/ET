@@ -170,3 +170,81 @@ message M2M_UnitTransferResponse // IActorResponse
 	int32 Error = 2;
 	string Message = 3;
 }
+
+message Actor_PlayerEnterRoom_Req // IActorRequest
+{
+    int32 RpcId = 90;
+    int64 ActorId = 91;
+    long PlayerID = 1;
+    long UserID = 2;
+    long SessionID = 3;
+}
+
+message Actor_PlayerEnterRoom_Ack // IActorResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+    long GamerID = 1;
+}
+
+message Actor_GameStart_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    repeated ETModel.Card HandCards = 1;
+    repeated GamerCardNum GamersCardNum = 2;
+}
+
+message Actor_AuthorityGrabLandlord_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+}
+
+message Actor_AuthorityPlayCard_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+    bool IsFirst = 2;
+}
+
+message Actor_SetMultiples_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int32 Multiples = 1;
+}
+
+message Actor_SetLandlord_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+    repeated ETModel.Card LordCards = 2;
+}
+
+message GamerScore
+{
+    int64 UserID = 1;
+    int64 Score = 2;
+}
+
+message Actor_Gameover_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    ETModel.Identity Winner = 1;
+    int64 BasePointPerMatch = 2;
+    int32 Multiples = 3;
+    repeated GamerScore GamersScore = 4;
+}
+
+message Actor_GamerMoneyLess_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+}

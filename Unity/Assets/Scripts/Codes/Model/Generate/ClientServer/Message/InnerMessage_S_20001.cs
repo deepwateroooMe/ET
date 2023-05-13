@@ -360,6 +360,180 @@ namespace ET
 
 	}
 
+	[Message(InnerMessage.Actor_PlayerEnterRoom_Req)]
+	[ProtoContract]
+	public partial class Actor_PlayerEnterRoom_Req: ProtoObject, IActorRequest
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(91)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public long PlayerID { get; set; }
+
+		[ProtoMember(2)]
+		public long UserID { get; set; }
+
+		[ProtoMember(3)]
+		public long SessionID { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_PlayerEnterRoom_Ack)]
+	[ProtoContract]
+	public partial class Actor_PlayerEnterRoom_Ack: ProtoObject, IActorResponse
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(91)]
+		public int Error { get; set; }
+
+		[ProtoMember(92)]
+		public string Message { get; set; }
+
+		[ProtoMember(1)]
+		public long GamerID { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_GameStart_Ntt)]
+	[ProtoContract]
+	public partial class Actor_GameStart_Ntt: ProtoObject, IActorMessage
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(94)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public List<ETModel.Card> HandCards { get; set; }
+
+		[ProtoMember(2)]
+		public List<GamerCardNum> GamersCardNum { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_AuthorityGrabLandlord_Ntt)]
+	[ProtoContract]
+	public partial class Actor_AuthorityGrabLandlord_Ntt: ProtoObject, IActorMessage
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(94)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public long UserID { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_AuthorityPlayCard_Ntt)]
+	[ProtoContract]
+	public partial class Actor_AuthorityPlayCard_Ntt: ProtoObject, IActorMessage
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(94)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public long UserID { get; set; }
+
+		[ProtoMember(2)]
+		public bool IsFirst { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_SetMultiples_Ntt)]
+	[ProtoContract]
+	public partial class Actor_SetMultiples_Ntt: ProtoObject, IActorMessage
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(94)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public int Multiples { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_SetLandlord_Ntt)]
+	[ProtoContract]
+	public partial class Actor_SetLandlord_Ntt: ProtoObject, IActorMessage
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(94)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public long UserID { get; set; }
+
+		[ProtoMember(2)]
+		public List<ETModel.Card> LordCards { get; set; }
+
+	}
+
+	[Message(InnerMessage.GamerScore)]
+	[ProtoContract]
+	public partial class GamerScore: ProtoObject
+	{
+		[ProtoMember(1)]
+		public long UserID { get; set; }
+
+		[ProtoMember(2)]
+		public long Score { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_Gameover_Ntt)]
+	[ProtoContract]
+	public partial class Actor_Gameover_Ntt: ProtoObject, IActorMessage
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(94)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public ETModel.Identity Winner { get; set; }
+
+		[ProtoMember(2)]
+		public long BasePointPerMatch { get; set; }
+
+		[ProtoMember(3)]
+		public int Multiples { get; set; }
+
+		[ProtoMember(4)]
+		public List<GamerScore> GamersScore { get; set; }
+
+	}
+
+	[Message(InnerMessage.Actor_GamerMoneyLess_Ntt)]
+	[ProtoContract]
+	public partial class Actor_GamerMoneyLess_Ntt: ProtoObject, IActorMessage
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(94)]
+		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public long UserID { get; set; }
+
+	}
+
 	public static class InnerMessage
 	{
 		 public const ushort ObjectQueryRequest = 20002;
@@ -385,5 +559,15 @@ namespace ET
 		 public const ushort ObjectQueryResponse = 20022;
 		 public const ushort M2M_UnitTransferRequest = 20023;
 		 public const ushort M2M_UnitTransferResponse = 20024;
+		 public const ushort Actor_PlayerEnterRoom_Req = 20025;
+		 public const ushort Actor_PlayerEnterRoom_Ack = 20026;
+		 public const ushort Actor_GameStart_Ntt = 20027;
+		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20028;
+		 public const ushort Actor_AuthorityPlayCard_Ntt = 20029;
+		 public const ushort Actor_SetMultiples_Ntt = 20030;
+		 public const ushort Actor_SetLandlord_Ntt = 20031;
+		 public const ushort GamerScore = 20032;
+		 public const ushort Actor_Gameover_Ntt = 20033;
+		 public const ushort Actor_GamerMoneyLess_Ntt = 20034;
 	}
 }

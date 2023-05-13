@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-namespace ETModel {
+namespace ET.Server {
 
     // 房间状态
     public enum RoomState : byte {

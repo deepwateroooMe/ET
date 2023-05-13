@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ETModel;
+using ET;
+
 namespace ET.Server {
 
     // 【房间服】：匹配好了的玩家，请求进入房间
-    [ActorMessageHandler(AppType.Map)]
+    [ActorMessageHandler(SceneType.Map)]
     public class Actor_PlayerEnterRoom_ReqHandler : AMActorRpcHandler<Room, Actor_PlayerEnterRoom_Req, Actor_PlayerEnterRoom_Ack> {
 
         protected override async Task Run(Room room, Actor_PlayerEnterRoom_Req message, Action<Actor_PlayerEnterRoom_Ack> reply) {

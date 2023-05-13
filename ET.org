@@ -181,9 +181,9 @@ public enum SceneType {
 }
 #+END_SRC
 * 辅助事理：框架里的各系统
-** 标签系
-*** ComponentOf 标签：是现在重构的一个问题
-    #+BEGIN_SRC csharp
+** 标签系: 标签系统重构了，现分为几个类型
+*** ComponentOfAttribute : Attribute
+#+BEGIN_SRC csharp
 // 组件类父级实体类型约束
 // 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
 // 不唯一则标记【ComponentOf]
@@ -194,13 +194,34 @@ public class ComponentOfAttribute : Attribute {
         this.Type = type;
     }
 }
-  #+END_SRC
+#+END_SRC
+*** ComponentView: MonoBehaviour 
+    #+BEGIN_SRC csharp
+public class ComponentView: MonoBehaviour {
+    public Entity Component {
+        get;
+        set;
+    }
+}
+    #+END_SRC
+***
+#+BEGIN_SRC csharp
+#+END_SRC
 
 * 整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI
 - 整个框架的场景节点如下
       
 [[./pic/ET_20230512_143227.png]]
 
+* 写在最后：反而是自己每天查看一再更新的
+- 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
+- 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
+- 然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
+- 错太多，其它难点儿的还不熟悉源码，就把所有的【Proto 消息】先生成出来，能去掉一半错误。今天晚上至少可以把这个全部解决掉
+  - 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
+  - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
+- 改 compile-error 时，不知道为佳么，感觉 mac 下的VSC 比 windows 好用，用那个先改下
+  
 * 现在的修改内容，记忆
 - UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
 #+BEGIN_SRC csharp
@@ -243,13 +264,4 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
 
             }
         #+END_SRC
-
-
-
-
-
-
-
-
-
-
+        

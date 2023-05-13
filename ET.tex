@@ -1,4 +1,5 @@
-% Created 2023-05-13 Sat 11:50
+% Created 2023-05-13 Sat 15:06
+% Intended LaTeX compiler: pdflatex
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -26,9 +27,12 @@
 \date{\today}
 \title{ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏}
 \hypersetup{
-  pdfkeywords={},
-  pdfsubject={},
-  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
+ pdfauthor={deepwaterooo},
+ pdftitle={ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 28.2 (Org mode 9.5.5)}, 
+ pdflang={English}}
 \begin{document}
 
 \maketitle
@@ -36,9 +40,9 @@
 
 
 \section{UI 上的事件驱动系统：}
-\label{sec-1}
+\label{sec:orgc536f4f}
 \subsection{EventType}
-\label{sec-1-1}
+\label{sec:orgb952841}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace EventType {
     public struct SceneChangeStart {
@@ -64,13 +68,13 @@ namespace EventType {
 }
 \end{minted}
 \subsection{由 AppStartInitFinish 事件所触发的 CreateLoginUI}
-\label{sec-1-2}
+\label{sec:org63a641d}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)] // ET 事件系统的工具，标签系
 public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFinish> {
 \end{minted}
 \subsection{由 LoginFinish 事件所触发的 CreateLobbyUI}
-\label{sec-1-3}
+\label{sec:org23dcdd2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
@@ -79,16 +83,16 @@ public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
 \item 这些是原示范框架都已经完成了的，我只需要添加剩余的逻辑。
 \end{itemize}
 \subsection{现游戏项目 ET7 里的主要适配：由原UI 上的组件系统，手动组件添加移除，更改为UI 上的事件驱动系统的事件定义，注册，与工厂生成系？}
-\label{sec-1-4}
+\label{sec:orga0910d2}
 \begin{itemize}
 \item 就是说，接下来游戏里的主要逻辑，也将变成如此一个个不同的自定义事件，来驱动UI 上的各种回调。【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item UI 界面上的按钮点击要如何处理呢，新框架里，找个例子看看，点【进入地图】看看: \textbf{全部变成了Helper 帮助类}
 \end{itemize}
 
 \section{Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？}
-\label{sec-2}
+\label{sec:orgdd51a96}
 \subsection{LoginHelper.cs}
-\label{sec-2-1}
+\label{sec:org269e354}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class LoginHelper {
 public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -125,7 +129,7 @@ public static async ETTask Login(Scene clientScene, string account, string passw
 }
 \end{minted}
 \subsection{EnterRoomHelper.cs}
-\label{sec-2-2}
+\label{sec:orgcb53723}
 \begin{itemize}
 \item 这里需要注意的是：原项目里面还是保留了C2G\_EnterMap 消息的。分两块查看一下：
 \begin{itemize}
@@ -198,7 +202,7 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 \end{itemize}
 
 \section{服务器类型 AppType, 变成为路由系统 RouterAddressComponent}
-\label{sec-3}
+\label{sec:orgf549bbd}
 \begin{itemize}
 \item 应用的类型，新框架里有如下几种
 \end{itemize}
@@ -241,11 +245,11 @@ public enum SceneType {
 \end{minted}
 \end{itemize}
 \section{辅助事理：框架里的各系统}
-\label{sec-4}
-\subsection{标签系}
-\label{sec-4-1}
-\subsubsection{ComponentOf 标签：是现在重构的一个问题}
-\label{sec-4-1-1}
+\label{sec:orga552b99}
+\subsection{标签系: 标签系统重构了，现分为几个类型}
+\label{sec:org3314584}
+\subsubsection{ComponentOfAttribute : Attribute}
+\label{sec:org8a176b4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 组件类父级实体类型约束
 // 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
@@ -258,17 +262,44 @@ public class ComponentOfAttribute : Attribute {
     }
 }
 \end{minted}
+\subsubsection{ComponentView: MonoBehaviour}
+\label{sec:orgbfd9504}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public class ComponentView: MonoBehaviour {
+    public Entity Component {
+        get;
+        set;
+    }
+}
+\end{minted}
+\textbf{*}
 
 \section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
-\label{sec-5}
+\label{sec:org4bb3278}
 \begin{itemize}
 \item 整个框架的场景节点如下
 \end{itemize}
 
+\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
+\end{center}
+
+\section{写在最后：反而是自己每天查看一再更新的}
+\label{sec:org761824b}
+\begin{itemize}
+\item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
+\item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
+\item 然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
+\item 错太多，其它难点儿的还不熟悉源码，就把所有的【Proto 消息】先生成出来，能去掉一半错误。今天晚上至少可以把这个全部解决掉
+\begin{itemize}
+\item 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
+\item 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
+\end{itemize}
+\item 改 compile-error 时，不知道为佳么，感觉 mac 下的VSC 比 windows 好用，用那个先改下
+\end{itemize}
 
 \section{现在的修改内容，记忆}
-\label{sec-6}
+\label{sec:org503b1ba}
 \begin{itemize}
 \item UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
 \end{itemize}
@@ -312,5 +343,4 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
 
             }
 \end{minted}
-% Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

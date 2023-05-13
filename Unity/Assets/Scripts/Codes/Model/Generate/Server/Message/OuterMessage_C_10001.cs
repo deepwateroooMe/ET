@@ -542,6 +542,36 @@ namespace ET
 
 	}
 
+	[Message(OuterMessage.C2R_Register_Req)]
+	[ProtoContract]
+	public partial class C2R_Register_Req: ProtoObject, IRequest
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(1)]
+		public string Account { get; set; }
+
+		[ProtoMember(2)]
+		public string Password { get; set; }
+
+	}
+
+	[Message(OuterMessage.R2C_Register_Ack)]
+	[ProtoContract]
+	public partial class R2C_Register_Ack: ProtoObject, IResponse
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(91)]
+		public int Error { get; set; }
+
+		[ProtoMember(92)]
+		public string Message { get; set; }
+
+	}
+
 	public static class OuterMessage
 	{
 		 public const ushort HttpGetRouterResponse = 10002;
@@ -582,5 +612,7 @@ namespace ET
 		 public const ushort G2C_StartMatch_Ack = 10037;
 		 public const ushort C2G_GetUserInfo_Req = 10038;
 		 public const ushort G2C_GetUserInfo_Ack = 10039;
+		 public const ushort C2R_Register_Req = 10040;
+		 public const ushort R2C_Register_Ack = 10041;
 	}
 }
