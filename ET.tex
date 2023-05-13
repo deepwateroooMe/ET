@@ -1,5 +1,4 @@
-% Created 2023-05-12 Fri 16:25
-% Intended LaTeX compiler: pdflatex
+% Created 2023-05-13 Sat 11:50
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -27,12 +26,9 @@
 \date{\today}
 \title{ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏}
 \hypersetup{
- pdfauthor={deepwaterooo},
- pdftitle={ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 28.2 (Org mode 9.5.5)}, 
- pdflang={English}}
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
 \begin{document}
 
 \maketitle
@@ -40,9 +36,9 @@
 
 
 \section{UI 上的事件驱动系统：}
-\label{sec:org11be625}
+\label{sec-1}
 \subsection{EventType}
-\label{sec:orged8ca99}
+\label{sec-1-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace EventType {
     public struct SceneChangeStart {
@@ -68,13 +64,13 @@ namespace EventType {
 }
 \end{minted}
 \subsection{由 AppStartInitFinish 事件所触发的 CreateLoginUI}
-\label{sec:orgf9f170d}
+\label{sec-1-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)] // ET 事件系统的工具，标签系
 public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFinish> {
 \end{minted}
 \subsection{由 LoginFinish 事件所触发的 CreateLobbyUI}
-\label{sec:orgf1eb6c2}
+\label{sec-1-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
@@ -83,16 +79,16 @@ public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
 \item 这些是原示范框架都已经完成了的，我只需要添加剩余的逻辑。
 \end{itemize}
 \subsection{现游戏项目 ET7 里的主要适配：由原UI 上的组件系统，手动组件添加移除，更改为UI 上的事件驱动系统的事件定义，注册，与工厂生成系？}
-\label{sec:org014c33d}
+\label{sec-1-4}
 \begin{itemize}
 \item 就是说，接下来游戏里的主要逻辑，也将变成如此一个个不同的自定义事件，来驱动UI 上的各种回调。【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
-\item UI 界面上的按钮点击要如何处理呢，新框架里，找个例子看看，点【进入地图】看看
+\item UI 界面上的按钮点击要如何处理呢，新框架里，找个例子看看，点【进入地图】看看: \textbf{全部变成了Helper 帮助类}
 \end{itemize}
 
 \section{Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？}
-\label{sec:org40dd198}
+\label{sec-2}
 \subsection{LoginHelper.cs}
-\label{sec:orgbee9c65}
+\label{sec-2-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class LoginHelper {
 public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -129,12 +125,12 @@ public static async ETTask Login(Scene clientScene, string account, string passw
 }
 \end{minted}
 \subsection{EnterRoomHelper.cs}
-\label{sec:org9b291f9}
+\label{sec-2-2}
 \begin{itemize}
 \item 这里需要注意的是：原项目里面还是保留了C2G\_EnterMap 消息的。分两块查看一下：
 \begin{itemize}
 \item 可以先去查一下，斗地主里是如何【开始匹配】的
-\item ET 7 框架里，服务器是如何处理消息的，变成了路由系统，如何由特定路由服务器来处理消息？
+\item ET 7 框架里，服务器是如何处理消息的，变成了不同的 \textbf{场景类型：SceneType, 由不同场景，也就是不同的专职服务器来处理各种逻辑功能块的消息}
 \begin{itemize}
 \item 仍然是 \textbf{标签系的消息处理器}: 因为先前的不同服变成了现在的不同场景，分场景（先前的不同服）来定义消息处理器，以处理当前场景（特定功能逻辑服）下的消息，如匹配服的消息。
 \end{itemize}
@@ -181,9 +177,9 @@ public class M2C_CreateMyUnitHandler : AMHandler<M2C_CreateMyUnit> {
     }
 }
 \end{minted}
-\item 再来一个场景切换开始事件的
+\item 再来一个场景切换开始事件的：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 这个比较喜欢：场景切换, 切换开始，可以做点什么？切换结束，可以做点什么？全成事件触发机制。任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
+// 这个比较喜欢：场景切换, 先前不同功能定义的服，切换开始，可以做点什么？切换结束，可以做点什么？全成事件触发机制。
 [Event(SceneType.Client)]
 public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 
@@ -202,7 +198,7 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 \end{itemize}
 
 \section{服务器类型 AppType, 变成为路由系统 RouterAddressComponent}
-\label{sec:orgad3019e}
+\label{sec-3}
 \begin{itemize}
 \item 应用的类型，新框架里有如下几种
 \end{itemize}
@@ -244,21 +240,77 @@ public enum SceneType {
 }
 \end{minted}
 \end{itemize}
-
-\section{主要改变}
-\label{sec:orgc4b3f0f}
-\begin{itemize}
-\item 与以前的多服务器模式相比，7 里将多服务器又重新统一回成为了一个服务器Server. 变成了一个服务器的路由系统？RouterAddressComponent 来管理路由各不同的服务器
-\item 这个文档总结一下，主要的ET 框架上的学习笔记。
-\end{itemize}
+\section{辅助事理：框架里的各系统}
+\label{sec-4}
+\subsection{标签系}
+\label{sec-4-1}
+\subsubsection{ComponentOf 标签：是现在重构的一个问题}
+\label{sec-4-1-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 组件类父级实体类型约束
+// 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
+// 不唯一则标记【ComponentOf]
+[AttributeUsage(AttributeTargets.Class)]
+public class ComponentOfAttribute : Attribute {
+    public Type Type;
+    public ComponentOfAttribute(Type type = null) {
+        this.Type = type;
+    }
+}
+\end{minted}
 
 \section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
-\label{sec:org2272558}
+\label{sec-5}
 \begin{itemize}
 \item 整个框架的场景节点如下
 \end{itemize}
 
-\begin{center}
-\includegraphics[width=.9\linewidth]{./pic/ET_20230512_143116.png}
-\end{center}
+\includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
+
+\section{现在的修改内容，记忆}
+\label{sec-6}
+\begin{itemize}
+\item UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 获取玩家数据: 按说应该是注册登录服的逻辑，或者是数据库服存放着用户信息，都是通过Gate中转
+        long userId = ClientComponent.Instance.LocalPlayer.UserID; // 【ClientComponent】：组件被重构掉了，去找相应的替换
+        C2G_GetUserInfo_Req c2G_GetUserInfo_Req = new C2G_GetUserInfo_Req() { UserID = userId }; // 去从网关服拿玩家信息
+        G2C_GetUserInfo_Ack g2C_GetUserInfo_Ack = await SessionComponent.Instance.Session.Call(c2G_GetUserInfo_Req) as G2C_GetUserInfo_Ack;
+        // 显示用户信息
+        rc.Get<GameObject>("NickName").GetComponent<Text>().text = g2C_GetUserInfo_Ack.NickName;
+        rc.Get<GameObject>("Money").GetComponent<Text>().text = g2C_GetUserInfo_Ack.Money.ToString();                
+    }
+}
+// 【回调：】自定义三个按钮的回调。这些个过程流程，就主要参考，同框架的斗地主游戏
+public static async ETTask matchRoom(this UILobbyComponent self) { // 通过网关服中转，请求匹配服为给匹配一个房间四人桌
+    try {
+        // 发送开始匹配消息
+        C2G_StartMatch_Req c2G_StartMatch_Req = new C2G_StartMatch_Req();
+        G2C_StartMatch_Ack g2C_StartMatch_Ack = await SessionComponent.Instance.Session.Call(c2G_StartMatch_Req) as G2C_StartMatch_Ack; // 这里去看下服务器的处理逻辑
+        // // 暫时跳过这步
+        // if (g2C_StartMatch_Ack.Error == ErrorCode.ERR_UserMoneyLessError) {
+        //     Log.Error("余额不足"); // 就是说，当且仅当余额不足的时候才会出这个错误？
+        //     return;
+        // }
+        // 匹配成功了：UI 界面切换，切换到房间界面【UI 事件系统】：这里不再是手动添加与移除，去发布事件
+        UI room = Game.Scene.GetComponent<UIComponent>().Create(UIType.LandlordsRoom); // 装载新的UI视图
+        Game.Scene.GetComponent<UIComponent>().Remove(UIType.LandlordsLobby);          // 卸载旧的UI视图
+        // 将房间设为匹配状态
+        room.GetComponent<LandlordsRoomComponent>().Matching = true;
+    }
+    catch (Exception e) {
+        Log.Error(e.ToStr());
+    }
+}
+// 接下来，这两个选项，暂时不处理
+public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道，这个，与 EnterMap 有没有本质的区别，要检查一下
+                            await EnterRoomHelper.EnterRoomAsync(self.ClientScene());
+                                            await UIHelper.Remove(self.ClientScene(), UIType.UILobby);
+                                            }
+                                            public static async ETTask createRoom(this UILobbyComponent self) {
+
+            }
+\end{minted}
+% Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

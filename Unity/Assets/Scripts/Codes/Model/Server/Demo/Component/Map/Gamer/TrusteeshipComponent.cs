@@ -1,4 +1,4 @@
-namespace ETModel {
+namespace ET {
 
     // 托管组件，逻辑在TrusteeshipComponentSystem扩展
     public class TrusteeshipComponent : Component {

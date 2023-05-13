@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 【房间服】：匹配好了的玩家，请求进入房间
     [ActorMessageHandler(AppType.Map)]

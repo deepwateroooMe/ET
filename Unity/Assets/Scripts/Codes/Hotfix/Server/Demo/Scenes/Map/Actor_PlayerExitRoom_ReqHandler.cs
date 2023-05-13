@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 【房间服】：玩家请求退出拖拉机房
     [ActorMessageHandler(AppType.Map)]

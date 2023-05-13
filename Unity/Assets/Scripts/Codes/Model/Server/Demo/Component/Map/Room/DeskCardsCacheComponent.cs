@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-namespace ETModel {
+namespace ET {
 
     // 为什么需要这个组件，没想明白
     public class DeskCardsCacheComponent : Component {

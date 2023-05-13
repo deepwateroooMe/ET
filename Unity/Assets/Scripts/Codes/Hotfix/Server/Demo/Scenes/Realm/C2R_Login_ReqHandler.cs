@@ -1,9 +1,9 @@
 using System;
 using ETModel;
 using System.Collections.Generic;
-namespace ETHotfix {
+namespace ET.Server {
 
-    [MessageHandler(AppType.Realm)]
+    [MessageHandler(SceneType.Realm)]
     public class C2R_Login_ReqHandler : AMRpcHandler<C2R_Login_Req, R2C_Login_Ack> {
 
         protected override async void Run(Session session, C2R_Login_Req message, Action<R2C_Login_Ack> reply) {

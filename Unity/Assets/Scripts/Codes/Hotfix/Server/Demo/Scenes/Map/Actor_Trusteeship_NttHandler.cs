@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 【房间服】：玩家切换拖拉机模式，转为手动自己出牌，或是请求机器人代为打牌。。。
     [ActorMessageHandler(AppType.Map)]

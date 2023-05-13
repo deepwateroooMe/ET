@@ -18,6 +18,7 @@ namespace ET.Client {
                 self.createRoom = rc.Get<GameObject>("CreateRoom"); 
                 self.createRoom.GetComponent<Button>().onClick.AddListener(() => { self.createRoom().Coroutine(); });
 
+                // 【看错了】：下面是我参考的时候没仔细看，看错了
                 // 【来自斗地主里的参考】提取玩家用户数据：
 // 获取玩家数据: 按说应该是注册登录服的逻辑，或者是数据库服存放着用户信息，都是通过Gate中转
                 long userId = ClientComponent.Instance.LocalPlayer.UserID; // 当地玩家：是前一步，客户端登录成功的时候设置的
@@ -50,7 +51,7 @@ namespace ET.Client {
             }
         }
         // 接下来，这两个选项，暂时不处理
-        public static async ETTask enterRoom(this UILobbyComponent self) {
+        public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道，这个，与 EnterMap 有没有本质的区别，要检查一下
             await EnterRoomHelper.EnterRoomAsync(self.ClientScene());
             await UIHelper.Remove(self.ClientScene(), UIType.UILobby);
         }

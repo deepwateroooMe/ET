@@ -1,7 +1,7 @@
 using ET;
 using ET.Server;
 using System.Threading.Tasks;
-namespace ETHotfix {
+namespace ET.Server {
 
     [ActorMessageHandler(SceneType.Gate)]
     public class Actor_MatchSucess_NttHandler : AMActorHandler<User, Actor_MatchSucess_Ntt> {

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 【游戏逻辑－－游戏牌】帮助类：会要重改重构的，游戏不一样
     public static class CardsHelper {

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-namespace ETModel {
+namespace ET.Client {
 
     // 房间管理组件
     public class RoomComponent : Component {

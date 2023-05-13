@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-namespace ETModel {
+namespace ET {
 
     // 跟玩家的出牌顺序什么的，相关吗？
     // 这些都算是：游戏逻辑控制的组件化拆分。以前自己的游戏可能是一个巨大无比的控制器文件，这里折分成了狠多个小组件控制

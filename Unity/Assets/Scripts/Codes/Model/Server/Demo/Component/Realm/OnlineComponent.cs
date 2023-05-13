@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-namespace ETModel {
+namespace ET {
 
     // 在线组件，用于记录在线玩家
     public class OnlineComponent : Component {

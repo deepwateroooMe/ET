@@ -1,6 +1,6 @@
 using ETModel;
 
-namespace ETHotfix {
+namespace ET.Server {
     public static class RoomHelper {
 
         public static RoomConfig GetConfig(RoomLevel level) {

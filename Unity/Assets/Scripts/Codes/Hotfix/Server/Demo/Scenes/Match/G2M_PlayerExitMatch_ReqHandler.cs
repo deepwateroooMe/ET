@@ -1,9 +1,9 @@
 using System;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 【匹配服】：玩家退出、结束了匹配 
-    [MessageHandler(AppType.Match)]
+    [MessageHandler(SceneType.Match)]
     public class G2M_PlayerExitMatch_ReqHandler : AMRpcHandler<G2M_PlayerExitMatch_Req, M2G_PlayerExitMatch_Ack> {
 
         protected override void Run(Session session, G2M_PlayerExitMatch_Req message, Action<M2G_PlayerExitMatch_Ack> reply) {

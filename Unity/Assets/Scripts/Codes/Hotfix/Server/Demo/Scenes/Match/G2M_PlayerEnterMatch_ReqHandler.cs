@@ -1,10 +1,10 @@
 using System;
 using ETModel;
 using System.Threading.Tasks;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 【匹配服】：处理网关网关服发送的匹配玩家请求。网关服转发客户端匹配请求
-    [MessageHandler(AppType.Match)]
+    [MessageHandler(SceneType.Match)]
     public class G2M_PlayerEnterMatch_ReqHandler : AMRpcHandler<G2M_PlayerEnterMatch_Req, M2G_PlayerEnterMatch_Ack> {
 
         protected override async void Run(Session session, G2M_PlayerEnterMatch_Req message, Action<M2G_PlayerEnterMatch_Ack> reply) {

@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
-namespace ETModel {
+namespace ET {
 
     // 匹配房间管理组件，逻辑在MatchRoomComponentSystem扩展
     public class MatchRoomComponent : Component {

@@ -1,4 +1,4 @@
-namespace ETModel {
+namespace ET {
     [ObjectSystem]
     public class UserAwakeSystem : AwakeSystem<User,long> {
         public override void Awake(User self, long id) {

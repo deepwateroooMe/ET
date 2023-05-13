@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
     // 【匹配服】：与房间服之间的交互
-    [MessageHandler(AppType.Match)]
+    [MessageHandler(SceneType.Match)]
     public class MP2MH_SyncRoomState_NttHandler : AMHandler<MP2MH_SyncRoomState_Ntt> {
 
         protected override void Run(Session session, MP2MH_SyncRoomState_Ntt message) {

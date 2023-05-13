@@ -1,7 +1,7 @@
 using ET;
 using ET.Server;
 using System.Net;
-namespace ETHotfix {
+namespace ET.Server {
 
     [MessageHandler(SceneType.Gate)]
     public class C2G_ReturnLobby_NttHandler : AMHandler<C2G_ReturnLobby_Ntt> { // 这是晚一点儿，玩家从拖拉机房出来的服务器热更新处理

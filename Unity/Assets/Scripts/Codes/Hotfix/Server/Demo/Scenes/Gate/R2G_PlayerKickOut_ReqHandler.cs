@@ -1,7 +1,7 @@
 using System;
 using System.Net;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
     // 【没想明白】：服务器在什么情况，前提下，会将玩家踢出房间？有点儿过分，可能用不上
     [MessageHandler(AppType.Gate)]
     public class R2G_PlayerKickOut_ReqHandler : AMRpcHandler<R2G_PlayerKickOut_Req, G2R_PlayerKickOut_Ack> {

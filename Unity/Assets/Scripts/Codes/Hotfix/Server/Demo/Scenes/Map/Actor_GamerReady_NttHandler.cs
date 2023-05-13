@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
 
     [ActorMessageHandler(AppType.Map)]
     public class Actor_GamerReady_NttHandler : AMActorHandler<Gamer, Actor_GamerReady_Ntt> {

@@ -1,7 +1,7 @@
 using System;
 using ETModel;
 using System.Net;
-namespace ETHotfix {
+namespace ET.Server {
     // 网关服：处理客户端 StartMatch 请求消息
     [MessageHandler(AppType.Gate)]
     public class C2G_StartMatch_ReqHandler : AMRpcHandler<C2G_StartMatch_Req, G2C_StartMatch_Ack> {

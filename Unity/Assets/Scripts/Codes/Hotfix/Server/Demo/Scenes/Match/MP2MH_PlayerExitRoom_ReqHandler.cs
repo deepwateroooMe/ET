@@ -1,8 +1,8 @@
 using System;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
     // 【匹配服】：玩家退出房间，被通知，想从匹配服消号，清理人口。。。
-    [MessageHandler(AppType.Match)]
+    [MessageHandler(SceneType.Match)]
     public class MP2MH_PlayerExitRoom_ReqHandler : AMRpcHandler<MP2MH_PlayerExitRoom_Req, MH2MP_PlayerExitRoom_Ack> {
 
         protected override void Run(Session session, MP2MH_PlayerExitRoom_Req message, Action<MH2MP_PlayerExitRoom_Ack> reply) {

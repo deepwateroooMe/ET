@@ -1,6 +1,6 @@
 using System;
 using ETModel;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 【房间服】：玩家请求创建新房间
     [MessageHandler(AppType.Map)]

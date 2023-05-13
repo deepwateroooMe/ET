@@ -1,7 +1,7 @@
 using ET;
 using ET.Server;
 using System;
-namespace ETHotfix {
+namespace ET.Server {
 
     // 可能狠多类，这里已经可以不要了，因为组件化的自动完成，比如用户下线的会话框自动移除等
     [MessageHandler(SceneType.Realm)]

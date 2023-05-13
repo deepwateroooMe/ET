@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
-namespace ETModel {
+namespace ET {
 
     // 匹配对象管理组件
     public class MatcherComponent : Component {

@@ -2,9 +2,9 @@ using System;
 using ET;
 using ETModel;
 using ET.Server;
-namespace ETHotfix {
+namespace ET.Server {
     // 【网关服】：客户端请求玩家数据. 如果现在没有这些小服务器器了，我就需要再接着更改消息处理器。去看现框架里消息是如何分发处理的
-    [MessageHandler(AppType.Gate)]
+    [MessageHandler(SceneType.Gate)]
     public class C2G_GetUserInfo_ReqHandler : AMRpcHandler<C2G_GetUserInfo_Req, G2C_GetUserInfo_Ack> {
 
         protected override async void Run(Session session, C2G_GetUserInfo_Req message, Action<G2C_GetUserInfo_Ack> reply) {

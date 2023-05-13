@@ -3,7 +3,7 @@ using ET;
 using ET.Server;
 using System.Collections.Generic;
 
-namespace ETClient {
+namespace ET.Client {
     // 游戏服务器： Realm 注册登录服，把这个注册，自动登录，存数据库等的整个过程弄清楚，服务器端连接链路
     [MessageHandler(SceneType.Realm)]
     public class C2R_Register_ReqHandler : AMRpcHandler<C2R_Register_Req, R2C_Register_Ack> {
