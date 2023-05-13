@@ -1,9 +1,11 @@
 using System;
-using ETModel;
+using ET;
+using ET.Server;
 using System.Collections.Generic;
-namespace ETHotfix {
+
+namespace ETClient {
     // 游戏服务器： Realm 注册登录服，把这个注册，自动登录，存数据库等的整个过程弄清楚，服务器端连接链路
-    [MessageHandler(AppType.Realm)]
+    [MessageHandler(SceneType.Realm)]
     public class C2R_Register_ReqHandler : AMRpcHandler<C2R_Register_Req, R2C_Register_Ack> {
         protected override async void Run(Session session, C2R_Register_Req message, Action<R2C_Register_Ack> reply) {
             R2C_Register_Ack response = new R2C_Register_Ack();

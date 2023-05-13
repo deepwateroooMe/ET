@@ -1,8 +1,9 @@
+using ET;
+using ET.Server;
 using System.Threading.Tasks;
-using ETModel;
 namespace ETHotfix {
 
-    [ActorMessageHandler(AppType.Gate)]
+    [ActorMessageHandler(SceneType.Gate)]
     public class Actor_MatchSucess_NttHandler : AMActorHandler<User, Actor_MatchSucess_Ntt> {
 
         protected override void Run(User user, Actor_MatchSucess_Ntt message) {

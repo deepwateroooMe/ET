@@ -1,6 +1,6 @@
 ﻿namespace ET {
-    namespace EventType {
 
+    namespace EventType {
         public struct SceneChangeStart {
         }
         public struct SceneChangeFinish {
