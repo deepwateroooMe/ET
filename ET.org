@@ -2,6 +2,372 @@
 #+title: ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏 
 #+author: deepwaterooo 
 
+* 框架里的各系统, 或某部分启动逻辑等相关逻辑追踪
+** 客户端场景组件：这里追一遍客户端大致的起始过程
+*** Entry.cs: 指定的起始类，会触发三类回调，公用组件类的加载，和其它
+   #+BEGIN_SRC csharp
+public static class Entry {
+    public static void Init() {
+    }
+    public static void Start() {
+        StartAsync().Coroutine();
+    }
+    // 【各种应用程序，第三方库等的初始化 】
+    private static async ETTask StartAsync() {
+        WinPeriod.Init();
+
+        MongoHelper.Init();
+        ProtobufHelper.Init();
+
+        Game.AddSingleton<NetServices>();
+        Game.AddSingleton<Root>();
+        await Game.AddSingleton<ConfigComponent>().LoadAsync();
+
+        // 不知道：加这三个是在做什么？它没有起有意义的名字，但总之，它是事件，会触发相应的回调
+        await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent1());
+        await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent2());
+        await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent3());
+    }
+}
+   #+END_SRC
+*** EntryEvent1_InitShare: 第一类，，公用组件类的加载，公用的几大组件
+    #+BEGIN_SRC csharp
+// 公用的相关组件的初始化：
+[Event(SceneType.Process)]
+public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
+    protected override async ETTask Run(Scene scene, EventType.EntryEvent1 args) {
+        Root.Instance.Scene.AddComponent<NetThreadComponent>();
+        Root.Instance.Scene.AddComponent<OpcodeTypeComponent>();
+        Root.Instance.Scene.AddComponent<MessageDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<NumericWatcherComponent>();
+        Root.Instance.Scene.AddComponent<AIDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ClientSceneManagerComponent>();
+        await ETTask.CompletedTask;
+    }
+}
+    #+END_SRC
+**** ClientSceneManagerComponent: 是否，相当于，它是SceneType 的管理者，就是先前各种服，注册登录服，网关服、匹配服等的管理者，大概主要还是地址传送
+    #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class ClientSceneManagerComponent: Entity, IAwake, IDestroy {
+    [StaticField]
+    public static ClientSceneManagerComponent Instance;
+}
+    #+END_SRC
+*** SceneFactory: ClientScene: 三大组件：【CurrentScenesComponent】【PlayerComponent】【ObjectWait】。【去追一下】：工厂加工场景，事件是如何触发的？
+     #+BEGIN_SRC csharp
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateClientScene(int zone, string name) {
+        await ETTask.CompletedTask;
+
+        Scene clientScene = EntitySceneFactory.CreateScene(zone, SceneType.Client, name, ClientSceneManagerComponent.Instance);
+        clientScene.AddComponent<CurrentScenesComponent>();// 它添加了这些组件，也看下
+        clientScene.AddComponent<ObjectWait>();
+        clientScene.AddComponent<PlayerComponent>();
+
+        EventSystem.Instance.Publish(clientScene, new EventType.AfterCreateClientScene()); // 好奇葩的事件，去看下
+        return clientScene;
+    }
+    public static Scene CreateCurrentScene(long id, int zone, string name, CurrentScenesComponent currentScenesComponent) {
+        Scene currentScene = EntitySceneFactory.CreateScene(id, IdGenerater.Instance.GenerateInstanceId(), zone, SceneType.Current, name, currentScenesComponent);
+        currentScenesComponent.Scene = currentScene;
+
+        EventSystem.Instance.Publish(currentScene, new EventType.AfterCreateCurrentScene());
+        return currentScene;
+    }
+}
+     #+END_SRC
+**** CurrentScenesComponent: 可以用来管理多个客户端场景，比如大世界会加载多块场景(是说，大地图可以分10 块 8 块小地图吗？ )
+     #+BEGIN_SRC csharp
+// 可以用来管理多个客户端场景，比如大世界会加载多块场景(意思是说，大地图可以分10 块 8 块小地图吗？ )
+[ComponentOf(typeof(Scene))]
+public class CurrentScenesComponent: Entity, IAwake {
+    public Scene Scene { get; set; }
+}
+     #+END_SRC
+**** CurrentScenesComponentSystem: CurrentScene() 方法，返回当前场景
+     #+BEGIN_SRC csharp
+public static class CurrentScenesComponentSystem {
+    public static Scene CurrentScene(this Scene clientScene) {
+        return clientScene.GetComponent<CurrentScenesComponent>()?.Scene;
+    }
+}
+     #+END_SRC
+**** ObjectWait: 也有生成系
+     #+BEGIN_SRC csharp
+[ComponentOf]
+public class ObjectWait: Entity, IAwake, IDestroy {
+    public Dictionary<Type, object> tcss = new Dictionary<Type, object>();
+}
+     #+END_SRC
+**** PlayerComponent:
+     #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class PlayerComponent: Entity, IAwake {
+    public long MyId { get; set; }
+}
+     #+END_SRC
+**** PlayerComponentSystem: 生成系，到处都要用它
+     #+BEGIN_SRC csharp
+[FriendOf(typeof(PlayerComponent))]
+public static class PlayerComponentSystem {
+    public static void Add(this PlayerComponent self, Player player) {
+        self.idPlayers.Add(player.Id, player);
+    }
+    public static Player Get(this PlayerComponent self, long id) {
+        self.idPlayers.TryGetValue(id, out Player gamer);
+        return gamer;
+    }
+    public static void Remove(this PlayerComponent self, long id) {
+        self.idPlayers.Remove(id);
+    }
+    public static Player[] GetAll(this PlayerComponent self) {
+        return self.idPlayers.Values.ToArray();
+    }
+}
+     #+END_SRC
+*** AfterCreateCurrentScene_AddComponent: 添加两在组件：【UIComponent】【ResourcesLoaderComponent】
+     #+BEGIN_SRC csharp
+[Event(SceneType.Current)]
+public class AfterCreateCurrentScene_AddComponent: AEvent<EventType.AfterCreateCurrentScene> {
+    protected override async ETTask Run(Scene scene, EventType.AfterCreateCurrentScene args) {
+        scene.AddComponent<UIComponent>();
+        scene.AddComponent<ResourcesLoaderComponent>();
+        await ETTask.CompletedTask;
+    }
+}
+     #+END_SRC
+**** UIComponent: 管理Scene上的UI
+     #+BEGIN_SRC csharp
+// 管理Scene上的UI
+[ComponentOf(typeof(Scene))]
+public class UIComponent: Entity, IAwake {
+    public Dictionary<string, UI> UIs = new Dictionary<string, UI>();
+}
+     #+END_SRC
+**** UIComponentSystem: 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
+     #+BEGIN_SRC csharp
+// 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
+[FriendOf(typeof(UIComponent))]
+public static class UIComponentSystem {
+    public static async ETTask<UI> Create(this UIComponent self, string uiType, UILayer uiLayer) {
+        UI ui = await UIEventComponent.Instance.OnCreate(self, uiType, uiLayer);
+        self.UIs.Add(uiType, ui);
+        return ui;
+    }
+    public static void Remove(this UIComponent self, string uiType) {
+        if (!self.UIs.TryGetValue(uiType, out UI ui)) {
+            return;
+        }
+        UIEventComponent.Instance.OnRemove(self, uiType);
+
+        self.UIs.Remove(uiType);
+        ui.Dispose();
+    }
+    public static UI Get(this UIComponent self, string name) {
+        UI ui = null;
+        self.UIs.TryGetValue(name, out ui);
+        return ui;
+    }
+}
+     #+END_SRC
+**** ResourcesLoaderComponent: 相关的资源加载，这个文件里有生成系
+     #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class ResourcesLoaderComponent: Entity, IAwake, IDestroy {
+    public HashSet<string> LoadedResource = new HashSet<string>();
+}
+     #+END_SRC
+*** EntryEvent2_InitServer: 前面 1 里，两端公用组件准备好了，现在就起始服务器？服务端的几大组件：
+    #+BEGIN_SRC csharp
+[Event(SceneType.Process)]
+public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
+    protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
+        // 发送普通actor消息
+        Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>();
+        // 发送location actor消息
+        Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>();
+        // 访问location server的组件
+        Root.Instance.Scene.AddComponent<LocationProxyComponent>();
+        Root.Instance.Scene.AddComponent<ActorMessageDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ServerSceneManagerComponent>();
+        Root.Instance.Scene.AddComponent<RobotCaseComponent>();
+        Root.Instance.Scene.AddComponent<NavmeshComponent>();
+        StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process);
+        switch (Options.Instance.AppType) {
+        case AppType.Server: {
+            Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.InnerIPPort);
+            var processScenes = StartSceneConfigCategory.Instance.GetByProcess(Options.Instance.Process);
+            foreach (StartSceneConfig startConfig in processScenes) {
+                await SceneFactory.CreateServerScene(ServerSceneManagerComponent.Instance, startConfig.Id, startConfig.InstanceId, startConfig.Zone, startConfig.Name,
+                                                     startConfig.Type, startConfig);
+            }
+            break;
+        }
+        case AppType.Watcher: {
+            StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig();
+            WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>();
+            watcherComponent.Start(Options.Instance.CreateScenes);
+            Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
+            break;
+        }
+        case AppType.GameTool:
+            break;
+        }
+        if (Options.Instance.Console == 1) {
+            Root.Instance.Scene.AddComponent<ConsoleComponent>();
+        }
+    }
+}
+    #+END_SRC
+**** ActorMessageSenderComponent: 发送普通actor消息
+     #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
+    public const long TIMEOUT_TIME = 40 * 1000;
+    public static ActorMessageSenderComponent Instance { get; set; }
+    public int RpcId;
+    public readonly SortedDictionary<int, ActorMessageSender> requestCallback = new SortedDictionary<int, ActorMessageSender>();
+    public long TimeoutCheckTimer;
+    public List<int> TimeoutActorMessageSenders = new List<int>();
+}
+     #+END_SRC
+**** ActorLocationSenderComponent: 发送location actor消息
+     #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
+    public const long TIMEOUT_TIME = 60 * 1000;
+    public static ActorLocationSenderComponent Instance { get; set; }
+    public long CheckTimer;
+}
+     #+END_SRC
+**** LocationProxyComponent: 访问location server的组件
+     #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class LocationProxyComponent: Entity, IAwake, IDestroy {
+    [StaticField]
+    public static LocationProxyComponent Instance;
+}
+     #+END_SRC
+**** ActorMessageDispatcherComponent: Actor消息分发组件
+     #+BEGIN_SRC csharp
+public class ActorMessageDispatcherInfo {
+    public SceneType SceneType { get; }
+    public IMActorHandler IMActorHandler { get; }
+    public ActorMessageDispatcherInfo(SceneType sceneType, IMActorHandler imActorHandler) {
+        this.SceneType = sceneType;
+        this.IMActorHandler = imActorHandler;
+    }
+}
+// Actor消息分发组件
+[ComponentOf(typeof(Scene))]
+public class ActorMessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
+    [StaticField]
+    public static ActorMessageDispatcherComponent Instance;
+    public readonly Dictionary<Type, List<ActorMessageDispatcherInfo>> ActorMessageHandlers = new();
+}
+     #+END_SRC
+**** ServerSceneManagerComponent: 可以去对比，两端的管理者组件，有什么不同？
+     #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class ServerSceneManagerComponent: Entity, IAwake, IDestroy {
+    [StaticField]
+    public static ServerSceneManagerComponent Instance;
+}
+     #+END_SRC
+*** EntryEvent3_InitClient: 客户端 
+    #+BEGIN_SRC csharp
+[Event(SceneType.Process)]
+public class EntryEvent3_InitClient: AEvent<ET.EventType.EntryEvent3> {
+    protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent3 args) {
+        // 加载配置
+        Root.Instance.Scene.AddComponent<ResourcesComponent>();
+
+        Root.Instance.Scene.AddComponent<GlobalComponent>();
+        await ResourcesComponent.Instance.LoadBundleAsync("unit.unity3d");
+
+        Scene clientScene = await SceneFactory.CreateClientScene(1, "Game");
+        await EventSystem.Instance.PublishAsync(clientScene, new EventType.AppStartInitFinish()); // 应用程序启动结束 
+    }
+}
+    #+END_SRC
+**** ResourcesComponent: 热更新资源包等的处理 
+     #+BEGIN_SRC csharp
+[ComponentOf]
+public class ResourcesComponent: Entity, IAwake, IDestroy {
+    public static ResourcesComponent Instance { get; set; }
+    public AssetBundleManifest AssetBundleManifestObject { get; set; }
+    public Dictionary<int, string> IntToStringDict = new Dictionary<int, string>();
+    public Dictionary<string, string> StringToABDict = new Dictionary<string, string>();
+    public Dictionary<string, string> BundleNameToLowerDict = new Dictionary<string, string>() { { "StreamingAssets", "StreamingAssets" } };
+    public readonly Dictionary<string, Dictionary<string, UnityEngine.Object>> resourceCache =
+        new Dictionary<string, Dictionary<string, UnityEngine.Object>>();
+    public readonly Dictionary<string, ABInfo> bundles = new Dictionary<string, ABInfo>();
+
+    // 缓存包依赖，不用每次计算
+    public readonly Dictionary<string, string[]> DependenciesCache = new Dictionary<string, string[]>();
+}
+     #+END_SRC
+**** GlobalComponent: 不知道是干什么的， Unity 里好像是Root 根节点下的一个节点，组件？
+     #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class GlobalComponent: Entity, IAwake {
+    [StaticField]
+    public static GlobalComponent Instance;
+    public Transform Global;
+    public Transform Unit { get; set; }
+    public Transform UI;
+}
+     #+END_SRC
+*** 前面三件（【公用组件】，【服务器】，【客户端】的应用程序启动完成）触发UI 变更: 这个UI 订阅说，一被通知，就创建注册登录界面
+    #+BEGIN_SRC csharp
+[Event(SceneType.Client)]
+public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFinish> {
+    protected override async ETTask Run(Scene scene, EventType.AppStartInitFinish args) {
+        await UIHelper.Create(scene, UIType.UILogin, UILayer.Mid);
+    }
+}
+    #+END_SRC
+- 感觉接下来就是相对熟悉的程序。再跟就去跟不熟悉的其它细节程序
+
+** ClientComponent ClientScene 等客户端相关：有点儿理不清
+
+
+** 标签系: 标签系统重构了，现分为几个类型
+*** ComponentOfAttribute : Attribute
+#+BEGIN_SRC csharp
+// 组件类父级实体类型约束
+// 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
+// 不唯一则标记【ComponentOf]
+[AttributeUsage(AttributeTargets.Class)]
+public class ComponentOfAttribute : Attribute {
+    public Type Type;
+    public ComponentOfAttribute(Type type = null) {
+        this.Type = type;
+    }
+}
+#+END_SRC
+*** ComponentView: MonoBehaviour 
+    #+BEGIN_SRC csharp
+public class ComponentView: MonoBehaviour {
+    public Entity Component {
+        get;
+        set;
+    }
+}
+    #+END_SRC
+*** ComponentViewEditor: Editor 
+#+BEGIN_SRC csharp
+[CustomEditor(typeof (ComponentView))] 
+public class ComponentViewEditor: Editor {
+    public override void OnInspectorGUI() {
+        ComponentView componentView = (ComponentView) target;
+        Entity component = componentView.Component;
+        ComponentViewHelper.Draw(component);
+    }
+}
+#+END_SRC
+
 * UI 上的事件驱动系统：
 ** EventType
 #+BEGIN_SRC csharp
@@ -39,9 +405,23 @@ public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFini
 public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
 #+END_SRC
 - 这些是原示范框架都已经完成了的，我只需要添加剩余的逻辑。
-** 现游戏项目 ET7 里的主要适配：由原UI 上的组件系统，手动组件添加移除，更改为UI 上的事件驱动系统的事件定义，注册，与工厂生成系？
-- 就是说，接下来游戏里的主要逻辑，也将变成如此一个个不同的自定义事件，来驱动UI 上的各种回调。【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
-- UI 界面上的按钮点击要如何处理呢，新框架里，找个例子看看，点【进入地图】看看: *全部变成了Helper 帮助类*
+** SceneChangeStart_AddComponent: 开始切换场景的时候，就自动添加【OperaComponent】组件。现在对场景这块儿还不够熟悉
+   #+BEGIN_SRC csharp
+// 这个比较喜欢：场景切换，切换开始，可以做点什么？切换结束，可以做点什么？全成事件触发机制。任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
+[Event(SceneType.Client)]
+public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
+    protected override async ETTask Run(Scene scene, EventType.SceneChangeStart args) {
+        Scene currentScene = scene.CurrentScene();
+        // 加载场景资源
+        await ResourcesComponent.Instance.LoadBundleAsync($"{currentScene.Name}.unity3d");
+        // 切换到map场景
+        await SceneManager.LoadSceneAsync(currentScene.Name);
+
+        currentScene.AddComponent<OperaComponent>();
+    }
+}
+   #+END_SRC
+- 场景加载结束的时候，好像相对做的事情不多。
 
 * Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？
 ** LoginHelper.cs
@@ -144,70 +524,6 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 }
   #+END_SRC
 
-* 服务器类型 AppType, 变成为路由系统 RouterAddressComponent
-- 应用的类型，新框架里有如下几种
-#+BEGIN_SRC csharp
-public enum AppType {
-    Server,
-    Watcher, // 每台物理机一个守护进程，用来启动该物理机上的所有进程
-    GameTool,
-    ExcelExporter,
-    Proto2CS,
-    BenchmarkClient,
-    BenchmarkServer,
-}
-#+END_SRC
-- 但是场景的类型，保留了先前的：不是还要添加Match 匹配服？
-  - 可以再找具体的例子来看
-  #+BEGIN_SRC csharp
-public enum SceneType {
-    None = -1,
-    Process = 0,
-    Manager = 1,
-    Realm = 2, // 【注册登录服】
-    Gate = 3,  // 【网关服】
-    Http = 4,
-    Location = 5, // 【地址服】
-    Map = 6,      // 【地图服】
-    Router = 7,
-    RouterManager = 8,
-    Robot = 9,
-    BenchmarkClient = 10,
-    BenchmarkServer = 11,
-    Benchmark = 12,
-    // 客户端Model层
-    Client = 31,
-    Current = 34,
-}
-#+END_SRC
-* 辅助事理：框架里的各系统
-** 标签系: 标签系统重构了，现分为几个类型
-*** ComponentOfAttribute : Attribute
-#+BEGIN_SRC csharp
-// 组件类父级实体类型约束
-// 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
-// 不唯一则标记【ComponentOf]
-[AttributeUsage(AttributeTargets.Class)]
-public class ComponentOfAttribute : Attribute {
-    public Type Type;
-    public ComponentOfAttribute(Type type = null) {
-        this.Type = type;
-    }
-}
-#+END_SRC
-*** ComponentView: MonoBehaviour 
-    #+BEGIN_SRC csharp
-public class ComponentView: MonoBehaviour {
-    public Entity Component {
-        get;
-        set;
-    }
-}
-    #+END_SRC
-***
-#+BEGIN_SRC csharp
-#+END_SRC
-
 * 整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI
 - 整个框架的场景节点如下
       
@@ -217,10 +533,9 @@ public class ComponentView: MonoBehaviour {
 - 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 - 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
 - 然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
-- 错太多，其它难点儿的还不熟悉源码，就把所有的【Proto 消息】先生成出来，能去掉一半错误。今天晚上至少可以把这个全部解决掉
-  - 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
-  - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
-- 改 compile-error 时，不知道为佳么，感觉 mac 下的VSC 比 windows 好用，用那个先改下
+- 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
+- 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
+- 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
   
 * 现在的修改内容，记忆
 - UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
@@ -264,4 +579,4 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
 
             }
         #+END_SRC
-        
+- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        

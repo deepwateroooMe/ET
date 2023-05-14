@@ -1,8 +1,6 @@
-namespace ET
-{
+namespace ET {
     [ComponentOf(typeof(Scene))]
-    public class ServerSceneManagerComponent: Entity, IAwake, IDestroy
-    {
+    public class ServerSceneManagerComponent: Entity, IAwake, IDestroy {
         [StaticField]
         public static ServerSceneManagerComponent Instance;
     }

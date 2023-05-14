@@ -1,34 +1,20 @@
-﻿namespace ET
-{
-    namespace EventType
-    {
-        public struct EntryEvent1
-        {
+﻿namespace ET {
+    namespace EventType {
+        public struct EntryEvent1 {
         }   
-        
-        public struct EntryEvent2
-        {
+        public struct EntryEvent2 {
         } 
-        
-        public struct EntryEvent3
-        {
+        public struct EntryEvent3 {
         } 
     }
-    
-    public static class Entry
-    {
-        public static void Init()
-        {
-            
+    public static class Entry {
+        public static void Init() {
         }
-        
-        public static void Start()
-        {
+        public static void Start() {
             StartAsync().Coroutine();
         }
-        
-        private static async ETTask StartAsync()
-        {
+        // 【各种应用程序，第三方库等的初始化 】
+        private static async ETTask StartAsync() {
             WinPeriod.Init();
             
             MongoHelper.Init();
@@ -38,6 +24,7 @@
             Game.AddSingleton<Root>();
             await Game.AddSingleton<ConfigComponent>().LoadAsync();
 
+            // 不知道：加这三个是在做什么？它没有起有意义的名字，但总之，它是事件，会触发相应的回调
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent1());
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent2());
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent3());
