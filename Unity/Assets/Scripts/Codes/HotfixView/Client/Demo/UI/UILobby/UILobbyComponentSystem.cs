@@ -38,56 +38,30 @@ namespace ET.Client {
         // 【回调：】自定义三个按钮的回调。这些个过程流程，就主要参考，同框架的斗地主游戏
         public static async ETTask matchRoom(this UILobbyComponent self) { // 通过网关服中转，请求匹配服为给匹配一个房间四人桌
             try {
-                // 发送开始匹配消息
+                // 发送开始匹配消息【待处理】：匹配服的逻辑处理没有检查，可能会不通
                 C2G_StartMatch_Req c2G_StartMatch_Req = new C2G_StartMatch_Req();
-                G2C_StartMatch_Ack g2C_StartMatch_Ack = await self.ClientScene().GetComponent<SessionComponent>().Session.Call(c2G_StartMatch_Req) as G2C_StartMatch_Ack; // 这里去看下
-                // // 暫时跳过这步
-                // if (g2C_StartMatch_Ack.Error == ErrorCode.ERR_UserMoneyLessError) {
-                //     Log.Error("余额不足"); // 就是说，当且仅当余额不足的时候才会出这个错误？
-                //     return;
-                // }
-                // // 匹配成功了：UI 界面切换，切换到房间界面【UI 事件系统】：这里不再是手动添加与移除，去发布事件【这里接下来再改，把前一个先弄完】
-                // UI room = self.ClientScene().GetComponent<UIComponent>().Create(UIType.LandlordRoom); // 装载新的UI视图
-                // self.ClientScene().GetComponent<UIComponent>().Remove(UIType.UILobby);          // 卸载旧的UI视图
-                // // 将房间设为匹配状态
-                // room.GetComponent<LandlordsRoomComponent>().Matching = true;
+                G2C_StartMatch_Ack g2C_StartMatch_Ack = await self.ClientScene().GetComponent<SessionComponent>().Session.Call(c2G_StartMatch_Req) as G2C_StartMatch_Ack; 
+                if (g2C_StartMatch_Ack.Error == ErrorCode.ERR_UserMoneyLessError) {
+                    Log.Error("余额不足"); // 玩家余额不足
+                    return;
+                }
+                // 匹配成功了：UI 界面切换，切换到房间界面【UI 事件系统】：改成发布事件。因为这个事件，应该会被三个按钮都会触发
+                EventSystem.Instance.Publish(self.ClientScene(), new EventType.ModeSelected()); // 这个，再去找下，谁在订阅这个事件，如何带动游戏开启的状态？
+
+                // 将房间设为匹配状态【这里的逻辑，再去检查】创建房间的时候，添加的这个组件，先去完成创建房间，需要专用工厂来生产
+                room.GetComponent<TractorRoomComponent>().Matching = true;// LandlordsRoomComponent
             }
             catch (Exception e) {
                 Log.Error(e.ToString());
             }
         }
         // 接下来，这两个选项，暂时不处理
-        public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道，这个，与 EnterMap 有没有本质的区别，要检查一下
+        public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道，这个，与 EnterMap 有没有本质的区别，要【检查一下】
             await EnterRoomHelper.EnterRoomAsync(self.ClientScene());
-            await UIHelper.Remove(self.ClientScene(), UIType.UILobby);
+            await UIHelper.Remove(self.ClientScene(), UIType.UILobby); // 移除大厅控件 
         }
         public static async ETTask createRoom(this UILobbyComponent self) {
 
         }
-        // // 【C2G_EnterRoom】：参考这个写，就可以了
-        // public static async ETTask EnterRoomAsync(Scene clientScene) {
-        //     try {
-        //         G2C_EnterMap g2CEnterMap = await clientScene.GetComponent<SessionComponent>().Session.Call(new C2G_EnterMap()) as G2C_EnterMap;
-        //clientScene.GetComponent<PlayerComponent>().MyId = g2CEnterMap.MyId;
-                
-        //         // 等待场景切换完成
-        //         await clientScene.GetComponent<ObjectWait>().Wait<Wait_SceneChangeFinish>();
-                
-        //         // EventSystem.Instance.Publish(clientScene, new EventType.EnterMapFinish());
-        //         EventSystem.Instance.Publish(clientScene, new EventType.EnterRoomFinish()); // 这个，再去找下，谁在订阅这个事件，如何带动游戏开启的状态？
-                
-        //         // // 老版本：斗地主里，进入地图的参考【ET7】里，就要去找，如何处理这些组件的？
-        //         // Game.Scene.AddComponent<OperaComponent>();
-        //         // Game.Scene.GetComponent<UIComponent>().Remove(UIType.UILobby);
-        //     }
-        //     catch (Exception e) {
-        //         Log.Error(e);
-        //     }    
-        // }
-        // // Prev: 用作参考
-        // public static async ETTask EnterMap(this UILobbyComponent self) {
-        //     await EnterRoomHelper.EnterRoomAsync(self.ClientScene());
-        //     await UIHelper.Remove(self.ClientScene(), UIType.UILobby);
-        // }
     }
 }

@@ -10,7 +10,6 @@ namespace ET.Client {
         public class UIEventComponentAwakeSystem : AwakeSystem<UIEventComponent> {
             protected override void Awake(UIEventComponent self) {
                 UIEventComponent.Instance = self;
-
                 GameObject uiRoot = GameObject.Find("/Global/UI"); // Unity 视图面板上的全局父控件 
                 ReferenceCollector referenceCollector = uiRoot.GetComponent<ReferenceCollector>();
                 // 面板上的：四大层级
@@ -18,7 +17,6 @@ namespace ET.Client {
                 self.UILayers.Add((int)UILayer.Low, referenceCollector.Get<GameObject>(UILayer.Low.ToString()).transform);
                 self.UILayers.Add((int)UILayer.Mid, referenceCollector.Get<GameObject>(UILayer.Mid.ToString()).transform);
                 self.UILayers.Add((int)UILayer.High, referenceCollector.Get<GameObject>(UILayer.High.ToString()).transform);
-
                 var uiEvents = EventSystem.Instance.GetTypes(typeof (UIEventAttribute));
                 foreach (Type type in uiEvents) {
                     object[] attrs = type.GetCustomAttributes(typeof(UIEventAttribute), false);
@@ -32,7 +30,6 @@ namespace ET.Client {
                 }
             }
         }
-
         public static async ETTask<UI> OnCreate(this UIEventComponent self, UIComponent uiComponent, string uiType, UILayer uiLayer) {
             try {
                 UI ui = await self.UIEvents[uiType].OnCreate(uiComponent, uiLayer); // 调用：工厂的生产方法 
@@ -45,7 +42,6 @@ namespace ET.Client {
         public static Transform GetLayer(this UIEventComponent self, int layer) {
             return self.UILayers[layer];
         }
-
         public static void OnRemove(this UIEventComponent self, UIComponent uiComponent, string uiType) {
             try {
                 self.UIEvents[uiType].OnRemove(uiComponent);
@@ -53,7 +49,6 @@ namespace ET.Client {
             catch (Exception e) {
                 throw new Exception($"on remove ui error: {uiType}", e);
             }
-
         }
     }
 }

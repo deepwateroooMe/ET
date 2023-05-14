@@ -15,6 +15,8 @@
         }
         public struct LoginFinish {
         }
+        public struct ModeSelected { // 匹配玩家成功
+        }
         // public struct EnterMapFinish {
         public struct EnterRoomFinish {
         }

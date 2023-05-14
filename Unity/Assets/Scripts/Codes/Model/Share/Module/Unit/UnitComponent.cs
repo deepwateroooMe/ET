@@ -1,8 +1,6 @@
-﻿namespace ET
-{
-	
-	[ComponentOf(typeof(Scene))]
-	public class UnitComponent: Entity, IAwake, IDestroy
-	{
-	}
+﻿namespace ET {
+    
+    [ComponentOf(typeof(Scene))]
+    public class UnitComponent: Entity, IAwake, IDestroy {
+    }
 }

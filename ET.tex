@@ -1,10 +1,45 @@
-#+latex_class: cn-article
-#+title: ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏 
-#+author: deepwaterooo 
+% Created 2023-05-14 Sun 12:06
+\documentclass[9pt, b5paper]{article}
+\usepackage{xeCJK}
+\usepackage[T1]{fontenc}
+\usepackage{bera}
+\usepackage[scaled]{beraserif}
+\usepackage[scaled]{berasans}
+\usepackage[scaled]{beramono}
+\usepackage[cache=false]{minted}
+\usepackage{xltxtra}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{textcomp}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{latexsym}
+\usepackage{natbib}
+\usepackage{geometry}
+\geometry{left=1.2cm,right=1.2cm,top=1.5cm,bottom=1.2cm}
+\usepackage[xetex,colorlinks=true,CJKbookmarks=true,linkcolor=blue,urlcolor=blue,menucolor=blue]{hyperref}
+\newminted{common-lisp}{fontsize=\footnotesize} 
+\author{deepwaterooo}
+\date{\today}
+\title{ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
+\begin{document}
 
-* 客户端场景组件：客户端大致的起始过程
-** Entry.cs: 指定的起始类，会触发三类回调，公用组件类的加载，和其它
-   #+BEGIN_SRC csharp
+\maketitle
+\tableofcontents
+
+
+\section{客户端场景组件：客户端大致的起始过程}
+\label{sec-1}
+\subsection{Entry.cs: 指定的起始类，会触发三类回调，公用组件类的加载，和其它}
+\label{sec-1-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class Entry {
     public static void Init() {
     }
@@ -28,9 +63,10 @@ public static class Entry {
         await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent3());
     }
 }
-   #+END_SRC
-** EntryEvent1_InitShare: 第一类，，公用组件类的加载，公用的几大组件
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsection{EntryEvent1\_InitShare: 第一类，，公用组件类的加载，公用的几大组件}
+\label{sec-1-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 公用的相关组件的初始化：
 [Event(SceneType.Process)]
 public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
@@ -44,39 +80,44 @@ public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
         await ETTask.CompletedTask;
     }
 }
-    #+END_SRC
-*** CurrentScenesComponent: 可以用来管理多个客户端场景，比如大世界会加载多块场景(是说，大地图可以分10 块 8 块小地图吗？ )
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{CurrentScenesComponent: 可以用来管理多个客户端场景，比如大世界会加载多块场景(是说，大地图可以分10 块 8 块小地图吗？ )}
+\label{sec-1-2-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 可以用来管理多个客户端场景，比如大世界会加载多块场景(意思是说，大地图可以分10 块 8 块小地图吗？ )
 [ComponentOf(typeof(Scene))]
 public class CurrentScenesComponent: Entity, IAwake {
     public Scene Scene { get; set; }
 }
-     #+END_SRC
-*** CurrentScenesComponentSystem: CurrentScene() 方法，返回当前场景
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{CurrentScenesComponentSystem: CurrentScene() 方法，返回当前场景}
+\label{sec-1-2-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class CurrentScenesComponentSystem {
     public static Scene CurrentScene(this Scene clientScene) {
         return clientScene.GetComponent<CurrentScenesComponent>()?.Scene;
     }
 }
-     #+END_SRC
-*** ObjectWait: 也有生成系
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{ObjectWait: 也有生成系}
+\label{sec-1-2-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ObjectWait: Entity, IAwake, IDestroy {
     public Dictionary<Type, object> tcss = new Dictionary<Type, object>();
 }
-     #+END_SRC
-*** PlayerComponent:
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{PlayerComponent:}
+\label{sec-1-2-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class PlayerComponent: Entity, IAwake {
     public long MyId { get; set; }
 }
-     #+END_SRC
-*** PlayerComponentSystem: 生成系，到处都要用它
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{PlayerComponentSystem: 生成系，到处都要用它}
+\label{sec-1-2-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(PlayerComponent))]
 public static class PlayerComponentSystem {
     public static void Add(this PlayerComponent self, Player player) {
@@ -93,9 +134,10 @@ public static class PlayerComponentSystem {
         return self.idPlayers.Values.ToArray();
     }
 }
-     #+END_SRC
-** AfterCreateCurrentScene_AddComponent:【UIComponent】【ResourcesLoaderComponent】
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsection{AfterCreateCurrentScene\_AddComponent:【UIComponent】【ResourcesLoaderComponent】}
+\label{sec-1-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Current)]
 public class AfterCreateCurrentScene_AddComponent: AEvent<EventType.AfterCreateCurrentScene> {
     protected override async ETTask Run(Scene scene, EventType.AfterCreateCurrentScene args) {
@@ -104,17 +146,19 @@ public class AfterCreateCurrentScene_AddComponent: AEvent<EventType.AfterCreateC
         await ETTask.CompletedTask;
     }
 }
-     #+END_SRC
-*** UIComponent: 管理Scene上的UI
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{UIComponent: 管理Scene上的UI}
+\label{sec-1-3-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理Scene上的UI
 [ComponentOf(typeof(Scene))]
 public class UIComponent: Entity, IAwake {
     public Dictionary<string, UI> UIs = new Dictionary<string, UI>();
 }
-     #+END_SRC
-*** UIComponentSystem: 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{UIComponentSystem: 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统}
+\label{sec-1-3-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
 [FriendOf(typeof(UIComponent))]
 public static class UIComponentSystem {
@@ -138,16 +182,18 @@ public static class UIComponentSystem {
         return ui;
     }
 }
-     #+END_SRC
-*** ResourcesLoaderComponent: 相关的资源加载，这个文件里有生成系
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{ResourcesLoaderComponent: 相关的资源加载，这个文件里有生成系}
+\label{sec-1-3-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ResourcesLoaderComponent: Entity, IAwake, IDestroy {
     public HashSet<string> LoadedResource = new HashSet<string>();
 }
-     #+END_SRC
-** EntryEvent2_InitServer: 前面 1 里，两端公用组件准备好了，现在就起始服务器？服务端的几大组件：
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsection{EntryEvent2\_InitServer: 前面 1 里，两端公用组件准备好了，现在就起始服务器？服务端的几大组件：}
+\label{sec-1-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Process)]
 public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
     protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
@@ -187,9 +233,10 @@ public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
         }
     }
 }
-    #+END_SRC
-*** ActorMessageSenderComponent: 发送普通actor消息
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{ActorMessageSenderComponent: 发送普通actor消息}
+\label{sec-1-4-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public const long TIMEOUT_TIME = 40 * 1000;
@@ -199,26 +246,29 @@ public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public long TimeoutCheckTimer;
     public List<int> TimeoutActorMessageSenders = new List<int>();
 }
-     #+END_SRC
-*** ActorLocationSenderComponent: 发送location actor消息
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{ActorLocationSenderComponent: 发送location actor消息}
+\label{sec-1-4-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
     public const long TIMEOUT_TIME = 60 * 1000;
     public static ActorLocationSenderComponent Instance { get; set; }
     public long CheckTimer;
 }
-     #+END_SRC
-*** LocationProxyComponent: 访问location server的组件
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{LocationProxyComponent: 访问location server的组件}
+\label{sec-1-4-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class LocationProxyComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static LocationProxyComponent Instance;
 }
-     #+END_SRC
-*** ActorMessageDispatcherComponent: Actor消息分发组件
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{ActorMessageDispatcherComponent: Actor消息分发组件}
+\label{sec-1-4-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ActorMessageDispatcherInfo {
     public SceneType SceneType { get; }
     public IMActorHandler IMActorHandler { get; }
@@ -234,17 +284,19 @@ public class ActorMessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
     public static ActorMessageDispatcherComponent Instance;
     public readonly Dictionary<Type, List<ActorMessageDispatcherInfo>> ActorMessageHandlers = new();
 }
-     #+END_SRC
-*** ServerSceneManagerComponent: 可以去对比，两端的管理者组件，有什么不同？
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{ServerSceneManagerComponent: 可以去对比，两端的管理者组件，有什么不同？}
+\label{sec-1-4-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ServerSceneManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static ServerSceneManagerComponent Instance;
 }
-     #+END_SRC
-** EntryEvent3_InitClient: 客户端 
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsection{EntryEvent3\_InitClient: 客户端}
+\label{sec-1-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Process)]
 public class EntryEvent3_InitClient: AEvent<ET.EventType.EntryEvent3> {
     protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent3 args) {
@@ -258,9 +310,10 @@ public class EntryEvent3_InitClient: AEvent<ET.EventType.EntryEvent3> {
         await EventSystem.Instance.PublishAsync(clientScene, new EventType.AppStartInitFinish()); // 应用程序启动结束 
     }
 }
-    #+END_SRC
-*** ResourcesComponent: 热更新资源包等的处理 
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{ResourcesComponent: 热更新资源包等的处理}
+\label{sec-1-5-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ResourcesComponent: Entity, IAwake, IDestroy {
     public static ResourcesComponent Instance { get; set; }
@@ -275,9 +328,10 @@ public class ResourcesComponent: Entity, IAwake, IDestroy {
     // 缓存包依赖，不用每次计算
     public readonly Dictionary<string, string[]> DependenciesCache = new Dictionary<string, string[]>();
 }
-     #+END_SRC
-*** GlobalComponent: 不知道是干什么的， Unity 里好像是Root 根节点下的一个节点，组件？
-     #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{GlobalComponent: 不知道是干什么的， Unity 里好像是Root 根节点下的一个节点，组件？}
+\label{sec-1-5-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class GlobalComponent: Entity, IAwake {
     [StaticField]
@@ -286,32 +340,39 @@ public class GlobalComponent: Entity, IAwake {
     public Transform Unit { get; set; }
     public Transform UI;
 }
-     #+END_SRC
-** 前面三件（【公用组件】，【服务器】，【客户端】的应用程序启动完成）触发UI 变更: 这个UI 订阅说，一被通知，就创建注册登录界面
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsection{前面三件（【公用组件】，【服务器】，【客户端】的应用程序启动完成）触发UI 变更: 这个UI 订阅说，一被通知，就创建注册登录界面}
+\label{sec-1-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFinish> {
     protected override async ETTask Run(Scene scene, EventType.AppStartInitFinish args) {
         await UIHelper.Create(scene, UIType.UILogin, UILayer.Mid);
     }
 }
-    #+END_SRC
-- 感觉接下来就是相对熟悉的程序。再跟就去跟不熟悉的其它细节程序
+\end{minted}
+\begin{itemize}
+\item 感觉接下来就是相对熟悉的程序。再跟就去跟不熟悉的其它细节程序
+\end{itemize}
 
-* ClientComponent ClientScene 等客户端相关：有点儿理不清
+\section{ClientComponent ClientScene 等客户端相关：有点儿理不清}
+\label{sec-2}
 
-** ClientSceneManagerComponent: 是否，相当于，它是SceneType 的管理者，就是先前各种服，注册登录服，网关服、匹配服等的管理者，大概主要还是地址传送
-    #+BEGIN_SRC csharp
+\subsection{ClientSceneManagerComponent: 是否，相当于，它是SceneType 的管理者，就是先前各种服，注册登录服，网关服、匹配服等的管理者，大概主要还是地址传送}
+\label{sec-2-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ClientSceneManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static ClientSceneManagerComponent Instance;
 }
-    #+END_SRC
+\end{minted}
 
-* 客户端场景与客户端场景加工厂
-** SceneChangeHelper: 场景切换协程
-   #+BEGIN_SRC csharp
+\section{客户端场景与客户端场景加工厂}
+\label{sec-3}
+\subsection{SceneChangeHelper: 场景切换协程}
+\label{sec-3-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneChangeHelper {
     // 场景切换协程
     public static async ETTask SceneChangeTo(Scene clientScene, string sceneName, long sceneInstanceId) {
@@ -337,9 +398,10 @@ public static class SceneChangeHelper {
         clientScene.GetComponent<ObjectWait>().Notify(new Wait_SceneChangeFinish());
     }
 }
-   #+END_SRC
-*** Unit: Unit 究竟是什么，干什么的？像是游戏的一个最小单位，有位置与旋转参数
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{Unit: Unit 究竟是什么，干什么的？像是游戏的一个最小单位，有位置与旋转参数}
+\label{sec-3-1-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(UnitComponent))]
 [DebuggerDisplay("ViewName,nq")]
 public class Unit: Entity, IAwake<int> {
@@ -379,15 +441,17 @@ public class Unit: Entity, IAwake<int> {
         }
     }
 }
-    #+END_SRC
-*** UnitComponent: 组件 
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{UnitComponent: 组件}
+\label{sec-3-1-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class UnitComponent: Entity, IAwake, IDestroy {
 }
-    #+END_SRC
-*** UnitComponentSystem: 生成系. 感觉这个系统不太懂
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{UnitComponentSystem: 生成系. 感觉这个系统不太懂}
+\label{sec-3-1-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ObjectSystem]
 public class UnitComponentAwakeSystem : AwakeSystem<UnitComponent> {
     protected override void Awake(UnitComponent self) {
@@ -410,10 +474,11 @@ public static class UnitComponentSystem {
         unit?.Dispose();
     }
 }
-    #+END_SRC
+\end{minted}
 
-*** UnitHelper: 帮助在不同使用情境下，拿到 unit
-    #+BEGIN_SRC csharp
+\subsubsection{UnitHelper: 帮助在不同使用情境下，拿到 unit}
+\label{sec-3-1-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitHelper {
     public static Unit GetMyUnitFromClientScene(Scene clientScene) {
         PlayerComponent playerComponent = clientScene.GetComponent<PlayerComponent>();
@@ -425,11 +490,13 @@ public static class UnitHelper {
         return currentScene.GetComponent<UnitComponent>().Get(playerComponent.MyId);
     }
 }
-    #+END_SRC
+\end{minted}
 
-** SceneFactory: ClientScene: 添加三组件：【CurrentScenesComponent】【PlayerComponent】【ObjectWait】。
-- SceneChangeHelper 类会调用工厂加工。
-     #+BEGIN_SRC csharp
+\subsection{SceneFactory: ClientScene: 添加三组件：【CurrentScenesComponent】【PlayerComponent】【ObjectWait】。}
+\label{sec-3-2}
+\begin{itemize}
+\item SceneChangeHelper 类会调用工厂加工。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateClientScene(int zone, string name) {
         await ETTask.CompletedTask;
@@ -450,10 +517,12 @@ public static class SceneFactory {
         return currentScene;
     }
 }
-     #+END_SRC
- 
-*** UnitFactory: 为什么我抓出两个不一样的定义，还没弄明白
-    #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+
+\subsubsection{UnitFactory: 为什么我抓出两个不一样的定义，还没弄明白}
+\label{sec-3-2-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitFactory {
     public static Unit Create(Scene scene, long id, UnitType unitType) {
         UnitComponent unitComponent = scene.GetComponent<UnitComponent>();
@@ -505,11 +574,13 @@ public static class UnitFactory {
         return unit;
     }
 }
-    #+END_SRC
+\end{minted}
 
-* 标签系: 标签系统重构了，现分为几个类型
-** ComponentOfAttribute : Attribute
-#+BEGIN_SRC csharp
+\section{标签系: 标签系统重构了，现分为几个类型}
+\label{sec-4}
+\subsection{ComponentOfAttribute : Attribute}
+\label{sec-4-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 组件类父级实体类型约束
 // 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
 // 不唯一则标记【ComponentOf]
@@ -520,18 +591,20 @@ public class ComponentOfAttribute : Attribute {
         this.Type = type;
     }
 }
-#+END_SRC
-** ComponentView: MonoBehaviour 
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ComponentView: MonoBehaviour}
+\label{sec-4-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ComponentView: MonoBehaviour {
     public Entity Component {
         get;
         set;
     }
 }
-    #+END_SRC
-** ComponentViewEditor: Editor 
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{ComponentViewEditor: Editor}
+\label{sec-4-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [CustomEditor(typeof (ComponentView))] 
 public class ComponentViewEditor: Editor {
     public override void OnInspectorGUI() {
@@ -540,11 +613,13 @@ public class ComponentViewEditor: Editor {
         ComponentViewHelper.Draw(component);
     }
 }
-#+END_SRC
+\end{minted}
 
-* UI 上的事件驱动系统：
-** EventType
-#+BEGIN_SRC csharp
+\section{UI 上的事件驱动系统：}
+\label{sec-5}
+\subsection{EventType}
+\label{sec-5-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace EventType {
     public struct SceneChangeStart {
     }
@@ -567,24 +642,29 @@ namespace EventType {
         public Unit Unit;
     }
 }
-#+END_SRC
-** 由 AppStartInitFinish 事件所触发的 CreateLoginUI
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{由 AppStartInitFinish 事件所触发的 CreateLoginUI}
+\label{sec-5-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)] // ET 事件系统的工具，标签系
 public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFinish> {
-#+END_SRC
-** 由 LoginFinish 事件所触发的 CreateLobbyUI
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{由 LoginFinish 事件所触发的 CreateLobbyUI}
+\label{sec-5-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
     protected override async ETTask Run(Scene scene, EventType.LoginFinish args) {
         await UIHelper.Create(scene, UIType.UILobby, UILayer.Mid);
     }
 }
-#+END_SRC
-- 这些是原示范框架都已经完成了的，我只需要添加剩余的逻辑。
-** SceneChangeStart_AddComponent: 开始切换场景的时候，就自动添加【OperaComponent】组件。现在对场景这块儿还不够熟悉
-   #+BEGIN_SRC csharp
+\end{minted}
+\begin{itemize}
+\item 这些是原示范框架都已经完成了的，我只需要添加剩余的逻辑。
+\end{itemize}
+\subsection{SceneChangeStart\_AddComponent: 开始切换场景的时候，就自动添加【OperaComponent】组件。现在对场景这块儿还不够熟悉}
+\label{sec-5-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 这个比较喜欢：场景切换，切换开始，可以做点什么？切换结束，可以做点什么？全成事件触发机制。任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
 [Event(SceneType.Client)]
 public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
@@ -598,12 +678,16 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
         currentScene.AddComponent<OperaComponent>();
     }
 }
-   #+END_SRC
-- 场景加载结束的时候，好像相对做的事情不多。
+\end{minted}
+\begin{itemize}
+\item 场景加载结束的时候，好像相对做的事情不多。
+\end{itemize}
 
-* Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？
-** LoginHelper.cs
-#+BEGIN_SRC csharp
+\section{Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？}
+\label{sec-6}
+\subsection{LoginHelper.cs}
+\label{sec-6-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class LoginHelper {
 public static async ETTask Login(Scene clientScene, string account, string password) {
     try {
@@ -637,15 +721,22 @@ public static async ETTask Login(Scene clientScene, string account, string passw
     }
 } 
 }
-#+END_SRC
-** EnterRoomHelper.cs
-- 这里需要注意的是：原项目里面还是保留了C2G_EnterMap 消息的。分两块查看一下：
-  - 可以先去查一下，斗地主里是如何【开始匹配】的
-  - ET 7 框架里，服务器是如何处理消息的，变成了不同的 *场景类型：SceneType, 由不同场景，也就是不同的专职服务器来处理各种逻辑功能块的消息*
-    - 仍然是 *标签系的消息处理器*: 因为先前的不同服变成了现在的不同场景，分场景（先前的不同服）来定义消息处理器，以处理当前场景（特定功能逻辑服）下的消息，如匹配服的消息。
-  - *如果每个按钮的回调：都单独一个类，不成了海量回调类了？*
-  - 老版本：斗地主里，进入地图的参考 *【ET】里，就要去找，如何处理这些组件的？*
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{EnterRoomHelper.cs}
+\label{sec-6-2}
+\begin{itemize}
+\item 这里需要注意的是：原项目里面还是保留了C2G\_EnterMap 消息的。分两块查看一下：
+\begin{itemize}
+\item 可以先去查一下，斗地主里是如何【开始匹配】的
+\item ET 7 框架里，服务器是如何处理消息的，变成了不同的 \textbf{场景类型：SceneType, 由不同场景，也就是不同的专职服务器来处理各种逻辑功能块的消息}
+\begin{itemize}
+\item 仍然是 \textbf{标签系的消息处理器}: 因为先前的不同服变成了现在的不同场景，分场景（先前的不同服）来定义消息处理器，以处理当前场景（特定功能逻辑服）下的消息，如匹配服的消息。
+\end{itemize}
+\item \textbf{如果每个按钮的回调：都单独一个类，不成了海量回调类了？}
+\item 老版本：斗地主里，进入地图的参考 \textbf{【ET】里，就要去找，如何处理这些组件的？}
+\end{itemize}
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // public static class EnterMapHelper {
 public static class EnterRoomHelper {
 
@@ -671,9 +762,10 @@ public static async ETTask EnterRoomAsync(Scene clientScene) {
     }    
 }
 }
-#+END_SRC
-- 一个服务器端的消息处理器供自己参考：【分场景的消息处理器，仍使用标签系】
-  #+BEGIN_SRC csharp
+\end{minted}
+\begin{itemize}
+\item 一个服务器端的消息处理器供自己参考：【分场景的消息处理器，仍使用标签系】
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [MessageHandler(SceneType.Client)]
 public class M2C_CreateMyUnitHandler : AMHandler<M2C_CreateMyUnit> {
     protected override async ETTask Run(Session session, M2C_CreateMyUnit message) {
@@ -682,9 +774,9 @@ public class M2C_CreateMyUnitHandler : AMHandler<M2C_CreateMyUnit> {
         await ETTask.CompletedTask;
     }
 }
-  #+END_SRC
-- 再来一个场景切换开始事件的：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
-  #+BEGIN_SRC csharp
+\end{minted}
+\item 再来一个场景切换开始事件的：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 这个比较喜欢：场景切换, 先前不同功能定义的服，切换开始，可以做点什么？切换结束，可以做点什么？全成事件触发机制。
 [Event(SceneType.Client)]
 public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
@@ -700,10 +792,12 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
         currentScene.AddComponent<OperaComponent>();
     }
 }
-  #+END_SRC
+\end{minted}
+\end{itemize}
 
-** UIHelper.cs: 负责UI 界面上的组件的，添加与删除，异步完成
-   #+BEGIN_SRC csharp
+\subsection{UIHelper.cs: 负责UI 界面上的组件的，添加与删除，异步完成}
+\label{sec-6-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UIHelper {
     public static async ETTask<UI> Create(Scene scene, string uiType, UILayer uiLayer) {
         return await scene.GetComponent<UIComponent>().Create(uiType, uiLayer);
@@ -713,9 +807,10 @@ public static class UIHelper {
         await ETTask.CompletedTask;
     }
 }
-   #+END_SRC
-** SceneChangeHelper: 场景切换协程
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{SceneChangeHelper: 场景切换协程}
+\label{sec-6-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneChangeHelper {
     // 场景切换协程
     public static async ETTask SceneChangeTo(Scene clientScene, string sceneName, long sceneInstanceId) {
@@ -741,12 +836,16 @@ public static class SceneChangeHelper {
         clientScene.GetComponent<ObjectWait>().Notify(new Wait_SceneChangeFinish());
     }
 }
-   #+END_SRC
+\end{minted}
 
-* UI 控件的生产事件机制流程：以前的专用工厂再包装为UI 上的事件机制
-- 一般是由某个事件的发布，因为订阅（使用订阅标签系），所以会被触发创建视图
-** LoginHelper 发布 EventType.LoginFinish() 事件
-#+BEGIN_SRC csharp
+\section{UI 控件的生产事件机制流程：以前的专用工厂再包装为UI 上的事件机制}
+\label{sec-7}
+\begin{itemize}
+\item 一般是由某个事件的发布，因为订阅（使用订阅标签系），所以会被触发创建视图
+\end{itemize}
+\subsection{LoginHelper 发布 EventType.LoginFinish() 事件}
+\label{sec-7-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class LoginHelper {
 public static async ETTask Login(Scene clientScene, string account, string password) {
     try {
@@ -777,19 +876,21 @@ public static async ETTask Login(Scene clientScene, string account, string passw
     catch (Exception e) {
         Log.Error(e);
     }
-} 
-#+END_SRC
-** LoginFinish_RemoveLoginUI: 一般对应两个事件，旧视图的去除，与新视图的添加
-#+BEGIN_SRC csharp
+}
+\end{minted}
+\subsection{LoginFinish\_RemoveLoginUI: 一般对应两个事件，旧视图的去除，与新视图的添加}
+\label{sec-7-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_RemoveLoginUI: AEvent<EventType.LoginFinish> {
     protected override async ETTask Run(Scene scene, EventType.LoginFinish args) {
         await UIHelper.Remove(scene, UIType.UILogin);
     }
 }
-   #+END_SRC
-** LoginFinish_CreateLobbyUI: 创建新视图
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{LoginFinish\_CreateLobbyUI: 创建新视图}
+\label{sec-7-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
 
@@ -797,9 +898,10 @@ public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
         await UIHelper.Create(scene, UIType.UILobby, UILayer.Mid);
     }
 }
-   #+END_SRC
-** UIHelper: 帮助类，来添加或是移除UI 上的可装可折的组件
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{UIHelper: 帮助类，来添加或是移除UI 上的可装可折的组件}
+\label{sec-7-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UIHelper {
     public static async ETTask<UI> Create(Scene scene, string uiType, UILayer uiLayer) {
         return await scene.GetComponent<UIComponent>().Create(uiType, uiLayer); // <<<<<<<<<<<<<<<<<<<< 进一步调用 
@@ -809,9 +911,10 @@ public static class UIHelper {
         await ETTask.CompletedTask;
     }
 }
-   #+END_SRC
-** UIComponentSystem: 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{UIComponentSystem: 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统}
+\label{sec-7-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
 [FriendOf(typeof(UIComponent))]
 public static class UIComponentSystem {
@@ -835,9 +938,10 @@ public static class UIComponentSystem {
         return ui;
     }
 }
-   #+END_SRC
-** UIEventComponentSystem: 管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{UIEventComponentSystem: 管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统}
+\label{sec-7-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统
 [FriendOf(typeof(UIEventComponent))]
 public static class UIEventComponentSystem {
@@ -887,16 +991,18 @@ public static class UIEventComponentSystem {
 
     }
 }
-   #+END_SRC
-** AUIEvent: 跟下面的 UIEventComponent 关系是？
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{AUIEvent: 跟下面的 UIEventComponent 关系是？}
+\label{sec-7-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public abstract class AUIEvent {
     public abstract ETTask<UI> OnCreate(UIComponent uiComponent, UILayer uiLayer);
     public abstract void OnRemove(UIComponent uiComponent);
 }
-   #+END_SRC
-** UIEventComponent: 管理所有UI GameObject
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{UIEventComponent: 管理所有UI GameObject}
+\label{sec-7-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理所有UI GameObject
 [ComponentOf(typeof(Scene))]
 public class UIEventComponent: Entity, IAwake {
@@ -905,9 +1011,10 @@ public class UIEventComponent: Entity, IAwake {
     public Dictionary<string, AUIEvent> UIEvents = new Dictionary<string, AUIEvent>();
     public Dictionary<int, Transform> UILayers = new Dictionary<int, Transform>();
 }
-   #+END_SRC
-** UIEventComponentSystem: 生成系，管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{UIEventComponentSystem: 生成系，管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统}
+\label{sec-7-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统
 [FriendOf(typeof(UIEventComponent))]
 public static class UIEventComponentSystem {
@@ -956,9 +1063,10 @@ public static class UIEventComponentSystem {
         }
     }
 }
-   #+END_SRC
-** UILoginEvent: 一个实体类的例子，具体的工厂生产逻辑
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{UILoginEvent: 一个实体类的例子，具体的工厂生产逻辑}
+\label{sec-7-10}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [UIEvent(UIType.UILogin)]
 public class UILoginEvent: AUIEvent {
     public override async ETTask<UI> OnCreate(UIComponent uiComponent, UILayer uiLayer) {
@@ -973,10 +1081,11 @@ public class UILoginEvent: AUIEvent {
         ResourcesComponent.Instance.UnloadBundle(UIType.UILogin.StringToAB());
     }
 }
-   #+END_SRC
+\end{minted}
 
-** UILobbyEvent: 再加一个实体类的例子
-   #+BEGIN_SRC csharp
+\subsection{UILobbyEvent: 再加一个实体类的例子}
+\label{sec-7-11}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // UI 系统的事件机制：接收到 LoginFinish 之后触发的大厅创建
 [UIEvent(UIType.UILobby)]
 public class UILobbyEvent: AUIEvent {
@@ -993,24 +1102,33 @@ public class UILobbyEvent: AUIEvent {
         ResourcesComponent.Instance.UnloadBundle(UIType.UILobby.StringToAB());
     }
 }
-   #+END_SRC
-* 整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI
-- 整个框架的场景节点如下
-      
-[[./pic/ET_20230512_143227.png]]
+\end{minted}
+\section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
+\label{sec-8}
+\begin{itemize}
+\item 整个框架的场景节点如下
+\end{itemize}
 
-* 写在最后：反而是自己每天查看一再更新的
-- 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
-- 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
-- 然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
-- 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
-- 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
-- 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
-- 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
+\includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
 
-* 现在的修改内容，记忆
-- UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
-#+BEGIN_SRC csharp
+\section{写在最后：反而是自己每天查看一再更新的}
+\label{sec-9}
+\begin{itemize}
+\item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
+\item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
+\item 然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
+\item 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
+\item 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
+\item 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
+\item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
+\end{itemize}
+
+\section{现在的修改内容，记忆}
+\label{sec-10}
+\begin{itemize}
+\item UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 获取玩家数据: 按说应该是注册登录服的逻辑，或者是数据库服存放着用户信息，都是通过Gate中转
         long userId = ClientComponent.Instance.LocalPlayer.UserID; // 【ClientComponent】：组件被重构掉了，去找相应的替换
         C2G_GetUserInfo_Req c2G_GetUserInfo_Req = new C2G_GetUserInfo_Req() { UserID = userId }; // 去从网关服拿玩家信息
@@ -1049,6 +1167,9 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
                                             public static async ETTask createRoom(this UILobbyComponent self) {
 
             }
-        #+END_SRC
-- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        
-- 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\end{minted}
+\begin{itemize}
+\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
+\end{itemize}
+% Emacs 28.2 (Org mode 8.2.7c)
+\end{document}
