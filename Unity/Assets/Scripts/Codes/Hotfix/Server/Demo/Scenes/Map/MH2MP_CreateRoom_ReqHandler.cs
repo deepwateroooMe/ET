@@ -1,9 +1,9 @@
 using System;
-using ETModel;
+using ET;
 namespace ET.Server {
 
     // 【房间服】：玩家请求创建新房间
-    [MessageHandler(AppType.Map)]
+    [MessageHandler(SceneType.Map)]
     public class MH2MP_CreateRoom_ReqHandler : AMRpcHandler<MH2MP_CreateRoom_Req, MP2MH_CreateRoom_Ack> {
 
         protected override async void Run(Session session, MH2MP_CreateRoom_Req message, Action<MP2MH_CreateRoom_Ack> reply) {

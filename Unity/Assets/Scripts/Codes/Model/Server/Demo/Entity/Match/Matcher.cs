@@ -1,4 +1,4 @@
-namespace ETModel {
+namespace ET.Server {
     [ObjectSystem]
     public class MatcherAwakeSystem : AwakeSystem<Matcher,long> {
         public override void Awake(Matcher self, long id) {

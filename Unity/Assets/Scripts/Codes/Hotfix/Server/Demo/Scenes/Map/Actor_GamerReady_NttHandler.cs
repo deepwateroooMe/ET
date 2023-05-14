@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ETModel;
+using ET;
 namespace ET.Server {
 
-    [ActorMessageHandler(AppType.Map)]
+    [ActorMessageHandler(SceneType.Map)]
     public class Actor_GamerReady_NttHandler : AMActorHandler<Gamer, Actor_GamerReady_Ntt> {
 
         protected override void Run(Gamer gamer, Actor_GamerReady_Ntt message) {

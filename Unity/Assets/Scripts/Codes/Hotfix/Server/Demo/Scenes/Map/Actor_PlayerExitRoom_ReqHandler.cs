@@ -1,10 +1,10 @@
 using System;
 using System.Threading.Tasks;
-using ETModel;
+using ET;
 namespace ET.Server {
 
     // 【房间服】：玩家请求退出拖拉机房
-    [ActorMessageHandler(AppType.Map)]
+    [ActorMessageHandler(SceneType.Map)]
     public class Actor_PlayerExitRoom_ReqHandler : AMActorRpcHandler<Gamer, Actor_PlayerExitRoom_Req, Actor_PlayerExitRoom_Ack> {
 
         protected override async Task Run(Gamer gamer, Actor_PlayerExitRoom_Req message, Action<Actor_PlayerExitRoom_Ack> reply) {

@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ETModel;
+using ET;
 namespace ET.Server {
 
     // 【房间服】：玩家切换拖拉机模式，转为手动自己出牌，或是请求机器人代为打牌。。。
-    [ActorMessageHandler(AppType.Map)]
+    [ActorMessageHandler(SceneType.Map)]
     public class Actor_Trusteeship_NttHandler : AMActorHandler<Gamer, Actor_Trusteeship_Ntt> {
         protected override void Run(Gamer gamer, Actor_Trusteeship_Ntt message) {
             Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);

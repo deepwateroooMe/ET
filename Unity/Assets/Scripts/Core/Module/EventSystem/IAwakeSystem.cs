@@ -5,7 +5,10 @@ namespace ET {
     public interface IAwake<A, B> {}
     public interface IAwake<A, B, C> {}
     public interface IAwake<A, B, C, D> {}
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     public interface IAwakeSystem: ISystemType {
         void Run(Entity o);
     }
@@ -37,7 +40,6 @@ namespace ET {
         }
         protected abstract void Awake(T self);
     }
-    
     [ObjectSystem]
     public abstract class AwakeSystem<T, A> : IAwakeSystem<A> where T: Entity, IAwake<A> {
         Type ISystemType.Type() {

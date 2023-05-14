@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ETModel;
+using ET;
 namespace ET.Server {
 
     // 【房间服】：玩家耍柰不出牌。。。顶多也就是界面上一个字符串提醒，或是带点儿闪屏或是动画效果？必要情况下将玩家踢出房间。。。
-    [ActorMessageHandler(AppType.Map)]
+    [ActorMessageHandler(SceneType.Map)]
     public class Actor_GamerDontPlay_NttHandler : AMActorHandler<Gamer, Actor_GamerDontPlay_Ntt> {
 
         protected override void Run(Gamer gamer, Actor_GamerDontPlay_Ntt message) {
