@@ -7,12 +7,12 @@ namespace ET.Client {
 
     [ObjectSystem]
     public class TractorInteractionComponentAwakeSystem : AwakeSystem<TractorInteractionComponent> {
-        public override void Awake(TractorInteractionComponent self) {
+        protected override void Awake(TractorInteractionComponent self) {
             self.Awake();
         }
     }
 
-    public class TractorInteractionComponent : Component {
+    public class TractorInteractionComponent : Entity, IAwake {
 
         private Button playButton;
         private Button promptButton;

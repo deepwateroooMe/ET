@@ -994,6 +994,177 @@ public class UILobbyEvent: AUIEvent {
     }
 }
    #+END_SRC
+* Session 相关：进行间通信
+** SessionComponent
+   #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class SessionComponent: Entity, IAwake, IDestroy {
+    public Session Session { get; set; }
+}
+   #+END_SRC
+** SessionComponentDestroySystem: 【销毁系】：只负责用户掉线，或是下线后的自动移除会话框 
+   #+BEGIN_SRC csharp
+// 【销毁系】：只负责用户掉线，或是下线后的自动移除会话框 
+public class SessionComponentDestroySystem: DestroySystem<SessionComponent> {
+    protected override void Destroy(SessionComponent self) {
+        self.Session?.Dispose();
+    }
+}
+   #+END_SRC
+** OperaComponentSystem: 一个拿会话框必消息的使用场景
+   #+BEGIN_SRC csharp
+[FriendOf(typeof(OperaComponent))]
+public static class OperaComponentSystem { // 生命周期感知，生成系统
+    [ObjectSystem]
+    public class OperaComponentAwakeSystem : AwakeSystem<OperaComponent> {
+        protected override void Awake(OperaComponent self) {
+            self.mapMask = LayerMask.GetMask("Map");
+        }
+    }
+    [ObjectSystem]
+    public class OperaComponentUpdateSystem : UpdateSystem<OperaComponent> {
+        protected override void Update(OperaComponent self) {
+            if (Input.GetMouseButtonDown(1)) {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
+                if (Physics.Raycast(ray, out hit, 1000, self.mapMask)) {
+                    C2M_PathfindingResult c2MPathfindingResult = new C2M_PathfindingResult();
+                    c2MPathfindingResult.Position = hit.point;
+                    self.ClientScene().GetComponent<SessionComponent>().Session.Send(c2MPathfindingResult); // <<<<<<<<<<<<<<<<<<<< 
+                }
+            }
+            if (Input.GetKeyDown(KeyCode.R)) {
+                CodeLoader.Instance.LoadHotfix();
+                EventSystem.Instance.Load();
+                Log.Debug("hot reload success!");
+            }
+            if (Input.GetKeyDown(KeyCode.T)) {
+                C2M_TransferMap c2MTransferMap = new C2M_TransferMap();
+                self.ClientScene().GetComponent<SessionComponent>().Session.Call(c2MTransferMap).Coroutine(); // <<<<<<<<<<<<<<<<<<<< 
+            }
+        }
+    }
+}
+   #+END_SRC
+* Player: 玩家相关，添加的地方，以及使用【这里还是有点儿糊涂】
+** Player: 玩家
+   #+BEGIN_SRC csharp
+[ChildOf(typeof(PlayerComponent))]
+public sealed class Player : Entity, IAwake<string> {
+    public string Account { get; set; }
+    public long UnitId { get; set; }
+}
+   #+END_SRC
+** PlayerComponent: 
+   #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class PlayerComponent: Entity, IAwake {
+    public long MyId { get; set; }
+}
+   #+END_SRC
+** 服务器端的PlayerComponent
+   #+BEGIN_SRC csharp
+namespace ET.Server {
+[ComponentOf(typeof(Scene))]
+public class PlayerComponent : Entity, IAwake, IDestroy {
+    public readonly Dictionary<long, Player> idPlayers = new Dictionary<long, Player>();
+}
+   #+END_SRC
+** 服务器端 PlayerComponentSystem
+   #+BEGIN_SRC csharp
+namespace ET.Server {
+    [FriendOf(typeof(PlayerComponent))]
+    public static class PlayerComponentSystem {
+        public static void Add(this PlayerComponent self, Player player) {
+            self.idPlayers.Add(player.Id, player);
+        }
+        public static Player Get(this PlayerComponent self, long id) {
+            self.idPlayers.TryGetValue(id, out Player gamer);
+            return gamer;
+        }
+        public static void Remove(this PlayerComponent self, long id) {
+            self.idPlayers.Remove(id);
+        }
+        public static Player[] GetAll(this PlayerComponent self) {
+            return self.idPlayers.Values.ToArray();
+        }
+    }
+}
+   #+END_SRC
+** 服务器端SceneFactory-CreateServerScene 时【网关服】会添加【PlayerComponent】玩家组件 
+   #+BEGIN_SRC csharp
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
+        await ETTask.CompletedTask;
+        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
+        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
+        switch (scene.SceneType) {
+        case SceneType.Router:
+            scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+            break;
+        case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+            // 云服务器在防火墙那里做端口映射
+            scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+            break;
+        case SceneType.Realm:
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+            break;
+        case SceneType.Gate: // <<<<<<<<<<<<<<<<<<<< 
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+            scene.AddComponent<PlayerComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+            scene.AddComponent<GateSessionKeyComponent>();
+            break;
+        case SceneType.Map:
+            scene.AddComponent<UnitComponent>();
+            scene.AddComponent<AOIManagerComponent>();
+            break;
+        case SceneType.Location:
+            scene.AddComponent<LocationComponent>();
+            break;
+        case SceneType.Robot:
+            scene.AddComponent<RobotManagerComponent>();
+            break;
+        case SceneType.BenchmarkServer:
+            scene.AddComponent<BenchmarkServerComponent>();
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.OuterIPPort);
+            break;
+        case SceneType.BenchmarkClient:
+            scene.AddComponent<BenchmarkClientComponent>();
+            break;
+        }
+        return scene;
+    }
+   #+END_SRC
+** SessionPlayerComponentSystem
+   #+BEGIN_SRC csharp
+public static class SessionPlayerComponentSystem {
+    public class SessionPlayerComponentDestroySystem: DestroySystem<SessionPlayerComponent> {
+        protected override void Destroy(SessionPlayerComponent self) {
+            // 发送断线消息
+            ActorLocationSenderComponent.Instance?.Send(self.PlayerId, new G2M_SessionDisconnect());
+            self.DomainScene().GetComponent<PlayerComponent>()?.Remove(self.PlayerId);
+        }
+    }
+    public static Player GetMyPlayer(this SessionPlayerComponent self) {
+        return self.DomainScene().GetComponent<PlayerComponent>().Get(self.PlayerId);
+    }
+}
+   #+END_SRC
+
+** SessionPlayerComponent: 会话框里，会保留客户端玩家 PlayerId
+   #+BEGIN_SRC csharp
+[ComponentOf(typeof(Session))]
+public class SessionPlayerComponent : Entity, IAwake, IDestroy {
+    public long PlayerId { get; set; }
+}
+   #+END_SRC
+* 
+** 
+   #+BEGIN_SRC csharp
+   #+END_SRC
+** 
+   #+BEGIN_SRC csharp
+   #+END_SRC
 * 整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI
 - 整个框架的场景节点如下
       
@@ -1052,3 +1223,17 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
         #+END_SRC
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+* TODO 今天晚上把几个消息抓全了，免得一堆的报错
+- IStart: 给重构没了。要重新熟悉一下新框架里的各种接口类，这些接口起什么作用，需不需要添加 IStart, 以及如何改写等
+- 需要抓的消息包括：
+C2G_ReturnLobby_Ntt
+Actor_GamerReady_Ntt
+Actor_Trusteeship_Ntt
+Actor_GamerPlayCard_Req
+
+
+
+
+
+
+

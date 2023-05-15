@@ -1,14 +1,13 @@
 namespace ET {
 
     [ObjectSystem]
-    public class GamerAwakeSystem : AwakeSystem<Gamer,long> {
-        public override void Awake(Gamer self, long id) {
+    public class GamerAwakeSystem : AwakeSystem<Gamer, long> {
+        protected override void Awake(Gamer self, long id) {
             self.Awake(id);
         }
     }
-    // 房间玩家对象
-    public sealed class Gamer : Entity {
-
+    // 房间玩家对象: 一个玩家
+    public sealed class Gamer : Entity, IAwake<long> {
         // 用户ID（唯一）
         public long UserID { get; private set; }
         // 玩家GateActorID

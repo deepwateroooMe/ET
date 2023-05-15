@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using ETModel;
+using ET;
 using UnityEngine;
-namespace ETHotfix {
+namespace ET.Client {
     public static class CardHelper {
 
         // 卡牌图集预设名称

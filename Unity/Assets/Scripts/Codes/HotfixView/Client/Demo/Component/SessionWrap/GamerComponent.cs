@@ -1,9 +1,9 @@
 using System.Linq;
 using System.Collections.Generic;
-namespace ETHotfix {
+namespace ET.Client {
 
     // 组件：是提供给房间用，用来管理游戏中每个房间里的最多三个当前玩家
-    public class GamerComponent : Component {
+    public class GamerComponent : Entity, IAwake {
 
         private readonly Dictionary<long, int> seats = new Dictionary<long, int>();
         private readonly Gamer[] gamers = new Gamer[3]; // 这里纪录：跟它一起玩的同一个房间里的三个小伙伴。。。

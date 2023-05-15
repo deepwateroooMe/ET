@@ -2,7 +2,7 @@ using System;
 using ETModel;
 using UnityEngine;
 using UnityEngine.UI;
-namespace ETHotfix {
+namespace ET.Client {
     [ObjectSystem]
     public class GamerUIComponentStartSystem : StartSystem<GamerUIComponent> {
         public override void Start(GamerUIComponent self) {
@@ -10,7 +10,7 @@ namespace ETHotfix {
         }
     }
     // 玩家UI组件
-    public class GamerUIComponent : Component {
+    public class GamerUIComponent : Component { // IStart 好像是没有了，重构没了？
         // UI面板
         public GameObject Panel { get; private set; }
         // 玩家昵称

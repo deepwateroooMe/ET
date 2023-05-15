@@ -15,7 +15,9 @@ namespace ET.Client {
             GameObject bundleGameObject = (GameObject) ResourcesComponent.Instance.GetAsset(UIType.TractorRoom.StringToAB(), UIType.TractorRoom);
             GameObject gameObject = UnityEngine.Object.Instantiate(bundleGameObject, UIEventComponent.Instance.GetLayer((int)uiLayer));
             UI ui = uiComponent.AddChild<UI, string, GameObject>(UIType.TractorRoom, gameObject);
+            // 【拖拉机游戏房间】：它可能由好几个不同的组件组成，这里要添加的不止一个
             ui.AddComponent<TractorRoomComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+            ui.AddComponent<GamerComponent>(); 
             return ui;
         }
         public override void OnRemove(UIComponent uiComponent) {

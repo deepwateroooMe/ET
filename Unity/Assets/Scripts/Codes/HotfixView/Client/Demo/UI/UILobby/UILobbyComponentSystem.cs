@@ -49,7 +49,7 @@ namespace ET.Client {
                 EventSystem.Instance.Publish(self.ClientScene(), new EventType.ModeSelected()); // 这个，再去找下，谁在订阅这个事件，如何带动游戏开启的状态？
 
                 // 将房间设为匹配状态【这里的逻辑，再去检查】创建房间的时候，添加的这个组件，先去完成创建房间，需要专用工厂来生产
-                room.GetComponent<TractorRoomComponent>().Matching = true;// LandlordsRoomComponent
+                // room.GetComponent<TractorRoomComponent>().Matching = true;// LandlordsRoomComponent 【绝对不是在这里设置的！！】
             }
             catch (Exception e) {
                 Log.Error(e.ToString());

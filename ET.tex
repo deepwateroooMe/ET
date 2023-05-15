@@ -1,4 +1,4 @@
-% Created 2023-05-14 Sun 12:06
+% Created 2023-05-14 Sun 16:34
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1103,8 +1103,190 @@ public class UILobbyEvent: AUIEvent {
     }
 }
 \end{minted}
-\section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
+\section{Session 相关：进行间通信}
 \label{sec-8}
+\subsection{SessionComponent}
+\label{sec-8-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ComponentOf(typeof(Scene))]
+public class SessionComponent: Entity, IAwake, IDestroy {
+    public Session Session { get; set; }
+}
+\end{minted}
+\subsection{SessionComponentDestroySystem: 【销毁系】：只负责用户掉线，或是下线后的自动移除会话框}
+\label{sec-8-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 【销毁系】：只负责用户掉线，或是下线后的自动移除会话框 
+public class SessionComponentDestroySystem: DestroySystem<SessionComponent> {
+    protected override void Destroy(SessionComponent self) {
+        self.Session?.Dispose();
+    }
+}
+\end{minted}
+\subsection{OperaComponentSystem: 一个拿会话框必消息的使用场景}
+\label{sec-8-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[FriendOf(typeof(OperaComponent))]
+public static class OperaComponentSystem { // 生命周期感知，生成系统
+    [ObjectSystem]
+    public class OperaComponentAwakeSystem : AwakeSystem<OperaComponent> {
+        protected override void Awake(OperaComponent self) {
+            self.mapMask = LayerMask.GetMask("Map");
+        }
+    }
+    [ObjectSystem]
+    public class OperaComponentUpdateSystem : UpdateSystem<OperaComponent> {
+        protected override void Update(OperaComponent self) {
+            if (Input.GetMouseButtonDown(1)) {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
+                if (Physics.Raycast(ray, out hit, 1000, self.mapMask)) {
+                    C2M_PathfindingResult c2MPathfindingResult = new C2M_PathfindingResult();
+                    c2MPathfindingResult.Position = hit.point;
+                    self.ClientScene().GetComponent<SessionComponent>().Session.Send(c2MPathfindingResult); // <<<<<<<<<<<<<<<<<<<< 
+                }
+            }
+            if (Input.GetKeyDown(KeyCode.R)) {
+                CodeLoader.Instance.LoadHotfix();
+                EventSystem.Instance.Load();
+                Log.Debug("hot reload success!");
+            }
+            if (Input.GetKeyDown(KeyCode.T)) {
+                C2M_TransferMap c2MTransferMap = new C2M_TransferMap();
+                self.ClientScene().GetComponent<SessionComponent>().Session.Call(c2MTransferMap).Coroutine(); // <<<<<<<<<<<<<<<<<<<< 
+            }
+        }
+    }
+}
+\end{minted}
+\section{Player: 玩家相关，添加的地方，以及使用【这里还是有点儿糊涂】}
+\label{sec-9}
+\subsection{Player: 玩家}
+\label{sec-9-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ChildOf(typeof(PlayerComponent))]
+public sealed class Player : Entity, IAwake<string> {
+    public string Account { get; set; }
+    public long UnitId { get; set; }
+}
+\end{minted}
+\subsection{PlayerComponent:}
+\label{sec-9-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ComponentOf(typeof(Scene))]
+public class PlayerComponent: Entity, IAwake {
+    public long MyId { get; set; }
+}
+\end{minted}
+\subsection{服务器端的PlayerComponent}
+\label{sec-9-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+namespace ET.Server {
+[ComponentOf(typeof(Scene))]
+public class PlayerComponent : Entity, IAwake, IDestroy {
+    public readonly Dictionary<long, Player> idPlayers = new Dictionary<long, Player>();
+}
+\end{minted}
+\subsection{服务器端 PlayerComponentSystem}
+\label{sec-9-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+namespace ET.Server {
+    [FriendOf(typeof(PlayerComponent))]
+    public static class PlayerComponentSystem {
+        public static void Add(this PlayerComponent self, Player player) {
+            self.idPlayers.Add(player.Id, player);
+        }
+        public static Player Get(this PlayerComponent self, long id) {
+            self.idPlayers.TryGetValue(id, out Player gamer);
+            return gamer;
+        }
+        public static void Remove(this PlayerComponent self, long id) {
+            self.idPlayers.Remove(id);
+        }
+        public static Player[] GetAll(this PlayerComponent self) {
+            return self.idPlayers.Values.ToArray();
+        }
+    }
+}
+\end{minted}
+\subsection{服务器端SceneFactory-CreateServerScene 时【网关服】会添加【PlayerComponent】玩家组件}
+\label{sec-9-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
+        await ETTask.CompletedTask;
+        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
+        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
+        switch (scene.SceneType) {
+        case SceneType.Router:
+            scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+            break;
+        case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+            // 云服务器在防火墙那里做端口映射
+            scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+            break;
+        case SceneType.Realm:
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+            break;
+        case SceneType.Gate: // <<<<<<<<<<<<<<<<<<<< 
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+            scene.AddComponent<PlayerComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+            scene.AddComponent<GateSessionKeyComponent>();
+            break;
+        case SceneType.Map:
+            scene.AddComponent<UnitComponent>();
+            scene.AddComponent<AOIManagerComponent>();
+            break;
+        case SceneType.Location:
+            scene.AddComponent<LocationComponent>();
+            break;
+        case SceneType.Robot:
+            scene.AddComponent<RobotManagerComponent>();
+            break;
+        case SceneType.BenchmarkServer:
+            scene.AddComponent<BenchmarkServerComponent>();
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.OuterIPPort);
+            break;
+        case SceneType.BenchmarkClient:
+            scene.AddComponent<BenchmarkClientComponent>();
+            break;
+        }
+        return scene;
+    }
+\end{minted}
+\subsection{SessionPlayerComponentSystem}
+\label{sec-9-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class SessionPlayerComponentSystem {
+    public class SessionPlayerComponentDestroySystem: DestroySystem<SessionPlayerComponent> {
+        protected override void Destroy(SessionPlayerComponent self) {
+            // 发送断线消息
+            ActorLocationSenderComponent.Instance?.Send(self.PlayerId, new G2M_SessionDisconnect());
+            self.DomainScene().GetComponent<PlayerComponent>()?.Remove(self.PlayerId);
+        }
+    }
+    public static Player GetMyPlayer(this SessionPlayerComponent self) {
+        return self.DomainScene().GetComponent<PlayerComponent>().Get(self.PlayerId);
+    }
+}
+\end{minted}
+
+\subsection{SessionPlayerComponent: 会话框里，会保留客户端玩家 PlayerId}
+\label{sec-9-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ComponentOf(typeof(Session))]
+public class SessionPlayerComponent : Entity, IAwake, IDestroy {
+    public long PlayerId { get; set; }
+}
+\end{minted}
+\section{}
+\label{sec-10}
+\subsection{}
+\label{sec-10-1}
+\subsection{}
+\label{sec-10-2}
+\section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
+\label{sec-11}
 \begin{itemize}
 \item 整个框架的场景节点如下
 \end{itemize}
@@ -1112,7 +1294,7 @@ public class UILobbyEvent: AUIEvent {
 \includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
 
 \section{写在最后：反而是自己每天查看一再更新的}
-\label{sec-9}
+\label{sec-12}
 \begin{itemize}
 \item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 \item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
@@ -1124,7 +1306,7 @@ public class UILobbyEvent: AUIEvent {
 \end{itemize}
 
 \section{现在的修改内容，记忆}
-\label{sec-10}
+\label{sec-13}
 \begin{itemize}
 \item UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
 \end{itemize}
@@ -1170,6 +1352,17 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
 \end{minted}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
+\item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \end{itemize}
+\section{{\bfseries\sffamily TODO} 今天晚上把几个消息抓全了，免得一堆的报错}
+\label{sec-14}
+\begin{itemize}
+\item IStart: 给重构没了。要重新熟悉一下新框架里的各种接口类，这些接口起什么作用，需不需要添加 IStart, 以及如何改写等
+\item 需要抓的消息包括：
+\end{itemize}
+C2G\_ReturnLobby\_Ntt
+Actor\_GamerReady\_Ntt
+Actor\_Trusteeship\_Ntt
+Actor\_GamerPlayCard\_Req
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}
