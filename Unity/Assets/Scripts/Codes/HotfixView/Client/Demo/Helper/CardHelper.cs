@@ -3,7 +3,6 @@ using ET;
 using UnityEngine;
 namespace ET.Client {
     public static class CardHelper {
-
         // 卡牌图集预设名称
         public const string ATLAS_NAME = "Atlas";
         // 排序
@@ -19,16 +18,13 @@ namespace ET.Client {
                     }
                 }
             }
-            // cards.Sort((a, b) =>
-            // {
+            // cards.Sort((a, b) => {
             //    // 先按照权重降序，再按花色升序
             //    return -a.CardWeight.CompareTo(b.CardWeight) * 2 +
             //        a.CardSuits.CompareTo(b.CardSuits);
             // });
         }
         // int比较
-        // <param name="a"></param>
-        // <param name="b"></param>
         public static int CompareTo(int a, int b) {
             int result;
             if (a > b) {
@@ -41,8 +37,6 @@ namespace ET.Client {
             return result;
         }
         // 获取卡牌精灵
-        // <typeparam name="T"></typeparam>
-        // <param name="cardName"></param>
         public static Sprite GetCardSprite(string cardName) {
             GameObject atlas = (GameObject)ETModel.Game.Scene.GetComponent<ResourcesComponent>().GetAsset($"{ATLAS_NAME}.unity3d", ATLAS_NAME);
             return atlas.Get<Sprite>(cardName);

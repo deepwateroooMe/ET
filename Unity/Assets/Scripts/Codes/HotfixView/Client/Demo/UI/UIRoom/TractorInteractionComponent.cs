@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using ETModel;
 using System.Collections.Generic;
 
 namespace ET.Client {
@@ -53,7 +52,7 @@ namespace ET.Client {
                 return;
             }
             base.Dispose();
-            ETModel.Game.Scene.GetComponent<ResourcesComponent>()?.UnloadBundle($"{UIType.TractorInteraction}.unity3d");
+            Root.Instance.Scene.GetComponent<ResourcesComponent>()?.UnloadBundle($"{UIType.TractorInteraction}.unity3d");
         }
         // 游戏结束
         public void Gameover() {
@@ -106,7 +105,7 @@ namespace ET.Client {
             discardButton.gameObject.SetActive(false);
         }
         // 切换游戏模式
-        private void OnChangeGameMode() {
+        private void OnChangeGameMode(TractorInteractionComponent self) {
             if (isTrusteeship) {
                 StartPlay();
                 changeGameModeButton.GetComponentInChildren<Text>().text = "托管";
@@ -114,16 +113,16 @@ namespace ET.Client {
                 EndPlay();
                 changeGameModeButton.GetComponentInChildren<Text>().text = "取消托管";
             }
-            SessionComponent.Instance.Session.Send(new Actor_Trusteeship_Ntt() { IsTrusteeship = !this.isTrusteeship });
+            self.ClientScene().GetComponent<SessionComponent>().Session.Send(new Actor_Trusteeship_Ntt() { IsTrusteeship = !this.isTrusteeship });
         }
         // 出牌
-        private async void OnPlay() {
+        private async void OnPlay(TractorInteractionComponent self) {
             CardHelper.Sort(currentSelectCards);
             Actor_GamerPlayCard_Req request = new Actor_GamerPlayCard_Req();
             request.Cards.AddRange(currentSelectCards);
-            Actor_GamerPlayCard_Ack response = await SessionComponent.Instance.Session.Call(request) as Actor_GamerPlayCard_Ack;
+            Actor_GamerPlayCard_Ack response = await self.ClientScene().GetComponent<SessionComponent>().Session.Call(request) as Actor_GamerPlayCard_Ack;
             // 出牌错误提示
-            GamerUIComponent gamerUI = Game.Scene.GetComponent<UIComponent>().Get(UIType.TractorRoom).GetComponent<GamerComponent>().LocalGamer.GetComponent<GamerUIComponent>();
+            GamerUIComponent gamerUI = self.ClientScene().GetComponent<UIComponent>().Get(UIType.TractorRoom).GetComponent<GamerComponent>().LocalGamer.GetComponent<GamerUIComponent>();
             if (response.Error == ErrorCode.ERR_PlayCardError) {
                 gamerUI.SetPlayCardsError();
             }
@@ -147,16 +146,16 @@ namespace ET.Client {
             }
         }
         // 不出
-        private void OnDiscard() {
-            SessionComponent.Instance.Session.Send(new Actor_GamerDontPlay_Ntt());
+        private void OnDiscard(TractorInteractionComponent self) {
+            self.ClientScene().GetComponent<SessionComponent>().Session.Send(new Actor_GamerDontPlay_Ntt());
         }
         // 抢地主
-        private void OnGrab() {
-            SessionComponent.Instance.Session.Send(new Actor_GamerGrabLandlordSelect_Ntt() { IsGrab = true });
+        private void OnGrab(TractorInteractionComponent self) {
+            self.ClientScene().GetComponent<SessionComponent>().Session.Send(new Actor_GamerGrabLandlordSelect_Ntt() { IsGrab = true });
         }
         // 不抢
-        private void OnDisgrab() {
-            SessionComponent.Instance.Session.Send(new Actor_GamerGrabLandlordSelect_Ntt() { IsGrab = false });
+        private void OnDisgrab(TractorInteractionComponent self) {
+            self.ClientScene().GetComponent<SessionComponent>().Session.Send(new Actor_GamerGrabLandlordSelect_Ntt() { IsGrab = false });
         }
     }
 }

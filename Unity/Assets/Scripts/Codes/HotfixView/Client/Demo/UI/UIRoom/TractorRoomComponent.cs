@@ -50,6 +50,7 @@ namespace ET.Client {
             rc.Get<GameObject>("Desk").SetActive(false);
             // 添加玩家面板
             GameObject gamersPanel = rc.Get<GameObject>("Gamers");
+            // 【四个玩家】：上下左右，每边一个
             this.GamersPanel[0] = gamersPanel.Get<GameObject>("Left");
             this.GamersPanel[1] = gamersPanel.Get<GameObject>("Local");
             this.GamersPanel[2] = gamersPanel.Get<GameObject>("Right");
@@ -63,7 +64,7 @@ namespace ET.Client {
         public void AddGamer(Gamer gamer, int index) {
             GetParent<UI>().GetComponent<GamerComponent>().Add(gamer, index);
             // 【游戏视图上】：每个玩家自己有个小画板，来显示每个玩家，比如自己出的牌，叫过反过的主，等，小UI 面板
-            gamer.GetComponent<GamerUIComponent>().SetPanel(this.GamersPanel[index]);
+            gamer.GetComponent<GamerUIComponent>().SetPanel(this.GamersPanel[index]); // 工厂生产 Gamer 的时候，会添加它相应的小画板
         }
         // 移除玩家
         public void RemoveGamer(long id) {

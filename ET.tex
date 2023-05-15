@@ -1,4 +1,4 @@
-% Created 2023-05-14 Sun 16:34
+% Created 2023-05-14 Sun 18:26
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1279,12 +1279,82 @@ public class SessionPlayerComponent : Entity, IAwake, IDestroy {
     public long PlayerId { get; set; }
 }
 \end{minted}
-\section{}
+\section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
 \label{sec-10}
-\subsection{}
+\subsection{ResourcesComponent: 同文件有其生成系}
 \label{sec-10-1}
-\subsection{}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ComponentOf]
+public class ResourcesComponent: Entity, IAwake, IDestroy {
+    public static ResourcesComponent Instance { get; set; }
+    public AssetBundleManifest AssetBundleManifestObject { get; set; }
+    public Dictionary<int, string> IntToStringDict = new Dictionary<int, string>();
+    public Dictionary<string, string> StringToABDict = new Dictionary<string, string>();
+    public Dictionary<string, string> BundleNameToLowerDict = new Dictionary<string, string>() { { "StreamingAssets", "StreamingAssets" } };
+    public readonly Dictionary<string, Dictionary<string, UnityEngine.Object>> resourceCache =
+        new Dictionary<string, Dictionary<string, UnityEngine.Object>>();
+    public readonly Dictionary<string, ABInfo> bundles = new Dictionary<string, ABInfo>();
+    // 缓存包依赖，不用每次计算
+    public readonly Dictionary<string, string[]> DependenciesCache = new Dictionary<string, string[]>();
+}
+\end{minted}
+\subsection{客户端 ConfigLoader 的Invoke 标签下：在根控件 Root 下添加资源管理器组件}
 \label{sec-10-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Invoke]
+public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
+    public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {
+        Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>();
+        HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute));
+
+        if (Define.IsEditor) {
+            string ct = "cs";
+            GlobalConfig globalConfig = Resources.Load<GlobalConfig>("GlobalConfig");
+            CodeMode codeMode = globalConfig.CodeMode;
+            switch (codeMode) {
+            case CodeMode.Client:
+                ct = "c";
+                break;
+            case CodeMode.Server:
+                ct = "s";
+                break;
+            case CodeMode.ClientServer:
+                ct = "cs";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+            }
+            List<string> startConfigs = new List<string>() {
+                "StartMachineConfigCategory", 
+                "StartProcessConfigCategory", 
+                "StartSceneConfigCategory", 
+                "StartZoneConfigCategory",
+            };
+            foreach (Type configType in configTypes) {
+                string configFilePath;
+                if (startConfigs.Contains(configType.Name)) {
+                    configFilePath = $"../Config/Excel/{ct}/{Options.Instance.StartConfig}/{configType.Name}.bytes";    
+                }
+                else {
+                    configFilePath = $"../Config/Excel/{ct}/{configType.Name}.bytes";
+                }
+                output[configType] = File.ReadAllBytes(configFilePath);
+            }
+        } else {
+            using (Root.Instance.Scene.AddComponent<ResourcesComponent>()) { // <<<<<<<<<<<<<<<<<<<< 
+                const string configBundleName = "config.unity3d";
+                ResourcesComponent.Instance.LoadBundle(configBundleName);
+
+                foreach (Type configType in configTypes) {
+                    TextAsset v = ResourcesComponent.Instance.GetAsset(configBundleName, configType.Name) as TextAsset;
+                    output[configType] = v.bytes;
+                }
+            }
+        }
+        return output;
+    }
+}
+\end{minted}
 \section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
 \label{sec-11}
 \begin{itemize}

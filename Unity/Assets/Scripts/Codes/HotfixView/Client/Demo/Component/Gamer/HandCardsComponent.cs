@@ -1,16 +1,14 @@
 using System.Collections.Generic;
-using ETModel;
 using UnityEngine;
 using UnityEngine.UI;
-namespace ETHotfix {
+namespace ET.Client {
     [ObjectSystem]
     public class HandCardsComponentAwakeSystem : AwakeSystem<HandCardsComponent, GameObject> {
-        public override void Awake(HandCardsComponent self, GameObject panel) {
+        protected override void Awake(HandCardsComponent self, GameObject panel) {
             self.Awake(panel);
         }
     }
-    // 某个玩家：手上的手牌，随游戏的进展会变少，每次出牌的时候，会看看牌型什么的
-    public class HandCardsComponent : Component {
+    public class HandCardsComponent : Entity, IAwake<GameObject> { // 某个玩家：手上的手牌，随游戏的进展会变少，每次出牌的时候，会看看牌型什么的
         public const string HANDCARD_NAME = "HandCard";
         public const string PLAYCARD_NAME = "PlayCard";
 
@@ -144,7 +142,7 @@ namespace ETHotfix {
         }
         // 创建卡牌精灵
         private GameObject CreateCardSprite(string prefabName, string cardName, Transform parent) {
-            GameObject cardSpritePrefab = (GameObject)ETModel.Game.Scene.GetComponent<ResourcesComponent>().GetAsset($"{prefabName}.unity3d", prefabName);
+            GameObject cardSpritePrefab = (GameObject)Root.Instance.Scene.GetComponent<ResourcesComponent>().GetAsset($"{prefabName}.unity3d", prefabName);
             GameObject cardSprite = UnityEngine.Object.Instantiate(cardSpritePrefab);
             cardSprite.name = cardName;
             cardSprite.layer = LayerMask.NameToLayer("UI");

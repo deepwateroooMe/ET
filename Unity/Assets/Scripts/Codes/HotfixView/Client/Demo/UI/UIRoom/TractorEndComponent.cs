@@ -6,18 +6,18 @@ namespace ET.Client {
 
     [ObjectSystem]
     public class TractorEndComponentAwakeSystem : AwakeSystem<TractorEndComponent, bool> {
-        public override void Awake(TractorEndComponent self, bool isWin) {
+        protected override void Awake(TractorEndComponent self, bool isWin) {
             self.Awake(isWin);
         }
     }
-    public class TractorEndComponent : Component {
+    public class TractorEndComponent : Entity, IAwake<bool> {
         // 玩家信息面板预设名称
         public const string CONTENT_NAME = "Content";
         private GameObject contentPrefab;
         private GameObject gamerContent;
         public void Awake(bool isWin) {
             ReferenceCollector rc = this.GetParent<UI>().GameObject.GetComponent<ReferenceCollector>();
-            ResourcesComponent resourcesComponent = ETModel.Game.Scene.GetComponent<ResourcesComponent>();
+            ResourcesComponent resourcesComponent = Root.Instance.Scene.GetComponent<ResourcesComponent>();
             resourcesComponent.LoadBundle($"{CONTENT_NAME}.unity3d");
             if (isWin) {
                 rc.Get<GameObject>("Lose").SetActive(false);
@@ -26,7 +26,7 @@ namespace ET.Client {
             }
             gamerContent = rc.Get<GameObject>("GamerContent");
             Button continueButton = rc.Get<GameObject>("ContinueButton").GetComponent<Button>();
-            continueButton.onClick.Add(OnContinue);
+            continueButton.onClick.AddListener(OnContinue);
             contentPrefab = (GameObject)resourcesComponent.GetAsset($"{CONTENT_NAME}.unity3d", CONTENT_NAME);
         }
         public override void Dispose() {
@@ -34,7 +34,7 @@ namespace ET.Client {
                 return;
             }
             base.Dispose();
-            ResourcesComponent resourcesComponent = ETModel.Game.Scene.GetComponent<ResourcesComponent>();
+            ResourcesComponent resourcesComponent = Root.Instance.Scene.GetComponent<ResourcesComponent>();
             resourcesComponent?.UnloadBundle($"{CONTENT_NAME}.unity3d");
             resourcesComponent?.UnloadBundle($"{UIType.TractorEnd}.unity3d");
         }
