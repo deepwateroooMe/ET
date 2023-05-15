@@ -1,41 +1,31 @@
 ﻿using System;
-
-namespace ET.Server
-{
+namespace ET.Server {
     [EnableClass]
-    public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage
-    {
-        protected abstract ETTask Run(E entity, Message message);
+    public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage {
 
-        public async ETTask Handle(Entity entity, int fromProcess, object actorMessage)
-        {
-            if (actorMessage is not Message msg)
-            {
+        // protected abstract ETTask Run(E entity, Message message);
+        protected abstract void Run(E entity, Message message); // 改成返回类型 void, 那么下面一行，也要跟着改
+
+        // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+        public async void Handle(Entity entity, int fromProcess, object actorMessage) {
+            if (actorMessage is not Message msg) {
                 Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
                 return;
             }
-
-            if (entity is not E e)
-            {
+            if (entity is not E e) {
                 Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
                 return;
             }
-
-            await this.Run(e, msg);
+            this.Run(e, msg);
+            // await this.Run(e, msg);
         }
-
-        public Type GetRequestType()
-        {
-            if (typeof (IActorLocationMessage).IsAssignableFrom(typeof (Message)))
-            {
+        public Type GetRequestType() {
+            if (typeof (IActorLocationMessage).IsAssignableFrom(typeof (Message))) {
                 Log.Error($"message is IActorLocationMessage but handler is AMActorHandler: {typeof (Message)}");
             }
-
             return typeof (Message);
         }
-
-        public Type GetResponseType()
-        {
+        public Type GetResponseType() {
             return null;
         }
     }

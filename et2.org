@@ -122,4 +122,71 @@ public static class NetInnerComponentSystem {
     }
 }
    #+END_SRC
+* 消息处理器： AMActorHandler<E, Message> 继承类的返回类型，全改成了 void 
+** AMActorHandler<E, Message>: 基类的抽象方法 Run 的返回类型被固定死了，报了狠多错
+- 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
+   #+BEGIN_SRC csharp
+[EnableClass]
+public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage {
+
+    // protected abstract ETTask Run(E entity, Message message);  // <<<<<<<<<<<<<<<<<<<< 
+    protected abstract void Run(E entity, Message message);  // 可以改成是自己想要的，返回类型，因为只有自已的继承类在使用，不影响其它 
+
+    public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+        if (actorMessage is not Message msg) {
+            Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
+            return;
+        }
+        if (entity is not E e) {
+            Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
+            return;
+        }
+        await this.Run(e, msg);
+    }
+    public Type GetRequestType() {
+        if (typeof (IActorLocationMessage).IsAssignableFrom(typeof (Message))) {
+            Log.Error($"message is IActorLocationMessage but handler is AMActorHandler: {typeof (Message)}");
+        }
+        return typeof (Message);
+    }
+    public Type GetResponseType() {
+        return null;
+    }
+}
+   #+END_SRC
+** IMActorHandler: 接口类的定义，同样要改
+   #+BEGIN_SRC csharp
+public interface IMActorHandler {
+    // ETTask Handle(Entity entity, int fromProcess, object actorMessage);
+    void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的
+    Type GetRequestType();
+    Type GetResponseType();
+}
+   #+END_SRC
+
+* 写在最后：反而是自己每天查看一再更新的
+- 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
+- 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
+- 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
+- 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
+- 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
+- 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
+
+* 现在的修改内容，记忆
+- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        
+- 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+* TODO 今天晚上把几个消息抓全了，免得一堆的报错
+- IStart: 给重构没了。要重新熟悉一下新框架里的各种接口类，这些接口起什么作用，需不需要添加 IStart, 以及如何改写等
+- 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
+- 把参考游戏里，打牌相关的逻辑与模块好好看下，方便自己熟悉自己重构项目的源码后，画葫芦画飘地重构
+- 早上并不想要去急着改什么重构。能够花点儿时间把现ET7 框架里的关键模块弄懂，更重要。下午晚上可以再接着改。
+
+
+
+
+
+
+
+
+
 

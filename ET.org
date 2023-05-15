@@ -298,6 +298,7 @@ public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFini
     #+END_SRC
 - 感觉接下来就是相对熟悉的程序。再跟就去跟不熟悉的其它细节程序
 
+
 * ClientComponent ClientScene 等客户端相关：有点儿理不清
 
 ** ClientSceneManagerComponent: 是否，相当于，它是SceneType 的管理者，就是先前各种服，注册登录服，网关服、匹配服等的管理者，大概主要还是地址传送
@@ -308,6 +309,7 @@ public class ClientSceneManagerComponent: Entity, IAwake, IDestroy {
     public static ClientSceneManagerComponent Instance;
 }
     #+END_SRC
+
 
 * 客户端场景与客户端场景加工厂
 ** SceneChangeHelper: 场景切换协程
@@ -507,6 +509,7 @@ public static class UnitFactory {
 }
     #+END_SRC
 
+
 * 标签系: 标签系统重构了，现分为几个类型
 ** ComponentOfAttribute : Attribute
 #+BEGIN_SRC csharp
@@ -541,6 +544,7 @@ public class ComponentViewEditor: Editor {
     }
 }
 #+END_SRC
+
 
 * UI 上的事件驱动系统：
 ** EventType
@@ -600,6 +604,7 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 }
    #+END_SRC
 - 场景加载结束的时候，好像相对做的事情不多。
+
 
 * Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？
 ** LoginHelper.cs
@@ -742,6 +747,7 @@ public static class SceneChangeHelper {
     }
 }
    #+END_SRC
+
 
 * UI 控件的生产事件机制流程：以前的专用工厂再包装为UI 上的事件机制
 - 一般是由某个事件的发布，因为订阅（使用订阅标签系），所以会被触发创建视图
@@ -994,6 +1000,28 @@ public class UILobbyEvent: AUIEvent {
     }
 }
    #+END_SRC
+** TractorRoomEvent: 拖拉机房间，【待修改完成】 
+#+BEGIN_SRC csharp
+[UIEvent(UIType.TractorRoom)] // UI 系统的事件机制：定义，如何创建拖拉机游戏房间【TODO:】UNITY 里是需要制作相应预设的
+public class TractorRoomEvent: AUIEvent {
+    public override async ETTask<UI> OnCreate(UIComponent uiComponent, UILayer uiLayer) {
+        await ETTask.CompletedTask;
+        await uiComponent.DomainScene().GetComponent<ResourcesLoaderComponent>().LoadAsync(UIType.TractorRoom.StringToAB());
+        GameObject bundleGameObject = (GameObject) ResourcesComponent.Instance.GetAsset(UIType.TractorRoom.StringToAB(), UIType.TractorRoom);
+        GameObject gameObject = UnityEngine.Object.Instantiate(bundleGameObject, UIEventComponent.Instance.GetLayer((int)uiLayer));
+        UI ui = uiComponent.AddChild<UI, string, GameObject>(UIType.TractorRoom, gameObject);
+        // 【拖拉机游戏房间】：它可能由好几个不同的组件组成，这里要添加的不止一个
+        ui.AddComponent<TractorRoomComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+        ui.AddComponent<GamerComponent>(); // 这里的难点：成为这个控件带个UI 小面板，要怎么添加呢？
+        return ui;
+    }
+    public override void OnRemove(UIComponent uiComponent) {
+        ResourcesComponent.Instance.UnloadBundle(UIType.TractorRoom.StringToAB());
+    }
+}
+#+END_SRC
+- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+
 * Session 相关：进行间通信
 ** SessionComponent
    #+BEGIN_SRC csharp
@@ -1046,6 +1074,7 @@ public static class OperaComponentSystem { // 生命周期感知，生成系统
     }
 }
    #+END_SRC
+
 * Player: 玩家相关，添加的地方，以及使用【这里还是有点儿糊涂】
 ** Player: 玩家
    #+BEGIN_SRC csharp
@@ -1158,6 +1187,7 @@ public class SessionPlayerComponent : Entity, IAwake, IDestroy {
     public long PlayerId { get; set; }
 }
    #+END_SRC
+
 * Match: 匹配服，没有独立出来的匹配服
 ** 服务器端SceneFactory 的场景类型：SceneType-s
 - 【匹配服】：可以添加一个。但参考项目里也没有独立出来。所以要想一下，有哪些组件是这个匹配服所需要的？太少就不用独立了
@@ -1205,6 +1235,7 @@ public static class SceneFactory {
     }
 }
    #+END_SRC
+
 * ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片
 ** ResourcesComponent: 同文件有其生成系
    #+BEGIN_SRC csharp
@@ -1278,80 +1309,12 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
     }
 }
    #+END_SRC
+
 * 整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI
 - 整个框架的场景节点如下
       
 [[./pic/ET_20230512_143227.png]]
-
-* 写在最后：反而是自己每天查看一再更新的
-- 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
-- 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
-- 然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
-- 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
-- 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
-- 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
-- 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
-
-* 现在的修改内容，记忆
-- UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
-#+BEGIN_SRC csharp
-// 获取玩家数据: 按说应该是注册登录服的逻辑，或者是数据库服存放着用户信息，都是通过Gate中转
-        long userId = ClientComponent.Instance.LocalPlayer.UserID; // 【ClientComponent】：组件被重构掉了，去找相应的替换
-        C2G_GetUserInfo_Req c2G_GetUserInfo_Req = new C2G_GetUserInfo_Req() { UserID = userId }; // 去从网关服拿玩家信息
-        G2C_GetUserInfo_Ack g2C_GetUserInfo_Ack = await SessionComponent.Instance.Session.Call(c2G_GetUserInfo_Req) as G2C_GetUserInfo_Ack;
-        // 显示用户信息
-        rc.Get<GameObject>("NickName").GetComponent<Text>().text = g2C_GetUserInfo_Ack.NickName;
-        rc.Get<GameObject>("Money").GetComponent<Text>().text = g2C_GetUserInfo_Ack.Money.ToString();                
-    }
-}
-// 【回调：】自定义三个按钮的回调。这些个过程流程，就主要参考，同框架的斗地主游戏
-public static async ETTask matchRoom(this UILobbyComponent self) { // 通过网关服中转，请求匹配服为给匹配一个房间四人桌
-    try {
-        // 发送开始匹配消息
-        C2G_StartMatch_Req c2G_StartMatch_Req = new C2G_StartMatch_Req();
-        G2C_StartMatch_Ack g2C_StartMatch_Ack = await SessionComponent.Instance.Session.Call(c2G_StartMatch_Req) as G2C_StartMatch_Ack; // 这里去看下服务器的处理逻辑
-        // // 暫时跳过这步
-        // if (g2C_StartMatch_Ack.Error == ErrorCode.ERR_UserMoneyLessError) {
-        //     Log.Error("余额不足"); // 就是说，当且仅当余额不足的时候才会出这个错误？
-        //     return;
-        // }
-        // 匹配成功了：UI 界面切换，切换到房间界面【UI 事件系统】：这里不再是手动添加与移除，去发布事件
-        UI room = Game.Scene.GetComponent<UIComponent>().Create(UIType.LandlordsRoom); // 装载新的UI视图
-        Game.Scene.GetComponent<UIComponent>().Remove(UIType.LandlordsLobby);          // 卸载旧的UI视图
-        // 将房间设为匹配状态
-        room.GetComponent<LandlordsRoomComponent>().Matching = true;
-    }
-    catch (Exception e) {
-        Log.Error(e.ToStr());
-    }
-}
-// 接下来，这两个选项，暂时不处理
-public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道，这个，与 EnterMap 有没有本质的区别，要检查一下
-                            await EnterRoomHelper.EnterRoomAsync(self.ClientScene());
-                                            await UIHelper.Remove(self.ClientScene(), UIType.UILobby);
-                                            }
-                                            public static async ETTask createRoom(this UILobbyComponent self) {
-
-            }
-        #+END_SRC
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-* TODO 今天晚上把几个消息抓全了，免得一堆的报错
-- IStart: 给重构没了。要重新熟悉一下新框架里的各种接口类，这些接口起什么作用，需不需要添加 IStart, 以及如何改写等
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

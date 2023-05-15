@@ -1,5 +1,4 @@
-% Created 2023-05-14 Sun 22:20
-% Intended LaTeX compiler: pdflatex
+% Created 2023-05-15 Mon 07:54
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -27,12 +26,9 @@
 \date{\today}
 \title{ET 框架学习笔记（二）－－网络交互相关}
 \hypersetup{
- pdfauthor={deepwaterooo},
- pdftitle={ET 框架学习笔记（二）－－网络交互相关},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 28.2 (Org mode 9.5.5)}, 
- pdflang={English}}
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
 \begin{document}
 
 \maketitle
@@ -40,9 +36,9 @@
 
 
 \section{Net 网络交互相关}
-\label{sec:org9f34985}
+\label{sec-1}
 \subsection{NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件}
-\label{sec:orgd0beeac}
+\label{sec-1-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
     // 【服务器】：对不同进程的一些处理
@@ -73,7 +69,7 @@ namespace ET.Server {
 }
 \end{minted}
 \subsection{NetInnerComponentSystem: 生成系}
-\label{sec:org4074cf1}
+\label{sec-1-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(NetInnerComponent))]
 public static class NetInnerComponentSystem {
@@ -162,4 +158,5 @@ public static class NetInnerComponentSystem {
     }
 }
 \end{minted}
+% Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

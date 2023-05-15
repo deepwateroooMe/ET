@@ -1,5 +1,4 @@
-% Created 2023-05-14 Sun 22:20
-% Intended LaTeX compiler: pdflatex
+% Created 2023-05-15 Mon 08:34
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -27,12 +26,9 @@
 \date{\today}
 \title{ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏}
 \hypersetup{
- pdfauthor={deepwaterooo},
- pdftitle={ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 28.2 (Org mode 9.5.5)}, 
- pdflang={English}}
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
 \begin{document}
 
 \maketitle
@@ -40,9 +36,9 @@
 
 
 \section{客户端场景组件：客户端大致的起始过程}
-\label{sec:org856e841}
+\label{sec-1}
 \subsection{Entry.cs: 指定的起始类，会触发三类回调，公用组件类的加载，和其它}
-\label{sec:orga68e3fa}
+\label{sec-1-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class Entry {
     public static void Init() {
@@ -69,7 +65,7 @@ public static class Entry {
 }
 \end{minted}
 \subsection{EntryEvent1\_InitShare: 第一类，，公用组件类的加载，公用的几大组件}
-\label{sec:org270a106}
+\label{sec-1-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 公用的相关组件的初始化：
 [Event(SceneType.Process)]
@@ -86,7 +82,7 @@ public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
 }
 \end{minted}
 \subsubsection{CurrentScenesComponent: 可以用来管理多个客户端场景，比如大世界会加载多块场景(是说，大地图可以分10 块 8 块小地图吗？ )}
-\label{sec:org623bd8c}
+\label{sec-1-2-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 可以用来管理多个客户端场景，比如大世界会加载多块场景(意思是说，大地图可以分10 块 8 块小地图吗？ )
 [ComponentOf(typeof(Scene))]
@@ -95,7 +91,7 @@ public class CurrentScenesComponent: Entity, IAwake {
 }
 \end{minted}
 \subsubsection{CurrentScenesComponentSystem: CurrentScene() 方法，返回当前场景}
-\label{sec:orgee785ea}
+\label{sec-1-2-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class CurrentScenesComponentSystem {
     public static Scene CurrentScene(this Scene clientScene) {
@@ -104,7 +100,7 @@ public static class CurrentScenesComponentSystem {
 }
 \end{minted}
 \subsubsection{ObjectWait: 也有生成系}
-\label{sec:org29d364c}
+\label{sec-1-2-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ObjectWait: Entity, IAwake, IDestroy {
@@ -112,7 +108,7 @@ public class ObjectWait: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsubsection{PlayerComponent:}
-\label{sec:orga28fed2}
+\label{sec-1-2-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class PlayerComponent: Entity, IAwake {
@@ -120,7 +116,7 @@ public class PlayerComponent: Entity, IAwake {
 }
 \end{minted}
 \subsubsection{PlayerComponentSystem: 生成系，到处都要用它}
-\label{sec:org47d5395}
+\label{sec-1-2-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(PlayerComponent))]
 public static class PlayerComponentSystem {
@@ -140,7 +136,7 @@ public static class PlayerComponentSystem {
 }
 \end{minted}
 \subsection{AfterCreateCurrentScene\_AddComponent:【UIComponent】【ResourcesLoaderComponent】}
-\label{sec:orgab0e8f1}
+\label{sec-1-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Current)]
 public class AfterCreateCurrentScene_AddComponent: AEvent<EventType.AfterCreateCurrentScene> {
@@ -152,7 +148,7 @@ public class AfterCreateCurrentScene_AddComponent: AEvent<EventType.AfterCreateC
 }
 \end{minted}
 \subsubsection{UIComponent: 管理Scene上的UI}
-\label{sec:org24f883d}
+\label{sec-1-3-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理Scene上的UI
 [ComponentOf(typeof(Scene))]
@@ -161,7 +157,7 @@ public class UIComponent: Entity, IAwake {
 }
 \end{minted}
 \subsubsection{UIComponentSystem: 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统}
-\label{sec:org750f93e}
+\label{sec-1-3-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
 [FriendOf(typeof(UIComponent))]
@@ -188,7 +184,7 @@ public static class UIComponentSystem {
 }
 \end{minted}
 \subsubsection{ResourcesLoaderComponent: 相关的资源加载，这个文件里有生成系}
-\label{sec:org96a21f3}
+\label{sec-1-3-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ResourcesLoaderComponent: Entity, IAwake, IDestroy {
@@ -196,7 +192,7 @@ public class ResourcesLoaderComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{EntryEvent2\_InitServer: 前面 1 里，两端公用组件准备好了，现在就起始服务器？服务端的几大组件：}
-\label{sec:org0326624}
+\label{sec-1-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Process)]
 public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
@@ -239,7 +235,7 @@ public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
 }
 \end{minted}
 \subsubsection{ActorMessageSenderComponent: 发送普通actor消息}
-\label{sec:org6942e1e}
+\label{sec-1-4-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
@@ -252,7 +248,7 @@ public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsubsection{ActorLocationSenderComponent: 发送location actor消息}
-\label{sec:org5fa3da0}
+\label{sec-1-4-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
@@ -262,7 +258,7 @@ public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsubsection{LocationProxyComponent: 访问location server的组件}
-\label{sec:org0385627}
+\label{sec-1-4-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class LocationProxyComponent: Entity, IAwake, IDestroy {
@@ -271,7 +267,7 @@ public class LocationProxyComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsubsection{ActorMessageDispatcherComponent: Actor消息分发组件}
-\label{sec:orgb25540d}
+\label{sec-1-4-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ActorMessageDispatcherInfo {
     public SceneType SceneType { get; }
@@ -290,7 +286,7 @@ public class ActorMessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
 }
 \end{minted}
 \subsubsection{ServerSceneManagerComponent: 可以去对比，两端的管理者组件，有什么不同？}
-\label{sec:org1093771}
+\label{sec-1-4-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ServerSceneManagerComponent: Entity, IAwake, IDestroy {
@@ -299,7 +295,7 @@ public class ServerSceneManagerComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{EntryEvent3\_InitClient: 客户端}
-\label{sec:orgf6ee012}
+\label{sec-1-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Process)]
 public class EntryEvent3_InitClient: AEvent<ET.EventType.EntryEvent3> {
@@ -316,7 +312,7 @@ public class EntryEvent3_InitClient: AEvent<ET.EventType.EntryEvent3> {
 }
 \end{minted}
 \subsubsection{ResourcesComponent: 热更新资源包等的处理}
-\label{sec:orgbcc56e3}
+\label{sec-1-5-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ResourcesComponent: Entity, IAwake, IDestroy {
@@ -334,7 +330,7 @@ public class ResourcesComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsubsection{GlobalComponent: 不知道是干什么的， Unity 里好像是Root 根节点下的一个节点，组件？}
-\label{sec:org944479e}
+\label{sec-1-5-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class GlobalComponent: Entity, IAwake {
@@ -346,7 +342,7 @@ public class GlobalComponent: Entity, IAwake {
 }
 \end{minted}
 \subsection{前面三件（【公用组件】，【服务器】，【客户端】的应用程序启动完成）触发UI 变更: 这个UI 订阅说，一被通知，就创建注册登录界面}
-\label{sec:orga377c72}
+\label{sec-1-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFinish> {
@@ -359,11 +355,12 @@ public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFini
 \item 感觉接下来就是相对熟悉的程序。再跟就去跟不熟悉的其它细节程序
 \end{itemize}
 
+
 \section{ClientComponent ClientScene 等客户端相关：有点儿理不清}
-\label{sec:org4abceec}
+\label{sec-2}
 
 \subsection{ClientSceneManagerComponent: 是否，相当于，它是SceneType 的管理者，就是先前各种服，注册登录服，网关服、匹配服等的管理者，大概主要还是地址传送}
-\label{sec:org27d18e2}
+\label{sec-2-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ClientSceneManagerComponent: Entity, IAwake, IDestroy {
@@ -372,10 +369,11 @@ public class ClientSceneManagerComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 
+
 \section{客户端场景与客户端场景加工厂}
-\label{sec:org4044cab}
+\label{sec-3}
 \subsection{SceneChangeHelper: 场景切换协程}
-\label{sec:orga274b73}
+\label{sec-3-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneChangeHelper {
     // 场景切换协程
@@ -404,7 +402,7 @@ public static class SceneChangeHelper {
 }
 \end{minted}
 \subsubsection{Unit: Unit 究竟是什么，干什么的？像是游戏的一个最小单位，有位置与旋转参数}
-\label{sec:orgfffb24e}
+\label{sec-3-1-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(UnitComponent))]
 [DebuggerDisplay("ViewName,nq")]
@@ -447,14 +445,14 @@ public class Unit: Entity, IAwake<int> {
 }
 \end{minted}
 \subsubsection{UnitComponent: 组件}
-\label{sec:orgc65c606}
+\label{sec-3-1-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class UnitComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsubsection{UnitComponentSystem: 生成系. 感觉这个系统不太懂}
-\label{sec:orge63d8c5}
+\label{sec-3-1-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ObjectSystem]
 public class UnitComponentAwakeSystem : AwakeSystem<UnitComponent> {
@@ -481,7 +479,7 @@ public static class UnitComponentSystem {
 \end{minted}
 
 \subsubsection{UnitHelper: 帮助在不同使用情境下，拿到 unit}
-\label{sec:orged19c51}
+\label{sec-3-1-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitHelper {
     public static Unit GetMyUnitFromClientScene(Scene clientScene) {
@@ -497,7 +495,7 @@ public static class UnitHelper {
 \end{minted}
 
 \subsection{SceneFactory: ClientScene: 添加三组件：【CurrentScenesComponent】【PlayerComponent】【ObjectWait】。}
-\label{sec:org83a14c0}
+\label{sec-3-2}
 \begin{itemize}
 \item SceneChangeHelper 类会调用工厂加工。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -525,7 +523,7 @@ public static class SceneFactory {
 \end{itemize}
 
 \subsubsection{UnitFactory: 为什么我抓出两个不一样的定义，还没弄明白}
-\label{sec:org68c8bd2}
+\label{sec-3-2-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitFactory {
     public static Unit Create(Scene scene, long id, UnitType unitType) {
@@ -580,10 +578,11 @@ public static class UnitFactory {
 }
 \end{minted}
 
+
 \section{标签系: 标签系统重构了，现分为几个类型}
-\label{sec:org519bce7}
+\label{sec-4}
 \subsection{ComponentOfAttribute : Attribute}
-\label{sec:org179b7fe}
+\label{sec-4-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 组件类父级实体类型约束
 // 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
@@ -597,7 +596,7 @@ public class ComponentOfAttribute : Attribute {
 }
 \end{minted}
 \subsection{ComponentView: MonoBehaviour}
-\label{sec:orge04c7f2}
+\label{sec-4-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ComponentView: MonoBehaviour {
     public Entity Component {
@@ -607,7 +606,7 @@ public class ComponentView: MonoBehaviour {
 }
 \end{minted}
 \subsection{ComponentViewEditor: Editor}
-\label{sec:org64b34f0}
+\label{sec-4-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [CustomEditor(typeof (ComponentView))] 
 public class ComponentViewEditor: Editor {
@@ -619,10 +618,11 @@ public class ComponentViewEditor: Editor {
 }
 \end{minted}
 
+
 \section{UI 上的事件驱动系统：}
-\label{sec:org09b9466}
+\label{sec-5}
 \subsection{EventType}
-\label{sec:org763b254}
+\label{sec-5-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace EventType {
     public struct SceneChangeStart {
@@ -648,13 +648,13 @@ namespace EventType {
 }
 \end{minted}
 \subsection{由 AppStartInitFinish 事件所触发的 CreateLoginUI}
-\label{sec:orgfa4f0bc}
+\label{sec-5-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)] // ET 事件系统的工具，标签系
 public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFinish> {
 \end{minted}
 \subsection{由 LoginFinish 事件所触发的 CreateLobbyUI}
-\label{sec:orgcbf93ed}
+\label{sec-5-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
@@ -667,7 +667,7 @@ public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
 \item 这些是原示范框架都已经完成了的，我只需要添加剩余的逻辑。
 \end{itemize}
 \subsection{SceneChangeStart\_AddComponent: 开始切换场景的时候，就自动添加【OperaComponent】组件。现在对场景这块儿还不够熟悉}
-\label{sec:org0843b37}
+\label{sec-5-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 这个比较喜欢：场景切换，切换开始，可以做点什么？切换结束，可以做点什么？全成事件触发机制。任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
 [Event(SceneType.Client)]
@@ -687,10 +687,11 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 \item 场景加载结束的时候，好像相对做的事情不多。
 \end{itemize}
 
+
 \section{Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？}
-\label{sec:org2e6c4fe}
+\label{sec-6}
 \subsection{LoginHelper.cs}
-\label{sec:org5fc9355}
+\label{sec-6-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class LoginHelper {
 public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -727,7 +728,7 @@ public static async ETTask Login(Scene clientScene, string account, string passw
 }
 \end{minted}
 \subsection{EnterRoomHelper.cs}
-\label{sec:org6c28a93}
+\label{sec-6-2}
 \begin{itemize}
 \item 这里需要注意的是：原项目里面还是保留了C2G\_EnterMap 消息的。分两块查看一下：
 \begin{itemize}
@@ -800,7 +801,7 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 \end{itemize}
 
 \subsection{UIHelper.cs: 负责UI 界面上的组件的，添加与删除，异步完成}
-\label{sec:orgd255637}
+\label{sec-6-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UIHelper {
     public static async ETTask<UI> Create(Scene scene, string uiType, UILayer uiLayer) {
@@ -813,7 +814,7 @@ public static class UIHelper {
 }
 \end{minted}
 \subsection{SceneChangeHelper: 场景切换协程}
-\label{sec:orgb4145f9}
+\label{sec-6-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneChangeHelper {
     // 场景切换协程
@@ -842,13 +843,14 @@ public static class SceneChangeHelper {
 }
 \end{minted}
 
+
 \section{UI 控件的生产事件机制流程：以前的专用工厂再包装为UI 上的事件机制}
-\label{sec:org477fff7}
+\label{sec-7}
 \begin{itemize}
 \item 一般是由某个事件的发布，因为订阅（使用订阅标签系），所以会被触发创建视图
 \end{itemize}
 \subsection{LoginHelper 发布 EventType.LoginFinish() 事件}
-\label{sec:org5eeffd0}
+\label{sec-7-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class LoginHelper {
 public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -880,10 +882,10 @@ public static async ETTask Login(Scene clientScene, string account, string passw
     catch (Exception e) {
         Log.Error(e);
     }
-} 
+}
 \end{minted}
 \subsection{LoginFinish\_RemoveLoginUI: 一般对应两个事件，旧视图的去除，与新视图的添加}
-\label{sec:orga2feb29}
+\label{sec-7-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_RemoveLoginUI: AEvent<EventType.LoginFinish> {
@@ -893,7 +895,7 @@ public class LoginFinish_RemoveLoginUI: AEvent<EventType.LoginFinish> {
 }
 \end{minted}
 \subsection{LoginFinish\_CreateLobbyUI: 创建新视图}
-\label{sec:orgcbf00da}
+\label{sec-7-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Client)]
 public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
@@ -904,7 +906,7 @@ public class LoginFinish_CreateLobbyUI: AEvent<EventType.LoginFinish> {
 }
 \end{minted}
 \subsection{UIHelper: 帮助类，来添加或是移除UI 上的可装可折的组件}
-\label{sec:orgc9028a1}
+\label{sec-7-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UIHelper {
     public static async ETTask<UI> Create(Scene scene, string uiType, UILayer uiLayer) {
@@ -917,7 +919,7 @@ public static class UIHelper {
 }
 \end{minted}
 \subsection{UIComponentSystem: 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统}
-\label{sec:orgca7dd44}
+\label{sec-7-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理Scene上的UI: 这个是组件生成管理系统，负责添加与删除。【UIEventComponent】是UI 上的UI事件组件系统
 [FriendOf(typeof(UIComponent))]
@@ -944,7 +946,7 @@ public static class UIComponentSystem {
 }
 \end{minted}
 \subsection{UIEventComponentSystem: 管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统}
-\label{sec:orgd553b30}
+\label{sec-7-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统
 [FriendOf(typeof(UIEventComponent))]
@@ -997,7 +999,7 @@ public static class UIEventComponentSystem {
 }
 \end{minted}
 \subsection{AUIEvent: 跟下面的 UIEventComponent 关系是？}
-\label{sec:org12cd241}
+\label{sec-7-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public abstract class AUIEvent {
     public abstract ETTask<UI> OnCreate(UIComponent uiComponent, UILayer uiLayer);
@@ -1005,7 +1007,7 @@ public abstract class AUIEvent {
 }
 \end{minted}
 \subsection{UIEventComponent: 管理所有UI GameObject}
-\label{sec:org9f59f1d}
+\label{sec-7-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理所有UI GameObject
 [ComponentOf(typeof(Scene))]
@@ -1017,7 +1019,7 @@ public class UIEventComponent: Entity, IAwake {
 }
 \end{minted}
 \subsection{UIEventComponentSystem: 生成系，管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统}
-\label{sec:org82ae187}
+\label{sec-7-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 管理所有UI GameObject 以及UI事件: 应该主要是UI 控件相关的事件。【自顶向下】的组件系统
 [FriendOf(typeof(UIEventComponent))]
@@ -1069,7 +1071,7 @@ public static class UIEventComponentSystem {
 }
 \end{minted}
 \subsection{UILoginEvent: 一个实体类的例子，具体的工厂生产逻辑}
-\label{sec:orgcdc2147}
+\label{sec-7-10}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [UIEvent(UIType.UILogin)]
 public class UILoginEvent: AUIEvent {
@@ -1088,7 +1090,7 @@ public class UILoginEvent: AUIEvent {
 \end{minted}
 
 \subsection{UILobbyEvent: 再加一个实体类的例子}
-\label{sec:org17321c7}
+\label{sec-7-11}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // UI 系统的事件机制：接收到 LoginFinish 之后触发的大厅创建
 [UIEvent(UIType.UILobby)]
@@ -1107,10 +1109,37 @@ public class UILobbyEvent: AUIEvent {
     }
 }
 \end{minted}
+\subsection{TractorRoomEvent: 拖拉机房间，【待修改完成】}
+\label{sec-7-12}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// UI 系统的事件机制：定义，如何创建拖拉机游戏房间【TODO:】UNITY 里是需要制作相应预设的
+[UIEvent(UIType.TractorRoom)]
+public class TractorRoomEvent: AUIEvent {
+    public override async ETTask<UI> OnCreate(UIComponent uiComponent, UILayer uiLayer) {
+        await ETTask.CompletedTask;
+        await uiComponent.DomainScene().GetComponent<ResourcesLoaderComponent>().LoadAsync(UIType.TractorRoom.StringToAB());
+        GameObject bundleGameObject = (GameObject) ResourcesComponent.Instance.GetAsset(UIType.TractorRoom.StringToAB(), UIType.TractorRoom);
+        GameObject gameObject = UnityEngine.Object.Instantiate(bundleGameObject, UIEventComponent.Instance.GetLayer((int)uiLayer));
+        UI ui = uiComponent.AddChild<UI, string, GameObject>(UIType.TractorRoom, gameObject);
+        // 【拖拉机游戏房间】：它可能由好几个不同的组件组成，这里要添加的不止一个
+        ui.AddComponent<TractorRoomComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+        ui.AddComponent<GamerComponent>(); // 这里的难点：成为这个控件带个UI 小面板，要怎么添加呢？
+        return ui;
+    }
+    public override void OnRemove(UIComponent uiComponent) {
+        ResourcesComponent.Instance.UnloadBundle(UIType.TractorRoom.StringToAB());
+    }
+}
+\end{minted}
+\begin{itemize}
+\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+
+
 \section{Session 相关：进行间通信}
-\label{sec:org15a808d}
+\label{sec-8}
 \subsection{SessionComponent}
-\label{sec:org8afe848}
+\label{sec-8-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class SessionComponent: Entity, IAwake, IDestroy {
@@ -1118,7 +1147,7 @@ public class SessionComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{SessionComponentDestroySystem: 【销毁系】：只负责用户掉线，或是下线后的自动移除会话框}
-\label{sec:org8752e37}
+\label{sec-8-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 【销毁系】：只负责用户掉线，或是下线后的自动移除会话框 
 public class SessionComponentDestroySystem: DestroySystem<SessionComponent> {
@@ -1128,7 +1157,7 @@ public class SessionComponentDestroySystem: DestroySystem<SessionComponent> {
 }
 \end{minted}
 \subsection{OperaComponentSystem: 一个拿会话框必消息的使用场景}
-\label{sec:orgd504551}
+\label{sec-8-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(OperaComponent))]
 public static class OperaComponentSystem { // 生命周期感知，生成系统
@@ -1163,10 +1192,11 @@ public static class OperaComponentSystem { // 生命周期感知，生成系统
     }
 }
 \end{minted}
+
 \section{Player: 玩家相关，添加的地方，以及使用【这里还是有点儿糊涂】}
-\label{sec:orgb7901c3}
+\label{sec-9}
 \subsection{Player: 玩家}
-\label{sec:org61361a8}
+\label{sec-9-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(PlayerComponent))]
 public sealed class Player : Entity, IAwake<string> {
@@ -1175,7 +1205,7 @@ public sealed class Player : Entity, IAwake<string> {
 }
 \end{minted}
 \subsection{PlayerComponent:}
-\label{sec:org56ec654}
+\label{sec-9-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class PlayerComponent: Entity, IAwake {
@@ -1183,7 +1213,7 @@ public class PlayerComponent: Entity, IAwake {
 }
 \end{minted}
 \subsection{服务器端的PlayerComponent}
-\label{sec:orgb0c46c3}
+\label{sec-9-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
 [ComponentOf(typeof(Scene))]
@@ -1192,7 +1222,7 @@ public class PlayerComponent : Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{服务器端 PlayerComponentSystem}
-\label{sec:orgef93389}
+\label{sec-9-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
     [FriendOf(typeof(PlayerComponent))]
@@ -1214,7 +1244,7 @@ namespace ET.Server {
 }
 \end{minted}
 \subsection{服务器端SceneFactory-CreateServerScene 时【网关服】会添加【PlayerComponent】玩家组件}
-\label{sec:org7c10ab9}
+\label{sec-9-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -1259,7 +1289,7 @@ public static class SceneFactory {
     }
 \end{minted}
 \subsection{SessionPlayerComponentSystem}
-\label{sec:org5cb5529}
+\label{sec-9-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SessionPlayerComponentSystem {
     public class SessionPlayerComponentDestroySystem: DestroySystem<SessionPlayerComponent> {
@@ -1276,17 +1306,18 @@ public static class SessionPlayerComponentSystem {
 \end{minted}
 
 \subsection{SessionPlayerComponent: 会话框里，会保留客户端玩家 PlayerId}
-\label{sec:orga77b017}
+\label{sec-9-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Session))]
 public class SessionPlayerComponent : Entity, IAwake, IDestroy {
     public long PlayerId { get; set; }
 }
 \end{minted}
+
 \section{Match: 匹配服，没有独立出来的匹配服}
-\label{sec:org82de528}
+\label{sec-10}
 \subsection{服务器端SceneFactory 的场景类型：SceneType-s}
-\label{sec:org7222a51}
+\label{sec-10-1}
 \begin{itemize}
 \item 【匹配服】：可以添加一个。但参考项目里也没有独立出来。所以要想一下，有哪些组件是这个匹配服所需要的？太少就不用独立了
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -1334,10 +1365,11 @@ public static class SceneFactory {
 }
 \end{minted}
 \end{itemize}
+
 \section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
-\label{sec:org41d8aa9}
+\label{sec-11}
 \subsection{ResourcesComponent: 同文件有其生成系}
-\label{sec:org8b83402}
+\label{sec-11-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ResourcesComponent: Entity, IAwake, IDestroy {
@@ -1354,7 +1386,7 @@ public class ResourcesComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{客户端 ConfigLoader 的Invoke 标签下：在根控件 Root 下添加资源管理器组件}
-\label{sec:orgbc38a63}
+\label{sec-11-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke]
 public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
@@ -1410,80 +1442,17 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
     }
 }
 \end{minted}
+
 \section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
-\label{sec:org12e8b69}
+\label{sec-12}
 \begin{itemize}
 \item 整个框架的场景节点如下
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
-\end{center}
-
-\section{写在最后：反而是自己每天查看一再更新的}
-\label{sec:org2711f7e}
-\begin{itemize}
-\item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
-\item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
-\item 然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
-\item 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
-\item 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
-\item 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
-\item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
-\end{itemize}
-
-\section{现在的修改内容，记忆}
-\label{sec:orgc95f90b}
-\begin{itemize}
-\item UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
-\end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 获取玩家数据: 按说应该是注册登录服的逻辑，或者是数据库服存放着用户信息，都是通过Gate中转
-        long userId = ClientComponent.Instance.LocalPlayer.UserID; // 【ClientComponent】：组件被重构掉了，去找相应的替换
-        C2G_GetUserInfo_Req c2G_GetUserInfo_Req = new C2G_GetUserInfo_Req() { UserID = userId }; // 去从网关服拿玩家信息
-        G2C_GetUserInfo_Ack g2C_GetUserInfo_Ack = await SessionComponent.Instance.Session.Call(c2G_GetUserInfo_Req) as G2C_GetUserInfo_Ack;
-        // 显示用户信息
-        rc.Get<GameObject>("NickName").GetComponent<Text>().text = g2C_GetUserInfo_Ack.NickName;
-        rc.Get<GameObject>("Money").GetComponent<Text>().text = g2C_GetUserInfo_Ack.Money.ToString();                
-    }
-}
-// 【回调：】自定义三个按钮的回调。这些个过程流程，就主要参考，同框架的斗地主游戏
-public static async ETTask matchRoom(this UILobbyComponent self) { // 通过网关服中转，请求匹配服为给匹配一个房间四人桌
-    try {
-        // 发送开始匹配消息
-        C2G_StartMatch_Req c2G_StartMatch_Req = new C2G_StartMatch_Req();
-        G2C_StartMatch_Ack g2C_StartMatch_Ack = await SessionComponent.Instance.Session.Call(c2G_StartMatch_Req) as G2C_StartMatch_Ack; // 这里去看下服务器的处理逻辑
-        // // 暫时跳过这步
-        // if (g2C_StartMatch_Ack.Error == ErrorCode.ERR_UserMoneyLessError) {
-        //     Log.Error("余额不足"); // 就是说，当且仅当余额不足的时候才会出这个错误？
-        //     return;
-        // }
-        // 匹配成功了：UI 界面切换，切换到房间界面【UI 事件系统】：这里不再是手动添加与移除，去发布事件
-        UI room = Game.Scene.GetComponent<UIComponent>().Create(UIType.LandlordsRoom); // 装载新的UI视图
-        Game.Scene.GetComponent<UIComponent>().Remove(UIType.LandlordsLobby);          // 卸载旧的UI视图
-        // 将房间设为匹配状态
-        room.GetComponent<LandlordsRoomComponent>().Matching = true;
-    }
-    catch (Exception e) {
-        Log.Error(e.ToStr());
-    }
-}
-// 接下来，这两个选项，暂时不处理
-public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道，这个，与 EnterMap 有没有本质的区别，要检查一下
-                            await EnterRoomHelper.EnterRoomAsync(self.ClientScene());
-                                            await UIHelper.Remove(self.ClientScene(), UIType.UILobby);
-                                            }
-                                            public static async ETTask createRoom(this UILobbyComponent self) {
-
-            }
-\end{minted}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \end{itemize}
-\section{{\bfseries\sffamily TODO} 今天晚上把几个消息抓全了，免得一堆的报错}
-\label{sec:org3c6810a}
-\begin{itemize}
-\item IStart: 给重构没了。要重新熟悉一下新框架里的各种接口类，这些接口起什么作用，需不需要添加 IStart, 以及如何改写等
-\end{itemize}
+% Emacs 28.2 (Org mode 8.2.7c)
 \end{document}
