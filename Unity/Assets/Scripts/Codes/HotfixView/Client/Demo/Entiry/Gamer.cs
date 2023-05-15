@@ -1,5 +1,4 @@
-using ETModel;
-namespace ETHotfix {
+namespace ET.Client {
     // 玩家对象
     public sealed class Gamer : Entity {
         // 玩家唯一ID

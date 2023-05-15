@@ -1,5 +1,5 @@
-using System.Collections.Generic;
-namespace ET {
+﻿using System.Collections.Generic;
+namespace ET.Server {
 
     // 匹配组件，匹配逻辑在MatchComponentSystem扩展. 这里是处理匹配的组件，与 Matcher 被匹配者相区分开来
     public class MatchComponent : Component {

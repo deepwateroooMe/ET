@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-namespace ET.Client {
+﻿using System.Collections.Generic;
+namespace ET.Server {
 
     // 房间管理组件
-    public class RoomComponent : Component {
+    public class RoomComponent : Entity, IAwake {
 
         private readonly Dictionary<long, Room> rooms = new Dictionary<long, Room>();
         // 添加房间

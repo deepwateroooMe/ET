@@ -3,11 +3,11 @@ using System.Net;
 namespace ET.Server {
     [ObjectSystem]
     public class SessionUserComponentDestroySystem : DestroySystem<SessionUserComponent> {
-        public override async void Destroy(SessionUserComponent self) {
+        protected override async void Destroy(SessionUserComponent self) {
             try {
                 // 释放User对象时将User对象从管理组件中移除
-                Game.Scene.GetComponent<UserComponent>()?.Remove(self.User.UserID);
-                StartConfigComponent config = Game.Scene.GetComponent<StartConfigComponent>();
+                Game.Scene.GetComponent<UserComponent>()?.Remove(self.User.UserID); // 大概要跟客户端什么乱七八糟的Player 之类的一起弄。。
+                StartConfigComponent config = Game.Scene.GetComponent<StartConfigComponent>(); // 组件重构没了。。
                 ActorMessageSenderComponent actorProxyComponent = Game.Scene.GetComponent<ActorMessageSenderComponent>();
                 // 正在匹配中发送玩家退出匹配请求
                 if (self.User.IsMatching) {

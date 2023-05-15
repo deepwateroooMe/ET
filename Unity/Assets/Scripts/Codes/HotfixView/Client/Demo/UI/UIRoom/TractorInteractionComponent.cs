@@ -7,7 +7,7 @@ namespace ET.Client {
     [ObjectSystem]
     public class TractorInteractionComponentAwakeSystem : AwakeSystem<TractorInteractionComponent> {
         protected override void Awake(TractorInteractionComponent self) {
-            self.Awake();
+            self.Awake(self);
         }
     }
 
@@ -24,7 +24,7 @@ namespace ET.Client {
         public bool isTrusteeship { get; set; }
         public bool IsFirst { get; set; }
 
-        public void Awake() {
+        public void Awake(TractorInteractionComponent self) {
             ReferenceCollector rc = this.GetParent<UI>().GameObject.GetComponent<ReferenceCollector>();
             playButton = rc.Get<GameObject>("PlayButton").GetComponent<Button>();
             promptButton = rc.Get<GameObject>("PromptButton").GetComponent<Button>();
@@ -33,12 +33,12 @@ namespace ET.Client {
             disgrabButton = rc.Get<GameObject>("DisgrabButton").GetComponent<Button>();
             changeGameModeButton = rc.Get<GameObject>("ChangeGameModeButton").GetComponent<Button>();
             // 绑定事件
-            playButton.onClick.Add(OnPlay);
-            promptButton.onClick.Add(OnPrompt);
-            discardButton.onClick.Add(OnDiscard);
-            grabButton.onClick.Add(OnGrab);
-            disgrabButton.onClick.Add(OnDisgrab);
-            changeGameModeButton.onClick.Add(OnChangeGameMode);
+            playButton.onClick.AddListener(() => OnPlay(self));
+            promptButton.onClick.AddListener(() => OnPrompt(self));
+            discardButton.onClick.AddListener(() => OnDiscard(self));
+            grabButton.onClick.AddListener(() => OnGrab(self));
+            disgrabButton.onClick.AddListener(() => OnDisgrab(self));
+            changeGameModeButton.onClick.AddListener(() => OnChangeGameMode(self));
             // 默认隐藏UI
             playButton.gameObject.SetActive(false);
             promptButton.gameObject.SetActive(false);
@@ -128,9 +128,9 @@ namespace ET.Client {
             }
         }
         // 提示
-        private async void OnPrompt() {
+        private async void OnPrompt(TractorInteractionComponent self) {
             Actor_GamerPrompt_Req request = new Actor_GamerPrompt_Req();
-            Actor_GamerPrompt_Ack response = await SessionComponent.Instance.Session.Call(request) as Actor_GamerPrompt_Ack;
+            Actor_GamerPrompt_Ack response = await self.ClientScene().GetComponent<SessionComponent>().Session.Call(request) as Actor_GamerPrompt_Ack;
             GamerComponent gamerComponent = this.GetParent<UI>().GetParent<UI>().GetComponent<GamerComponent>();
             HandCardsComponent handCards = gamerComponent.LocalGamer.GetComponent<HandCardsComponent>();
             // 清空当前选中

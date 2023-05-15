@@ -30,14 +30,15 @@ namespace ET.Server {
                 // 向匹配服务器发送匹配请求
                 StartConfigComponent config = Game.Scene.GetComponent<StartConfigComponent>();
                 IPEndPoint matchIPEndPoint = config.MatchConfig.GetComponent<InnerConfig>().IPEndPoint; // 匹配服务器的远程IP 地址
-                Session matchSession = Game.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint); // 拿到与这个匹配服务器通信的会话框实例
+                // Session matchSession = Game.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint); // 拿到与这个匹配服务器通信的会话框实例
+                Session matchSession = Root.Instance.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint);
                 M2G_PlayerEnterMatch_Ack m2G_PlayerEnterMatch_Ack = await matchSession.Call(new G2M_PlayerEnterMatch_Req() { // 发消息代为客户端申请：申请匹配游戏
                         PlayerID = user.InstanceId,
                             UserID = user.UserID,
                             SessionID = session.InstanceId,
                             }) as M2G_PlayerEnterMatch_Ack;
                 user.IsMatching = true;
-            }
+            } 
             catch (Exception e) {
                 ReplyError(response, e, reply);
             }

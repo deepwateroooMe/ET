@@ -1,5 +1,4 @@
 ﻿namespace ET.Client {
-
     // 房间等级: 示例游戏，目前全局一种，可以有多种 
     public enum RoomLevel : byte {
         Lv100   // 100底分局

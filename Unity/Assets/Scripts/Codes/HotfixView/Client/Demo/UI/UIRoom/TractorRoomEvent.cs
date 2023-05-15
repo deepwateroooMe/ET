@@ -17,7 +17,7 @@ namespace ET.Client {
             UI ui = uiComponent.AddChild<UI, string, GameObject>(UIType.TractorRoom, gameObject);
             // 【拖拉机游戏房间】：它可能由好几个不同的组件组成，这里要添加的不止一个
             ui.AddComponent<TractorRoomComponent>(); // <<<<<<<<<<<<<<<<<<<< 
-            ui.AddComponent<GamerComponent>(); 
+            ui.AddComponent<GamerComponent>(); // 这里的难点：成为这个控件带个UI 小面板，要怎么添加呢？
             return ui;
         }
         public override void OnRemove(UIComponent uiComponent) {

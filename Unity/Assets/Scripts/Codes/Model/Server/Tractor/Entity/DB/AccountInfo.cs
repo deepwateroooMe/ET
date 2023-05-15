@@ -1,5 +1,5 @@
-using MongoDB.Bson.Serialization.Attributes;
-namespace ETModel {
+﻿using MongoDB.Bson.Serialization.Attributes;
+namespace ET.Server {
 
     // 账号信息
     [BsonIgnoreExtraElements]

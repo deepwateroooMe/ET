@@ -1,4 +1,4 @@
-% Created 2023-05-14 Sun 18:26
+% Created 2023-05-14 Sun 20:03
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1279,10 +1279,61 @@ public class SessionPlayerComponent : Entity, IAwake, IDestroy {
     public long PlayerId { get; set; }
 }
 \end{minted}
-\section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
+\section{Match: 匹配服，没有独立出来的匹配服}
 \label{sec-10}
-\subsection{ResourcesComponent: 同文件有其生成系}
+\subsection{服务器端SceneFactory 的场景类型：SceneType-s}
 \label{sec-10-1}
+\begin{itemize}
+\item 【匹配服】：可以添加一个。但参考项目里也没有独立出来。所以要想一下，有哪些组件是这个匹配服所需要的？太少就不用独立了
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
+        await ETTask.CompletedTask;
+        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
+        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
+        switch (scene.SceneType) {
+            case SceneType.Router:
+                scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+                break;
+            case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+                // 云服务器在防火墙那里做端口映射
+                scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+                break;
+            case SceneType.Realm:
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                break;
+            case SceneType.Gate:
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                scene.AddComponent<PlayerComponent>();
+                scene.AddComponent<GateSessionKeyComponent>();
+                break;
+            case SceneType.Map:
+                scene.AddComponent<UnitComponent>();
+                scene.AddComponent<AOIManagerComponent>();
+                break;
+            case SceneType.Location:
+                scene.AddComponent<LocationComponent>();
+                break;
+            case SceneType.Robot:
+                scene.AddComponent<RobotManagerComponent>();
+                break;
+            case SceneType.BenchmarkServer:
+                scene.AddComponent<BenchmarkServerComponent>();
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.OuterIPPort);
+                break;
+            case SceneType.BenchmarkClient:
+                scene.AddComponent<BenchmarkClientComponent>();
+                break;
+        }
+        return scene;
+    }
+}
+\end{minted}
+\end{itemize}
+\section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
+\label{sec-11}
+\subsection{ResourcesComponent: 同文件有其生成系}
+\label{sec-11-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ResourcesComponent: Entity, IAwake, IDestroy {
@@ -1299,7 +1350,7 @@ public class ResourcesComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{客户端 ConfigLoader 的Invoke 标签下：在根控件 Root 下添加资源管理器组件}
-\label{sec-10-2}
+\label{sec-11-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke]
 public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
@@ -1356,7 +1407,7 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 }
 \end{minted}
 \section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
-\label{sec-11}
+\label{sec-12}
 \begin{itemize}
 \item 整个框架的场景节点如下
 \end{itemize}
@@ -1364,7 +1415,7 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 \includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
 
 \section{写在最后：反而是自己每天查看一再更新的}
-\label{sec-12}
+\label{sec-13}
 \begin{itemize}
 \item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 \item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下
@@ -1376,7 +1427,7 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 \end{itemize}
 
 \section{现在的修改内容，记忆}
-\label{sec-13}
+\label{sec-14}
 \begin{itemize}
 \item UILobbyComponent 里三个按钮的回调：这里面还有好几个错误。把这个弄完了，出错在更晚的地方的话，这个界面就可以加载完整了。。
 \end{itemize}
@@ -1425,7 +1476,7 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
 \item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \end{itemize}
 \section{{\bfseries\sffamily TODO} 今天晚上把几个消息抓全了，免得一堆的报错}
-\label{sec-14}
+\label{sec-15}
 \begin{itemize}
 \item IStart: 给重构没了。要重新熟悉一下新框架里的各种接口类，这些接口起什么作用，需不需要添加 IStart, 以及如何改写等
 \item 需要抓的消息包括：

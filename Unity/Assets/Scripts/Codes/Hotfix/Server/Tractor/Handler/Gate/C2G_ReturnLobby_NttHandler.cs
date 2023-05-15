@@ -15,7 +15,9 @@ namespace ET.Server {
             // 正在匹配中发送玩家退出匹配请求
             if (user.IsMatching) {
                 IPEndPoint matchIPEndPoint = config.MatchConfig.GetComponent<InnerConfig>().IPEndPoint;
-                Session matchSession = Game.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint);
+                // Session matchSession = Game.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint);
+                // 【不知道】：这里是因为命名空间不对，还是怎样，这个组件 NetInnerComponent 挂在根控件 Root 场景下，却拿不到，调用不了。。找不到一个可以参考调用的例子
+                Session matchSession = Root.Instance.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint);
                 await matchSession.Call(new G2M_PlayerExitMatch_Req() { UserID = user.UserID });
                 user.IsMatching = false;
             }
