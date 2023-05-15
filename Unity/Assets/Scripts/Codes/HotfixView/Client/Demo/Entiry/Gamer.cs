@@ -6,9 +6,7 @@ namespace ET.Client {
         // 是否准备
         public bool IsReady { get; set; }
         public override void Dispose() {
-            if(this.IsDisposed) {
-                return;
-            }
+            if (this.IsDisposed) return;
             base.Dispose();
             this.UserID = 0;
             this.IsReady = false;

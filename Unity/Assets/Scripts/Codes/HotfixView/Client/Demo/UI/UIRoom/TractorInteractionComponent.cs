@@ -1,18 +1,15 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
-
 namespace ET.Client {
-
     [ObjectSystem]
     public class TractorInteractionComponentAwakeSystem : AwakeSystem<TractorInteractionComponent> {
         protected override void Awake(TractorInteractionComponent self) {
             self.Awake(self);
         }
     }
-
-    public class TractorInteractionComponent : Entity, IAwake {
-
+    // 【互动组件】：一堆的视图控件管理 
+    public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：有些暂时是隐藏的
         private Button playButton;
         private Button promptButton;
         private Button discardButton;
@@ -20,11 +17,9 @@ namespace ET.Client {
         private Button disgrabButton;
         private Button changeGameModeButton;
         private List<Card> currentSelectCards = new List<Card>();
-
         public bool isTrusteeship { get; set; }
         public bool IsFirst { get; set; }
-
-        public void Awake(TractorInteractionComponent self) {
+        public void Awake(TractorInteractionComponent self) { // 【运行游戏】：把几个按钮的功能弄清楚
             ReferenceCollector rc = this.GetParent<UI>().GameObject.GetComponent<ReferenceCollector>();
             playButton = rc.Get<GameObject>("PlayButton").GetComponent<Button>();
             promptButton = rc.Get<GameObject>("PromptButton").GetComponent<Button>();
@@ -61,7 +56,7 @@ namespace ET.Client {
         // 开始游戏
         public void GameStart() {
             isTrusteeship = false;
-            changeGameModeButton.GetComponentInChildren<Text>().text = "自动";
+            changeGameModeButton.GetComponentInChildren<Text>().text = "自动"; // 玩家出牌，还是游戏帮出牌
             changeGameModeButton.gameObject.SetActive(true);
         }
         // 选中卡牌
@@ -83,11 +78,11 @@ namespace ET.Client {
         }
         // 开始出牌
         public void StartPlay() {
-            if (isTrusteeship) {
+            if (isTrusteeship) { // 游戏帮出牌
                 playButton.gameObject.SetActive(false);
                 promptButton.gameObject.SetActive(false);
                 discardButton.gameObject.SetActive(false);
-            } else {
+            } else { // 玩家自己出
                 playButton.gameObject.SetActive(true);
                 promptButton.gameObject.SetActive(!IsFirst);
                 discardButton.gameObject.SetActive(!IsFirst);

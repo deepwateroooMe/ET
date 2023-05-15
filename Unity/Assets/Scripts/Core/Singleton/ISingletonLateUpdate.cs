@@ -1,7 +1,5 @@
-﻿namespace ET
-{
-    public interface ISingletonLateUpdate
-    {
+﻿namespace ET {
+    public interface ISingletonLateUpdate {
         void LateUpdate();
     }
 }

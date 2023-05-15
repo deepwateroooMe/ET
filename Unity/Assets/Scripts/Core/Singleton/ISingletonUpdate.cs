@@ -1,7 +1,5 @@
-﻿namespace ET
-{
-    public interface ISingletonUpdate
-    {
+﻿namespace ET {
+    public interface ISingletonUpdate {
         void Update();
     }
 }

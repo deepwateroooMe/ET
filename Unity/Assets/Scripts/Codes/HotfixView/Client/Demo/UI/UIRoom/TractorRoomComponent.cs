@@ -9,12 +9,13 @@ namespace ET.Client {
             self.Awake(self);
         }
     }
+
     public class TractorRoomComponent : Entity, IAwake {
         private TractorInteractionComponent interaction;
         private Text multiples;
         public readonly GameObject[] GamersPanel = new GameObject[4];
         public bool Matching { get; set; }
-        public TractorInteractionComponent Interaction {
+        public TractorInteractionComponent Interaction { // 去找：组件里套组件，要如何事件机制触发生成？
             get {
                 if (interaction == null) {
                     UI uiRoom = this.GetParent<UI>();

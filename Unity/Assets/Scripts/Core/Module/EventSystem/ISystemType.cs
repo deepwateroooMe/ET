@@ -1,9 +1,6 @@
 using System;
-
-namespace ET
-{
-    public interface ISystemType
-    {
+namespace ET {
+    public interface ISystemType {
         Type Type();
         Type SystemType();
         InstanceQueueIndex GetInstanceQueueIndex();

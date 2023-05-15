@@ -1,15 +1,16 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using ET;
 namespace ET.Client {
     [ObjectSystem]
     public class GamerUIComponentStartSystem : StartSystem<GamerUIComponent> {
-        public override void Start(GamerUIComponent self) {
+        protected override void Start(GamerUIComponent self) {
             self.Start();
         }
     }
     // 玩家UI组件
-    public class GamerUIComponent : Component { // IStart 好像是没有了，重构没了？
+    public class GamerUIComponent : Entity, IStart { 
         // UI面板
         public GameObject Panel { get; private set; }
         // 玩家昵称
@@ -19,9 +20,8 @@ namespace ET.Client {
         private Text name;
         private Text money;
         public void Start() {
-            if (this.GetParent<Gamer>().IsReady) {
+            if (this.GetParent<Gamer>().IsReady) 
                 SetReady();
-            }
         }
         // 重置面板
         public void ResetPanel() {
@@ -54,8 +54,7 @@ namespace ET.Client {
         }
         // 设置玩家身份
         public void SetIdentity(Identity identity) {
-            if (identity == Identity.None)
-                return;
+            if (identity == Identity.None) return;
             string spriteName = $"Identity_{Enum.GetName(typeof(Identity), identity)}";
             Sprite headSprite = CardHelper.GetCardSprite(spriteName);
             headPhoto.sprite = headSprite;
@@ -73,7 +72,7 @@ namespace ET.Client {
         public void SetDiscard() {
             prompt.text = "不出";
         }
-        // 玩家抢地主
+        // 打2 时，玩家抢不抢庄：或者去想，玩家要不要反主牌花色
         public void SetGrab(GrabLandlordState state) {
             switch (state) {
             case GrabLandlordState.Not:
@@ -86,16 +85,13 @@ namespace ET.Client {
                 break;
             }
         }
-        // 重置提示
-        public void ResetPrompt() {
+        public void ResetPrompt() { // 重置提示
             prompt.text = "";
         }
-        // 游戏开始
-        public void GameStart() {
+        public void GameStart() { // 游戏开始
             ResetPrompt();
         }
-        // 设置用户信息
-        private async void SetUserInfo() {
+        private async void SetUserInfo() { // 设置用户信息
             G2C_GetUserInfo_Ack g2C_GetUserInfo_Ack = await SessionComponent.Instance.Session.Call(new C2G_GetUserInfo_Req() { UserID = this.GetParent<Gamer>().UserID }) as G2C_GetUserInfo_Ack;
             if (this.Panel != null) {
                 name.text = g2C_GetUserInfo_Ack.NickName;
@@ -103,12 +99,21 @@ namespace ET.Client {
             }
         }
         public override void Dispose() {
-            if (this.IsDisposed) {
-                return;
-            }
+            if (this.IsDisposed) return;
             base.Dispose();
-            // 重置玩家UI
-            ResetPanel();
+            ResetPanel(); // 重置玩家UI
         }
     }
+}
+
+message GamerInfo
+{
+    int64 UserID = 1;
+    bool IsReady = 2;
+}
+message GamerState
+{
+    int64 UserID = 1;
+    ETModel.Identity UserIdentity = 2;
+	GrabLandlordState State = 3;
 }

@@ -3,7 +3,7 @@ using System;
 namespace ET.Server {
     public abstract class AMRpcHandler<Request, Response>: IMHandler where Request : class, IRequest where Response : class, IResponse {
 
-        protected abstract ETTask Run(Session session, Request request, Response response);
+        protected abstract void Run(Session session, Request request, Response response);
 
         public void Handle(Session session, object message) {
             HandleAsync(session, message).Coroutine();

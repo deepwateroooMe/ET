@@ -186,21 +186,6 @@ message Actor_PlayerEnterRoom_Ack // IActorResponse
     long GamerID = 1;
 }
 
-message Actor_GameStart_Ntt // IActorMessage
-{
-	int32 RpcId = 90;
-	int64 ActorId = 94;
-    repeated ET.Server.Card HandCards = 1;
-    repeated GamerCardNum GamersCardNum = 2;
-}
-
-message Actor_AuthorityGrabLandlord_Ntt // IActorMessage
-{
-	int32 RpcId = 90;
-	int64 ActorId = 94;
-    int64 UserID = 1;
-}
-
 message Actor_AuthorityPlayCard_Ntt // IActorMessage
 {
 	int32 RpcId = 90;
@@ -606,4 +591,3 @@ message M2G_PlayerEnterMatch_Ack // IResponse
     int32 Error = 91;
     string Message = 92;
 }
-

@@ -1,6 +1,3 @@
-namespace ET.Server
-{
-    public interface IDBCollection
-    {
-    }
+namespace ET.Server {
+    public interface IDBCollection {}
 }

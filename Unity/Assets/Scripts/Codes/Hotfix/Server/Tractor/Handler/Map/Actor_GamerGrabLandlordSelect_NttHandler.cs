@@ -5,7 +5,6 @@ using ET;
 namespace ET.Server {
     [ActorMessageHandler(SceneType.Map)]
     public class Actor_GamerGrabLandlordSelect_NttHandler : AMActorHandler<Gamer, Actor_GamerGrabLandlordSelect_Ntt> {
-
         protected override void Run(Gamer gamer, Actor_GamerGrabLandlordSelect_Ntt message) {
             Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
             OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
@@ -46,8 +45,8 @@ namespace ET.Server {
                             {
                             ActorMessageSender actorProxy = _gamer.GetComponent<UnitGateComponent>().GetActorMessageSender();
                             Actor_GameStart_Ntt actorMessage = new Actor_GameStart_Ntt();
-                            actorMessage.HandCards.AddRange(_gamer.GetComponent<HandCardsComponent>().GetAll());
-                            actorMessage.GamersCardNum.AddRange(gamersCardNum);
+                            actorMessage.HandCards.AddRange(_gamer.GetComponent<HandCardsComponent>().GetAll());// GamersCardNum 被我写了两遍，应该没问题了
+                            actorMessage.GamersCardNum.AddRange(gamersCardNum); // GamersCardNum 被我写了两遍，应该没问题了
                             });
                         // 随机先手玩家
                         gameController.RandomFirstAuthority();
@@ -67,7 +66,7 @@ namespace ET.Server {
                 }
                 orderController.Turn();
                 orderController.SelectLordIndex++;
-                room.Broadcast(new Actor_AuthorityGrabLandlord_Ntt() { UserID = orderController.CurrentAuthority });
+                room.Broadcast(new Actor_AuthorityGrabLandlord_Ntt() { UserID = orderController.CurrentAuthority }); // 出错是因为 protobuf 里重复了
             }
         }
     }
