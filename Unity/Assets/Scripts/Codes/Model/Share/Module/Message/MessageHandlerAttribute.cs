@@ -1,11 +1,8 @@
-﻿namespace ET
-{
-    public class MessageHandlerAttribute: BaseAttribute
-    {
+﻿namespace ET {
+    public class MessageHandlerAttribute: BaseAttribute {
         public SceneType SceneType { get; }
 
-        public MessageHandlerAttribute(SceneType sceneType)
-        {
+        public MessageHandlerAttribute(SceneType sceneType) {
             this.SceneType = sceneType;
         }
     }

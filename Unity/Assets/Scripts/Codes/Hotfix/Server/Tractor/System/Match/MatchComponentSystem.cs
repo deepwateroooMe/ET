@@ -4,7 +4,7 @@ using System.Net;
 namespace ET.Server {
     [ObjectSystem]
     public class MatchComponentUpdateSystem : UpdateSystem<MatchComponent> {
-        public override void Update(MatchComponent self) {
+        protected override void Update(MatchComponent self) {
             self.Update();
         }
     }

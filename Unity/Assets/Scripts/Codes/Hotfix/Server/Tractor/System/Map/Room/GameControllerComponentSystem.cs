@@ -6,7 +6,7 @@ using ET;
 namespace ET.Server {
     [ObjectSystem]
     public class GameControllerComponentAwakeSystem : AwakeSystem<GameControllerComponent, RoomConfig> {
-        public override void Awake(GameControllerComponent self, RoomConfig config) {
+        protected override void Awake(GameControllerComponent self, RoomConfig config) {
             self.Awake(config);
         }
     }

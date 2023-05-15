@@ -1338,11 +1338,16 @@ public static async ETTask enterRoom(this UILobbyComponent self) { // 不知道�
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 * TODO 今天晚上把几个消息抓全了，免得一堆的报错
 - IStart: 给重构没了。要重新熟悉一下新框架里的各种接口类，这些接口起什么作用，需不需要添加 IStart, 以及如何改写等
-- 需要抓的消息包括：
-C2G_ReturnLobby_Ntt
-Actor_GamerReady_Ntt
-Actor_Trusteeship_Ntt
-Actor_GamerPlayCard_Req
+
+
+
+
+
+
+
+
+
+
 
 
 

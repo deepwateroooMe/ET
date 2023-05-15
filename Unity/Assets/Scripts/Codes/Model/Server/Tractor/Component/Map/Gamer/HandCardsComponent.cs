@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
+
 namespace ET.Server {
-    public class HandCardsComponent : Component {
+    public class HandCardsComponent : Entity, IAwake {
         // 所有手牌
         public readonly List<Card> library = new List<Card>();
         // 身份

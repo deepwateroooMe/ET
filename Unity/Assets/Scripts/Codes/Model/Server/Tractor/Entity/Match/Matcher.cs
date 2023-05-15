@@ -1,12 +1,12 @@
 ﻿namespace ET.Server {
     [ObjectSystem]
     public class MatcherAwakeSystem : AwakeSystem<Matcher,long> {
-        public override void Awake(Matcher self, long id) {
+        protected override void Awake(Matcher self, long id) {
             self.Awake(id);
         }
     }
     // 匹配对象: 匹配的玩家系统
-    public sealed class Matcher : Entity {
+    public sealed class Matcher : Entity, IAwake<long> {
         // 用户ID（唯一）
         public long UserID { get; private set; }
         // 玩家GateActorID

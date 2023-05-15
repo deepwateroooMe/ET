@@ -6,7 +6,8 @@ namespace ET.Client {
 
     [MessageHandler]
     public class Actor_GamerReconnect_NttHandler : AMHandler<Actor_GamerReconnect_Ntt> {
-        protected override void Run(ETModel.Session session, Actor_GamerReconnect_Ntt message) {
+
+        protected override void Run(ET.Session session, Actor_GamerReconnect_Ntt message) {
             UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             foreach (GamerState gamerState in message.GamersState) {

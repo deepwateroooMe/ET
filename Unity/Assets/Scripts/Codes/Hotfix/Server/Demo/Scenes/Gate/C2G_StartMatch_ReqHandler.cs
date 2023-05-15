@@ -1,9 +1,9 @@
 using System;
-using ETModel;
+using ET;
 using System.Net;
 namespace ET.Server {
     // 网关服：处理客户端 StartMatch 请求消息
-    [MessageHandler(AppType.Gate)]
+    [MessageHandler(SceneType.Gate)]
     public class C2G_StartMatch_ReqHandler : AMRpcHandler<C2G_StartMatch_Req, G2C_StartMatch_Ack> {
 
         protected override async void Run(Session session, C2G_StartMatch_Req message, Action<G2C_StartMatch_Ack> reply) {

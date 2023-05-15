@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using ETModel;
+using ET;
 namespace ET.Client {
 
     [MessageHandler]
     public class Actor_GamerDontPlay_NttHandler : AMHandler<Actor_GamerDontPlay_Ntt> {
-        protected override void Run(ETModel.Session session, Actor_GamerDontPlay_Ntt message) {
-            UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
+
+        protected override void Run(ET.Session session, Actor_GamerDontPlay_Ntt message) {
+            UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.TractorRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             Gamer gamer = gamerComponent.Get(message.UserID);
             if (gamer != null) {
                 if (gamer.UserID == gamerComponent.LocalGamer.UserID) {
-                    uiRoom.GetComponent<LandlordsRoomComponent>().Interaction.EndPlay();
+                    uiRoom.GetComponent<TractorRoomComponent>().Interaction.EndPlay();
                 }
                 gamer.GetComponent<HandCardsComponent>().ClearPlayCards();
                 gamer.GetComponent<GamerUIComponent>().SetDiscard();

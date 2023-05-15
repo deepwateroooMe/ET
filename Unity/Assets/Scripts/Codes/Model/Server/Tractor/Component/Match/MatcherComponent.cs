@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace ET.Server {
 
     // 匹配对象管理组件
-    public class MatcherComponent : Component {
+    public class MatcherComponent : Entity, IAwake {
 
         private readonly Dictionary<long, Matcher> matchers = new Dictionary<long, Matcher>();
         // 匹配对象数量

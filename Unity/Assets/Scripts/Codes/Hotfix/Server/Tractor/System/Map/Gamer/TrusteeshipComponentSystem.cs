@@ -29,7 +29,7 @@ namespace ET.Server {
                 ActorMessageSender actorProxy = Game.Scene.GetComponent<ActorMessageSenderComponent>().Get(gamer.InstanceId);
                 // 当还没抢地主时随机抢地主
                 if (gamer.GetComponent<HandCardsComponent>().AccessIdentity == Identity.None) {
-                    int randomSelect = RandomHelper.RandomNumber(0, 2);
+                    int randomSelect = RandomGenerator.RandomNumber(0, 2);
                     actorProxy.Send(new Actor_GamerGrabLandlordSelect_Ntt() { IsGrab = randomSelect == 0 });
                     self.Playing = false;
                     continue;

@@ -279,3 +279,82 @@ message R2C_Register_Ack // IResponse
 	int32 Error = 91;
 	string Message = 92;
 }
+
+message C2G_LoginGate_Req // IRequest
+{
+	int32 RpcId = 90;
+    int64 Key = 1;
+}
+
+message G2C_LoginGate_Ack // IResponse
+{
+	int32 RpcId = 90;
+	int32 Error = 91;
+	string Message = 92;
+    int64 PlayerID = 1;
+    int64 UserID = 2;
+}
+
+message C2R_Register_Req // IRequest
+{
+	int32 RpcId = 90;
+    string Account = 1;
+    string Password = 2;
+}
+
+message R2C_Register_Ack // IResponse
+{
+	int32 RpcId = 90;
+	int32 Error = 91;
+	string Message = 92;
+}
+
+message C2G_ReturnLobby_Ntt // IMessage
+{
+
+}
+
+
+//花色
+enum Suits
+{
+	Club = 0;    //梅花
+	Diamond = 1; //方块
+	Heart = 2;   //红心
+	Spade = 3;   //黑桃
+	None = 4;
+}
+
+//权重
+enum Weight
+{
+    Three = 0;      //3
+    Four = 1;       //4
+    Five = 2;       //5
+    Six = 3;        //6
+    Seven = 4;      //7
+    Eight = 5;      //8
+    Nine = 6;       //9
+    Ten = 7;        //10
+    Jack = 8;       //J
+    Queen = 9;      //Q
+    King = 10;       //K
+    One = 11;        //A
+    Two = 12;        //2
+    SJoker = 13;     //小王
+    LJoker = 14;     //大王
+}
+
+//身份
+enum Identity
+{
+	IdentityNone = 0;
+	Farmer = 1;     //平民
+    Landlord = 2;   //地主
+}
+
+message Card
+{
+	Weight CardWeight = 1;
+	Suits CardSuits = 2;
+}

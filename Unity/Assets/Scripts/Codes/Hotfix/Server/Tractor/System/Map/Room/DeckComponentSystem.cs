@@ -4,7 +4,7 @@ using ET;
 namespace ET.Server {
     [ObjectSystem]
     public class DeckComponentAwakeSystem : AwakeSystem<DeckComponent> {
-        public override void Awake(DeckComponent self) {
+        protected override void Awake(DeckComponent self) {
             self.Awake();
         }
     }

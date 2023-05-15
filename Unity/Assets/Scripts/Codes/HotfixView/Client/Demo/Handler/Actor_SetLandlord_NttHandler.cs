@@ -8,7 +8,7 @@ namespace ET.Client {
     [MessageHandler]
     public class Actor_SetLandlord_NttHandler : AMHandler<Actor_SetLandlord_Ntt> {
 
-        protected override void Run(ETModel.Session session, Actor_SetLandlord_Ntt message) {
+        protected override void Run(ET.Session session, Actor_SetLandlord_Ntt message) {
             UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             Gamer gamer = gamerComponent.Get(message.UserID);

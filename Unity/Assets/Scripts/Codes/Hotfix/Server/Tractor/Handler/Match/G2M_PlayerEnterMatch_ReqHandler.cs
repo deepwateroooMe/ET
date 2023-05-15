@@ -1,7 +1,7 @@
 ﻿using System;
 using ET;
 using System.Threading.Tasks;
-namespace ETHotfix {
+namespace ET.Server {
     // 匹配服务器：处理网关网关服发送的匹配玩家请求【这里就没有找到，这个匹配服务器什么时候添加的内网组件？】
     [MessageHandler(SceneType.Match)]
     public class G2M_PlayerEnterMatch_ReqHandler : AMRpcHandler<G2M_PlayerEnterMatch_Req, M2G_PlayerEnterMatch_Ack> {

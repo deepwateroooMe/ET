@@ -1,6 +1,4 @@
 syntax = "proto3";
-// using 
-
 package ET;
 
 //ResponseType ObjectQueryResponse
@@ -192,7 +190,7 @@ message Actor_GameStart_Ntt // IActorMessage
 {
 	int32 RpcId = 90;
 	int64 ActorId = 94;
-    repeated ETModel.Card HandCards = 1;
+    repeated ET.Server.Card HandCards = 1;
     repeated GamerCardNum GamersCardNum = 2;
 }
 
@@ -223,7 +221,7 @@ message Actor_SetLandlord_Ntt // IActorMessage
 	int32 RpcId = 90;
 	int64 ActorId = 94;
     int64 UserID = 1;
-    repeated ETModel.Card LordCards = 2;
+    repeated ET.Server.Card LordCards = 2;
 }
 
 message GamerScore
@@ -248,3 +246,364 @@ message Actor_GamerMoneyLess_Ntt // IActorMessage
 	int64 ActorId = 94;
     int64 UserID = 1;
 }
+
+message G2R_PlayerOnline_Req // IRequest
+{
+    int32 RpcId = 90;
+    long UserID = 1;
+    int GateAppID = 2;
+}
+	
+message R2G_PlayerOnline_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+}
+
+message G2R_PlayerOffline_Req // IRequest
+{
+    int32 RpcId = 90;
+    long UserID = 1;
+}
+	
+message R2G_PlayerOffline_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+}
+
+message R2G_GetLoginKey_Req // IRequest
+{
+    int32 RpcId = 90;
+    long UserID = 1;
+}
+
+message G2R_GetLoginKey_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+    long Key = 1;
+}
+
+message R2G_PlayerKickOut_Req // IRequest
+{
+    int32 RpcId = 90;
+    long UserID = 1;
+}
+
+message G2R_PlayerKickOut_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+
+}
+
+message G2M_PlayerEnterMatch_Req // IRequest
+{
+    int32 RpcId = 90;
+    long PlayerID = 1;
+    long UserID = 2;
+    long SessionID = 3;
+}
+
+message M2G_PlayerEnterMatch_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+
+}
+
+message G2M_PlayerExitMatch_Req // IRequest
+{
+    int32 RpcId = 90;
+    long UserID = 1;
+}
+
+message M2G_PlayerExitMatch_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+
+}
+
+message Actor_PlayerExitRoom_Req // IActorRequest
+{
+    int32 RpcId = 90;
+    int64 ActorId = 91;
+    long UserID = 1;
+}
+
+message Actor_PlayerExitRoom_Ack // IActorResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+
+}
+	
+message Actor_MatchSucess_Ntt // IActorMessage
+{
+    int32 RpcId = 90;
+    long ActorId = 94;
+    long GamerID = 1;
+}
+
+message MH2MP_CreateRoom_Req // IRequest
+{
+    int32 RpcId = 90;
+
+}
+
+message MP2MH_CreateRoom_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+    long RoomID = 1;
+}
+
+message Actor_PlayerEnterRoom_Req // IActorRequest
+{
+    int32 RpcId = 90;
+    int64 ActorId = 91;
+    long PlayerID = 1;
+    long UserID = 2;
+    long SessionID = 3;
+}
+
+message Actor_PlayerEnterRoom_Ack // IActorResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+    long GamerID = 1;
+}
+
+message MP2MH_PlayerExitRoom_Req // IRequest
+{
+    int32 RpcId = 90;
+    long RoomID = 1;
+    long UserID = 2;
+}
+	
+message MH2MP_PlayerExitRoom_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+}
+
+message MP2MH_SyncRoomState_Ntt // IMessage
+{
+    long RoomID = 1;
+    RoomState State = 2;
+}
+
+message PlayerInfo // IMessage
+{
+	int32 RpcId = 90;
+}
+
+
+message Actor_GamerReady_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+}
+
+message Actor_GamerGrabLandlordSelect_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+    bool IsGrab = 2;
+}
+
+message Actor_GamerPlayCard_Req // IActorRequest
+{
+	int32 RpcId = 90;
+	int64 ActorId = 91;
+    repeated ET.Server.Card Cards = 1;
+}
+
+message Actor_GamerPlayCard_Ack // IActorResponse
+{
+	int32 RpcId = 90;
+	int32 Error = 91;
+	string Message = 92;
+}
+
+message Actor_GamerPlayCard_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+    repeated ET.Server.Card Cards = 2;
+}
+
+message Actor_GamerPrompt_Req // IActorRequest
+{
+	int32 RpcId = 90;
+	int64 ActorId = 91;
+
+}
+
+message Actor_GamerPrompt_Ack // IActorResponse
+{
+	int32 RpcId = 90;
+	int32 Error = 91;
+	string Message = 92;
+    repeated ET.Server.Card Cards = 1;
+}
+
+message Actor_GamerDontPlay_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+}
+
+message Actor_Trusteeship_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+    bool isTrusteeship = 2;
+}
+
+message GamerInfo
+{
+    int64 UserID = 1;
+    bool IsReady = 2;
+}
+
+message Actor_GamerEnterRoom_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    repeated GamerInfo Gamers = 1;
+}
+
+message Actor_GamerExitRoom_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+}
+
+//抢地主状态: 参照这个，来改写抢2 和反主等
+enum GrabLandlordState
+{
+	Not = 0;	//未抢地主
+	Grab = 1;	//抢地主
+	UnGrab = 2; //不抢地主
+}
+
+message GamerState
+{
+    int64 UserID = 1;
+    ET.Server.Identity UserIdentity = 2;
+	GrabLandlordState State = 3;
+}
+
+message Actor_GamerReconnect_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+	int64 UserId = 1;
+    int32 Multiples = 2;
+	repeated ET.Server.Card Cards = 3;
+    repeated GamerState GamersState = 4;
+    repeated ET.Server.Card LordCards = 5;
+	
+}
+
+message GamerCardNum // IMessage
+{
+    int64 UserID = 1;
+    int32 Num = 2;
+}
+
+message Actor_GameStart_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    repeated ET.Server.Card HandCards = 1;
+    repeated GamerCardNum GamersCardNum = 2;
+}
+
+message Actor_AuthorityGrabLandlord_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+}
+
+message Actor_AuthorityPlayCard_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+    bool IsFirst = 2;
+}
+
+message Actor_SetMultiples_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int32 Multiples = 1;
+}
+
+message Actor_SetLandlord_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+    repeated ET.Server.Card LordCards = 2;
+}
+
+message GamerScore
+{
+    int64 UserID = 1;
+    int64 Score = 2;
+}
+
+message Actor_Gameover_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    ET.Server.Identity Winner = 1;
+    int64 BasePointPerMatch = 2;
+    int32 Multiples = 3;
+    repeated GamerScore GamersScore = 4;
+}
+
+message Actor_GamerMoneyLess_Ntt // IActorMessage
+{
+	int32 RpcId = 90;
+	int64 ActorId = 94;
+    int64 UserID = 1;
+}
+
+message G2M_PlayerEnterMatch_Req // IRequest
+{
+    int32 RpcId = 90;
+    long PlayerID = 1;
+    long UserID = 2;
+    long SessionID = 3;
+}
+
+message M2G_PlayerEnterMatch_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+}
+

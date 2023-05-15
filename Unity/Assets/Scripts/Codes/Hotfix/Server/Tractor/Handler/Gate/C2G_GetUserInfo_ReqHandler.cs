@@ -16,7 +16,7 @@ namespace ET.Server {
                 }
                 // 查询用户信息
                 DBProxyComponent dbProxyComponent = Game.Scene.GetComponent<DBProxyComponent>();
-                UserInfo userInfo = await dbProxyComponent.Query<UserInfo>(message.UserID, false);
+                UserInfo userInfo = await dbProxyComponent.Query<UserInfo>(message.UserID, false); // 重复文件？ UserInfo
                 response.NickName = userInfo.NickName;
                 response.Wins = userInfo.Wins;
                 response.Loses = userInfo.Loses;
