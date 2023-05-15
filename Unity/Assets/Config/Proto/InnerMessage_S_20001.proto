@@ -206,7 +206,7 @@ message Actor_SetLandlord_Ntt // IActorMessage
 	int32 RpcId = 90;
 	int64 ActorId = 94;
     int64 UserID = 1;
-    repeated ET.Server.Card LordCards = 2;
+    repeated ET Card LordCards = 2;
 }
 
 message GamerScore
@@ -219,7 +219,7 @@ message Actor_Gameover_Ntt // IActorMessage
 {
 	int32 RpcId = 90;
 	int64 ActorId = 94;
-    ETModel.Identity Winner = 1;
+    ET Identity Winner = 1;
     int64 BasePointPerMatch = 2;
     int32 Multiples = 3;
     repeated GamerScore GamersScore = 4;
@@ -415,7 +415,7 @@ message Actor_GamerPlayCard_Req // IActorRequest
 {
 	int32 RpcId = 90;
 	int64 ActorId = 91;
-    repeated ET.Server.Card Cards = 1;
+    repeated ET Card Cards = 1;
 }
 
 message Actor_GamerPlayCard_Ack // IActorResponse
@@ -430,7 +430,7 @@ message Actor_GamerPlayCard_Ntt // IActorMessage
 	int32 RpcId = 90;
 	int64 ActorId = 94;
     int64 UserID = 1;
-    repeated ET.Server.Card Cards = 2;
+    repeated ET Card Cards = 2;
 }
 
 message Actor_GamerPrompt_Req // IActorRequest
@@ -445,7 +445,7 @@ message Actor_GamerPrompt_Ack // IActorResponse
 	int32 RpcId = 90;
 	int32 Error = 91;
 	string Message = 92;
-    repeated ET.Server.Card Cards = 1;
+    repeated ET Card Cards = 1;
 }
 
 message Actor_GamerDontPlay_Ntt // IActorMessage
@@ -494,7 +494,7 @@ enum GrabLandlordState
 message GamerState
 {
     int64 UserID = 1;
-    ET.Server.Identity UserIdentity = 2;
+    ET Identity UserIdentity = 2;
 	GrabLandlordState State = 3;
 }
 
@@ -504,9 +504,9 @@ message Actor_GamerReconnect_Ntt // IActorMessage
 	int64 ActorId = 94;
 	int64 UserId = 1;
     int32 Multiples = 2;
-	repeated ET.Server.Card Cards = 3;
+	repeated ET Card Cards = 3;
     repeated GamerState GamersState = 4;
-    repeated ET.Server.Card LordCards = 5;
+    repeated ET Card LordCards = 5;
 	
 }
 
@@ -520,7 +520,7 @@ message Actor_GameStart_Ntt // IActorMessage
 {
 	int32 RpcId = 90;
 	int64 ActorId = 94;
-    repeated ET.Server.Card HandCards = 1;
+    repeated ET Card HandCards = 1;
     repeated GamerCardNum GamersCardNum = 2;
 }
 
@@ -551,7 +551,7 @@ message Actor_SetLandlord_Ntt // IActorMessage
 	int32 RpcId = 90;
 	int64 ActorId = 94;
     int64 UserID = 1;
-    repeated ET.Server.Card LordCards = 2;
+    repeated ET Card LordCards = 2;
 }
 
 message GamerScore
@@ -564,7 +564,7 @@ message Actor_Gameover_Ntt // IActorMessage
 {
 	int32 RpcId = 90;
 	int64 ActorId = 94;
-    ET.Server.Identity Winner = 1;
+    ET Identity Winner = 1;
     int64 BasePointPerMatch = 2;
     int32 Multiples = 3;
     repeated GamerScore GamersScore = 4;

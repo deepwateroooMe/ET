@@ -398,39 +398,6 @@ namespace ET
 
 	}
 
-	[Message(InnerMessage.Actor_GameStart_Ntt)]
-	[ProtoContract]
-	public partial class Actor_GameStart_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public List<ET.Server.Card> HandCards { get; set; }
-
-		[ProtoMember(2)]
-		public List<GamerCardNum> GamersCardNum { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_AuthorityGrabLandlord_Ntt)]
-	[ProtoContract]
-	public partial class Actor_AuthorityGrabLandlord_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-	}
-
 	[Message(InnerMessage.Actor_AuthorityPlayCard_Ntt)]
 	[ProtoContract]
 	public partial class Actor_AuthorityPlayCard_Ntt: ProtoObject, IActorMessage
@@ -477,9 +444,6 @@ namespace ET
 		[ProtoMember(1)]
 		public long UserID { get; set; }
 
-		[ProtoMember(2)]
-		public List<ET.Server.Card> LordCards { get; set; }
-
 	}
 
 	[Message(InnerMessage.GamerScore)]
@@ -503,9 +467,6 @@ namespace ET
 
 		[ProtoMember(94)]
 		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public ETModel.Identity Winner { get; set; }
 
 		[ProtoMember(2)]
 		public long BasePointPerMatch { get; set; }
@@ -912,9 +873,6 @@ namespace ET
 		[ProtoMember(91)]
 		public long ActorId { get; set; }
 
-		[ProtoMember(1)]
-		public List<ET.Server.Card> Cards { get; set; }
-
 	}
 
 	[Message(InnerMessage.Actor_GamerPlayCard_Ack)]
@@ -945,9 +903,6 @@ namespace ET
 		[ProtoMember(1)]
 		public long UserID { get; set; }
 
-		[ProtoMember(2)]
-		public List<ET.Server.Card> Cards { get; set; }
-
 	}
 
 	[Message(InnerMessage.Actor_GamerPrompt_Req)]
@@ -974,9 +929,6 @@ namespace ET
 
 		[ProtoMember(92)]
 		public string Message { get; set; }
-
-		[ProtoMember(1)]
-		public List<ET.Server.Card> Cards { get; set; }
 
 	}
 
@@ -1063,9 +1015,6 @@ namespace ET
 		[ProtoMember(1)]
 		public long UserID { get; set; }
 
-		[ProtoMember(2)]
-		public ET.Server.Identity UserIdentity { get; set; }
-
 		[ProtoMember(3)]
 		public GrabLandlordState State { get; set; }
 
@@ -1087,14 +1036,8 @@ namespace ET
 		[ProtoMember(2)]
 		public int Multiples { get; set; }
 
-		[ProtoMember(3)]
-		public List<ET.Server.Card> Cards { get; set; }
-
 		[ProtoMember(4)]
 		public List<GamerState> GamersState { get; set; }
-
-		[ProtoMember(5)]
-		public List<ET.Server.Card> LordCards { get; set; }
 
 	}
 
@@ -1119,9 +1062,6 @@ namespace ET
 
 		[ProtoMember(94)]
 		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public List<ET.Server.Card> HandCards { get; set; }
 
 		[ProtoMember(2)]
 		public List<GamerCardNum> GamersCardNum { get; set; }
@@ -1189,9 +1129,6 @@ namespace ET
 		[ProtoMember(1)]
 		public long UserID { get; set; }
 
-		[ProtoMember(2)]
-		public List<ET.Server.Card> LordCards { get; set; }
-
 	}
 
 	[Message(InnerMessage.GamerScore)]
@@ -1215,9 +1152,6 @@ namespace ET
 
 		[ProtoMember(94)]
 		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public ET.Server.Identity Winner { get; set; }
 
 		[ProtoMember(2)]
 		public long BasePointPerMatch { get; set; }
@@ -1305,61 +1239,59 @@ namespace ET
 		 public const ushort M2M_UnitTransferResponse = 20024;
 		 public const ushort Actor_PlayerEnterRoom_Req = 20025;
 		 public const ushort Actor_PlayerEnterRoom_Ack = 20026;
-		 public const ushort Actor_GameStart_Ntt = 20027;
-		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20028;
-		 public const ushort Actor_AuthorityPlayCard_Ntt = 20029;
-		 public const ushort Actor_SetMultiples_Ntt = 20030;
-		 public const ushort Actor_SetLandlord_Ntt = 20031;
-		 public const ushort GamerScore = 20032;
-		 public const ushort Actor_Gameover_Ntt = 20033;
-		 public const ushort Actor_GamerMoneyLess_Ntt = 20034;
-		 public const ushort G2R_PlayerOnline_Req = 20035;
-		 public const ushort R2G_PlayerOnline_Ack = 20036;
-		 public const ushort G2R_PlayerOffline_Req = 20037;
-		 public const ushort R2G_PlayerOffline_Ack = 20038;
-		 public const ushort R2G_GetLoginKey_Req = 20039;
-		 public const ushort G2R_GetLoginKey_Ack = 20040;
-		 public const ushort R2G_PlayerKickOut_Req = 20041;
-		 public const ushort G2R_PlayerKickOut_Ack = 20042;
-		 public const ushort G2M_PlayerEnterMatch_Req = 20043;
-		 public const ushort M2G_PlayerEnterMatch_Ack = 20044;
-		 public const ushort G2M_PlayerExitMatch_Req = 20045;
-		 public const ushort M2G_PlayerExitMatch_Ack = 20046;
-		 public const ushort Actor_PlayerExitRoom_Req = 20047;
-		 public const ushort Actor_PlayerExitRoom_Ack = 20048;
-		 public const ushort Actor_MatchSucess_Ntt = 20049;
-		 public const ushort MH2MP_CreateRoom_Req = 20050;
-		 public const ushort MP2MH_CreateRoom_Ack = 20051;
-		 public const ushort Actor_PlayerEnterRoom_Req = 20052;
-		 public const ushort Actor_PlayerEnterRoom_Ack = 20053;
-		 public const ushort MP2MH_PlayerExitRoom_Req = 20054;
-		 public const ushort MH2MP_PlayerExitRoom_Ack = 20055;
-		 public const ushort MP2MH_SyncRoomState_Ntt = 20056;
-		 public const ushort PlayerInfo = 20057;
-		 public const ushort Actor_GamerReady_Ntt = 20058;
-		 public const ushort Actor_GamerGrabLandlordSelect_Ntt = 20059;
-		 public const ushort Actor_GamerPlayCard_Req = 20060;
-		 public const ushort Actor_GamerPlayCard_Ack = 20061;
-		 public const ushort Actor_GamerPlayCard_Ntt = 20062;
-		 public const ushort Actor_GamerPrompt_Req = 20063;
-		 public const ushort Actor_GamerPrompt_Ack = 20064;
-		 public const ushort Actor_GamerDontPlay_Ntt = 20065;
-		 public const ushort Actor_Trusteeship_Ntt = 20066;
-		 public const ushort GamerInfo = 20067;
-		 public const ushort Actor_GamerEnterRoom_Ntt = 20068;
-		 public const ushort Actor_GamerExitRoom_Ntt = 20069;
-		 public const ushort GamerState = 20070;
-		 public const ushort Actor_GamerReconnect_Ntt = 20071;
-		 public const ushort GamerCardNum = 20072;
-		 public const ushort Actor_GameStart_Ntt = 20073;
-		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20074;
-		 public const ushort Actor_AuthorityPlayCard_Ntt = 20075;
-		 public const ushort Actor_SetMultiples_Ntt = 20076;
-		 public const ushort Actor_SetLandlord_Ntt = 20077;
-		 public const ushort GamerScore = 20078;
-		 public const ushort Actor_Gameover_Ntt = 20079;
-		 public const ushort Actor_GamerMoneyLess_Ntt = 20080;
-		 public const ushort G2M_PlayerEnterMatch_Req = 20081;
-		 public const ushort M2G_PlayerEnterMatch_Ack = 20082;
+		 public const ushort Actor_AuthorityPlayCard_Ntt = 20027;
+		 public const ushort Actor_SetMultiples_Ntt = 20028;
+		 public const ushort Actor_SetLandlord_Ntt = 20029;
+		 public const ushort GamerScore = 20030;
+		 public const ushort Actor_Gameover_Ntt = 20031;
+		 public const ushort Actor_GamerMoneyLess_Ntt = 20032;
+		 public const ushort G2R_PlayerOnline_Req = 20033;
+		 public const ushort R2G_PlayerOnline_Ack = 20034;
+		 public const ushort G2R_PlayerOffline_Req = 20035;
+		 public const ushort R2G_PlayerOffline_Ack = 20036;
+		 public const ushort R2G_GetLoginKey_Req = 20037;
+		 public const ushort G2R_GetLoginKey_Ack = 20038;
+		 public const ushort R2G_PlayerKickOut_Req = 20039;
+		 public const ushort G2R_PlayerKickOut_Ack = 20040;
+		 public const ushort G2M_PlayerEnterMatch_Req = 20041;
+		 public const ushort M2G_PlayerEnterMatch_Ack = 20042;
+		 public const ushort G2M_PlayerExitMatch_Req = 20043;
+		 public const ushort M2G_PlayerExitMatch_Ack = 20044;
+		 public const ushort Actor_PlayerExitRoom_Req = 20045;
+		 public const ushort Actor_PlayerExitRoom_Ack = 20046;
+		 public const ushort Actor_MatchSucess_Ntt = 20047;
+		 public const ushort MH2MP_CreateRoom_Req = 20048;
+		 public const ushort MP2MH_CreateRoom_Ack = 20049;
+		 public const ushort Actor_PlayerEnterRoom_Req = 20050;
+		 public const ushort Actor_PlayerEnterRoom_Ack = 20051;
+		 public const ushort MP2MH_PlayerExitRoom_Req = 20052;
+		 public const ushort MH2MP_PlayerExitRoom_Ack = 20053;
+		 public const ushort MP2MH_SyncRoomState_Ntt = 20054;
+		 public const ushort PlayerInfo = 20055;
+		 public const ushort Actor_GamerReady_Ntt = 20056;
+		 public const ushort Actor_GamerGrabLandlordSelect_Ntt = 20057;
+		 public const ushort Actor_GamerPlayCard_Req = 20058;
+		 public const ushort Actor_GamerPlayCard_Ack = 20059;
+		 public const ushort Actor_GamerPlayCard_Ntt = 20060;
+		 public const ushort Actor_GamerPrompt_Req = 20061;
+		 public const ushort Actor_GamerPrompt_Ack = 20062;
+		 public const ushort Actor_GamerDontPlay_Ntt = 20063;
+		 public const ushort Actor_Trusteeship_Ntt = 20064;
+		 public const ushort GamerInfo = 20065;
+		 public const ushort Actor_GamerEnterRoom_Ntt = 20066;
+		 public const ushort Actor_GamerExitRoom_Ntt = 20067;
+		 public const ushort GamerState = 20068;
+		 public const ushort Actor_GamerReconnect_Ntt = 20069;
+		 public const ushort GamerCardNum = 20070;
+		 public const ushort Actor_GameStart_Ntt = 20071;
+		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20072;
+		 public const ushort Actor_AuthorityPlayCard_Ntt = 20073;
+		 public const ushort Actor_SetMultiples_Ntt = 20074;
+		 public const ushort Actor_SetLandlord_Ntt = 20075;
+		 public const ushort GamerScore = 20076;
+		 public const ushort Actor_Gameover_Ntt = 20077;
+		 public const ushort Actor_GamerMoneyLess_Ntt = 20078;
+		 public const ushort G2M_PlayerEnterMatch_Req = 20079;
+		 public const ushort M2G_PlayerEnterMatch_Ack = 20080;
 	}
 }
