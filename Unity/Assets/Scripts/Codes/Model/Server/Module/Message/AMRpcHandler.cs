@@ -28,7 +28,7 @@ namespace ET.Server {
                         return;
                     }
                     response.RpcId = rpcId;
-                    session.Reply(response);
+                    session.Send(response);
                 });
             }
             catch (Exception e) {

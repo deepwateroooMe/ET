@@ -6,7 +6,7 @@ namespace ET.Client {
 
         public static async ETTask Login(Scene clientScene, string account, string password) {
             try {
-                // 创建一个ETModel层的Session
+                // 创建一个ETModel层的Session. 【没看懂】：如何区分不同层，为什么先移去，又添加？
                 clientScene.RemoveComponent<RouterAddressComponent>();
                 // 获取路由跟realmDispatcher地址
                 RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>();

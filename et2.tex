@@ -1,17 +1,54 @@
-#+latex_class: cn-article
-#+title: ET 框架学习笔记（二）－－网络交互相关
-#+author: deepwaterooo 
+% Created 2023-05-15 Mon 22:13
+\documentclass[9pt, b5paper]{article}
+\usepackage{xeCJK}
+\usepackage[T1]{fontenc}
+\usepackage{bera}
+\usepackage[scaled]{beraserif}
+\usepackage[scaled]{berasans}
+\usepackage[scaled]{beramono}
+\usepackage[cache=false]{minted}
+\usepackage{xltxtra}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{textcomp}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{latexsym}
+\usepackage{natbib}
+\usepackage{geometry}
+\geometry{left=1.2cm,right=1.2cm,top=1.5cm,bottom=1.2cm}
+\usepackage[xetex,colorlinks=true,CJKbookmarks=true,linkcolor=blue,urlcolor=blue,menucolor=blue]{hyperref}
+\newminted{common-lisp}{fontsize=\footnotesize} 
+\author{deepwaterooo}
+\date{\today}
+\title{ET 框架学习笔记（二）－－网络交互相关}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
+\begin{document}
 
-* Net 网络交互相关：【服务端】
-- 这次重构里，以前是Model 里，生成系为非静态，这次全搬进热更新域里，生成系与方法全是静态的。
-- 因为生成系全变成了静态，那么调用方法就成为比如：直接使用生成系的类名，与静态方法调用。
-#+BEGIN_SRC csharp
+\maketitle
+\tableofcontents
+
+
+\section{Net 网络交互相关：【服务端】}
+\label{sec-1}
+\begin{itemize}
+\item 这次重构里，以前是Model 里，生成系为非静态，这次全搬进热更新域里，生成系与方法全是静态的。
+\item 因为生成系全变成了静态，那么调用方法就成为比如：直接使用生成系的类名，与静态方法调用。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【这是它给出来的例子】
 // 上面这种，就必须组件里，而非生成系里，已经申明了公用方法，否则用下面的
 Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
-#+END_SRC
-** NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件}
+\label{sec-1-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
     // 【服务器】：对不同进程的一些处理
     public struct ProcessActorId {
@@ -39,9 +76,10 @@ namespace ET.Server {
         public static NetInnerComponent Instance;
     }
 }
-   #+END_SRC
-** NetInnerComponentSystem: 生成系
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{NetInnerComponentSystem: 生成系}
+\label{sec-1-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(NetInnerComponent))]
 public static class NetInnerComponentSystem {
     [ObjectSystem]
@@ -128,9 +166,10 @@ public static class NetInnerComponentSystem {
         return session;
     }
 }
-   #+END_SRC
-** NetServerComponent:
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{NetServerComponent:}
+\label{sec-1-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public struct NetServerComponentOnRead {
     public Session Session;
     public object Message;
@@ -139,9 +178,10 @@ public struct NetServerComponentOnRead {
 public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
     public int ServiceId;
 }
-   #+END_SRC
-** NetServerComponentSystem: 生成系
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{NetServerComponentSystem: 生成系}
+\label{sec-1-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(NetServerComponent))]
 public static class NetServerComponentSystem {
     [ObjectSystem]
@@ -186,13 +226,16 @@ public static class NetServerComponentSystem {
         EventSystem.Instance.Publish(Root.Instance.Scene, new NetServerComponentOnRead() {Session = session, Message = message});
     }
 }
-   #+END_SRC
+\end{minted}
 
-
-* IAwake 接口类系统，IStart 重构丢了
-- 感觉还比较直接，就是帮助搭建热更新域与Unity 常规工程域生命周期回调的桥，搭桥连线，连能就可以了。应该可以扩散出个IStart 接口类
-** IMessage,IRequest,IResponse: 进程内？消息类
-   #+BEGIN_SRC csharp
+\section{IAwake 接口类系统，IStart 重构丢了}
+\label{sec-2}
+\begin{itemize}
+\item 感觉还比较直接，就是帮助搭建热更新域与Unity 常规工程域生命周期回调的桥，搭桥连线，连能就可以了。应该可以扩散出个IStart 接口类
+\end{itemize}
+\subsection{IMessage,IRequest,IResponse: 进程内？消息类}
+\label{sec-2-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IMessage {}
 public interface IRequest: IMessage {
     int RpcId { get; set; }
@@ -202,22 +245,25 @@ public interface IResponse: IMessage {
     string Message { get; set; }
     int RpcId { get; set; }
 }
-   #+END_SRC
-** IActorMessage,IActorRequest,IActorResponse: 进程间的？消息类
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IActorMessage,IActorRequest,IActorResponse: 进程间的？消息类}
+\label{sec-2-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 不需要返回消息
 public interface IActorMessage: IMessage {}
 public interface IActorRequest: IRequest {}
 public interface IActorResponse: IResponse {}
-   #+END_SRC
-** IActorLocationMessage: 进程间的位置消息相关
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IActorLocationMessage: 进程间的位置消息相关}
+\label{sec-2-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IActorLocationMessage: IActorRequest {}
 public interface IActorLocationRequest: IActorRequest {}
 public interface IActorLocationResponse: IActorResponse {}
-   #+END_SRC
-** IMHandler,IMActorHandler: 消息处理器口类【傻傻分不清楚】
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IMHandler,IMActorHandler: 消息处理器口类【傻傻分不清楚】}
+\label{sec-2-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IMHandler { // 同进程内的
     void Handle(Session session, object message);
     Type GetMessageType();
@@ -229,9 +275,10 @@ public interface IMActorHandler { // 进程间的？
     Type GetRequestType();
     Type GetResponseType();
 }
-   #+END_SRC
-** ILoad,ISystemType: 加载系
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ILoad,ISystemType: 加载系}
+\label{sec-2-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface ISystemType {
     Type Type();
     Type SystemType();
@@ -259,17 +306,19 @@ public abstract class LoadSystem<T> : ILoadSystem where T: Entity, ILoad {
     }
     protected abstract void Load(T self);
 }
-   #+END_SRC
-** IAwake: 最多可以带四个参数
-   #+BEGIN_SRC csharp
-    public interface IAwake {}
-    public interface IAwake<A> {}
-    public interface IAwake<A, B> {}
-    public interface IAwake<A, B, C> {}
-    public interface IAwake<A, B, C, D> {}
-   #+END_SRC
-** IStartSystem,StartSystem<T>: 自己加的。【还有问题】系统找不到
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IAwake: 最多可以带四个参数}
+\label{sec-2-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+ public interface IAwake {}
+ public interface IAwake<A> {}
+ public interface IAwake<A, B> {}
+ public interface IAwake<A, B, C> {}
+ public interface IAwake<A, B, C, D> {}
+\end{minted}
+\subsection{IStartSystem,StartSystem<T>: 自己加的。【还有问题】系统找不到}
+\label{sec-2-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IStart { }
 public interface IStartSystem : ISystemType {
     void Run(Entity o);
@@ -299,11 +348,14 @@ public enum InstanceQueueIndex {
     Load,
     Max,
 }
-   #+END_SRC
-- 参考项目：除了原文件放在ET 域。也【复制了一份到客户端的热更新域里】。可是感觉不应该。因为其它所有的回调都不用复制就可以用。我哪里可能还是没能设置对
-- 改天再检查一下。但是否，对于非系统框架扩展接口，不得不这样？仍然感觉不应该，因为系统框架里其它的生命周期回调函数都不需要复制。改天再做。
-** IUpdateSystem:
-   #+BEGIN_SRC csharp
+\end{minted}
+\begin{itemize}
+\item 参考项目：除了原文件放在ET 域。也【复制了一份到客户端的热更新域里】。可是感觉不应该。因为其它所有的回调都不用复制就可以用。我哪里可能还是没能设置对
+\item 改天再检查一下。但是否，对于非系统框架扩展接口，不得不这样？仍然感觉不应该，因为系统框架里其它的生命周期回调函数都不需要复制。改天再做。
+\end{itemize}
+\subsection{IUpdateSystem:}
+\label{sec-2-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IUpdate {
 }
 public interface IUpdateSystem: ISystemType {
@@ -325,9 +377,10 @@ public abstract class UpdateSystem<T> : IUpdateSystem where T: Entity, IUpdate {
     }
     protected abstract void Update(T self);
 }
-   #+END_SRC
-** ILateUpdate: 好像是用于物理引擎，或是相机什么的更新，生命周期回调
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ILateUpdate: 好像是用于物理引擎，或是相机什么的更新，生命周期回调}
+\label{sec-2-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface ILateUpdate {
 }
 public interface ILateUpdateSystem: ISystemType {
@@ -349,9 +402,10 @@ public abstract class LateUpdateSystem<T> : ILateUpdateSystem where T: Entity, I
     }
     protected abstract void LateUpdate(T self);
 }
-   #+END_SRC
-** ISingletonAwake|Update|LateUpdate: Singleton 生命周期回调
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ISingletonAwake|Update|LateUpdate: Singleton 生命周期回调}
+\label{sec-2-10}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface ISingletonAwake {
     void Awake();
 }
@@ -361,9 +415,10 @@ public interface ISingletonUpdate {
 public interface ISingletonLateUpdate {
     void LateUpdate();
 }
-   #+END_SRC
-** ISingleton,Singleton<T>: 单例
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ISingleton,Singleton<T>: 单例}
+\label{sec-2-11}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface ISingleton: IDisposable {
     void Register();
     void Destroy();
@@ -399,9 +454,10 @@ public abstract class Singleton<T>: ISingleton where T: Singleton<T>, new() {
     public virtual void Dispose() {
     }
 }
-   #+END_SRC
-** IDestroy,IDestroySystem,DestroySystem<T>: 销毁系
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IDestroy,IDestroySystem,DestroySystem<T>: 销毁系}
+\label{sec-2-12}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IDestroy {
 }
 public interface IDestroySystem: ISystemType {
@@ -423,9 +479,10 @@ public abstract class DestroySystem<T> : IDestroySystem where T: Entity, IDestro
     }
     protected abstract void Destroy(T self);
 }
-   #+END_SRC
-** IEvent,AEvent<A>: 事件
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IEvent,AEvent<A>: 事件}
+\label{sec-2-13}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IEvent {
     Type Type { get; }
 }
@@ -445,60 +502,63 @@ public abstract class AEvent<A>: IEvent where A: struct {
         }
     }
 }
-   #+END_SRC
-** IAddComponent: 添加组件系
-   #+BEGIN_SRC csharp
-    public interface IAddComponent { }
-    public interface IAddComponentSystem: ISystemType {
-        void Run(Entity o, Entity component);
-    }
-    [ObjectSystem]
-    public abstract class AddComponentSystem<T> : IAddComponentSystem where T: Entity, IAddComponent {
-        void IAddComponentSystem.Run(Entity o, Entity component) {
-            this.AddComponent((T)o, component);
-        }
-        Type ISystemType.SystemType() {
-            return typeof(IAddComponentSystem);
-        }
-        InstanceQueueIndex ISystemType.GetInstanceQueueIndex() {
-            return InstanceQueueIndex.None;
-        }
-        Type ISystemType.Type() {
-            return typeof(T);
-        }
-        protected abstract void AddComponent(T self, Entity component);
-    }
-   #+END_SRC
-** IGetComponent: 获取组件系。【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<< 
-   #+BEGIN_SRC csharp
-    // GetComponentSystem有巨大作用，比如每次保存Unit的数据不需要所有组件都保存，只需要保存Unit变化过的组件
-    // 是否变化可以通过判断该组件是否GetComponent，Get了就记录该组件【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<< 
-    // 这样可以只保存Unit变化过的组件
-    // 再比如传送也可以做此类优化
-    public interface IGetComponent {
-    }
-    public interface IGetComponentSystem: ISystemType {
-        void Run(Entity o, Entity component);
-    }
-    [ObjectSystem]
-    public abstract class GetComponentSystem<T> : IGetComponentSystem where T: Entity, IGetComponent {
-        void IGetComponentSystem.Run(Entity o, Entity component) {
-            this.GetComponent((T)o, component);
-        }
-        Type ISystemType.SystemType() {
-            return typeof(IGetComponentSystem);
-        }
-        InstanceQueueIndex ISystemType.GetInstanceQueueIndex() {
-            return InstanceQueueIndex.None;
-        }
-        Type ISystemType.Type() {
-            return typeof(T);
-        }
-        protected abstract void GetComponent(T self, Entity component);
-    }
-   #+END_SRC
-** ISerializeToEntity,IDeserialize,IDeserializeSystem,DeserializeSystem<T>: 序列化，反序列化
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IAddComponent: 添加组件系}
+\label{sec-2-14}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+ public interface IAddComponent { }
+ public interface IAddComponentSystem: ISystemType {
+     void Run(Entity o, Entity component);
+ }
+ [ObjectSystem]
+ public abstract class AddComponentSystem<T> : IAddComponentSystem where T: Entity, IAddComponent {
+     void IAddComponentSystem.Run(Entity o, Entity component) {
+         this.AddComponent((T)o, component);
+     }
+     Type ISystemType.SystemType() {
+         return typeof(IAddComponentSystem);
+     }
+     InstanceQueueIndex ISystemType.GetInstanceQueueIndex() {
+         return InstanceQueueIndex.None;
+     }
+     Type ISystemType.Type() {
+         return typeof(T);
+     }
+     protected abstract void AddComponent(T self, Entity component);
+ }
+\end{minted}
+\subsection{IGetComponent: 获取组件系。【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<<}
+\label{sec-2-15}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+ // GetComponentSystem有巨大作用，比如每次保存Unit的数据不需要所有组件都保存，只需要保存Unit变化过的组件
+ // 是否变化可以通过判断该组件是否GetComponent，Get了就记录该组件【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<< 
+ // 这样可以只保存Unit变化过的组件
+ // 再比如传送也可以做此类优化
+ public interface IGetComponent {
+ }
+ public interface IGetComponentSystem: ISystemType {
+     void Run(Entity o, Entity component);
+ }
+ [ObjectSystem]
+ public abstract class GetComponentSystem<T> : IGetComponentSystem where T: Entity, IGetComponent {
+     void IGetComponentSystem.Run(Entity o, Entity component) {
+         this.GetComponent((T)o, component);
+     }
+     Type ISystemType.SystemType() {
+         return typeof(IGetComponentSystem);
+     }
+     InstanceQueueIndex ISystemType.GetInstanceQueueIndex() {
+         return InstanceQueueIndex.None;
+     }
+     Type ISystemType.Type() {
+         return typeof(T);
+     }
+     protected abstract void GetComponent(T self, Entity component);
+ }
+\end{minted}
+\subsection{ISerializeToEntity,IDeserialize,IDeserializeSystem,DeserializeSystem<T>: 序列化，反序列化}
+\label{sec-2-16}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface ISerializeToEntity {
 }
 public interface IDeserialize {
@@ -523,9 +583,10 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
     }
     protected abstract void Deserialize(T self);
 }
-   #+END_SRC
-** IInvoke,AInvokeHandler<A>,AInvokeHandler<A, T>: 激活类
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{IInvoke,AInvokeHandler<A>,AInvokeHandler<A, T>: 激活类}
+\label{sec-2-17}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IInvoke {
     Type Type { get; }
 }
@@ -545,10 +606,12 @@ public abstract class AInvokeHandler<A, T>: IInvoke where A: struct {
     }
     public abstract T Handle(A a);
 }
-   #+END_SRC
-** ProtoBuf 相关：IExtensible,IExtension,IProtoOutput<TOutput>,IMeasuredProtoOutput<TOutput>,MeasureState<T>: 看不懂
-*** IExtensible
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ProtoBuf 相关：IExtensible,IExtension,IProtoOutput<TOutput>,IMeasuredProtoOutput<TOutput>,MeasureState<T>: 看不懂}
+\label{sec-2-18}
+\subsubsection{IExtensible}
+\label{sec-2-18-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // Indicates that the implementing type has support for protocol-buffer
 // <see cref="IExtension">extensions</see>.
 // <remarks>Can be implemented by deriving from Extensible.</remarks>
@@ -563,9 +626,10 @@ public interface IExtensible {
     // and true during deserialization upon encountering unexpected fields.</remarks>
     IExtension GetExtensionObject(bool createIfMissing);
 }
-   #+END_SRC
-*** IExtension
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{IExtension}
+\label{sec-2-18-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // Provides addition capability for supporting unexpected fields during
 // protocol-buffer serialization/deserialization. This allows for loss-less
 // round-trip/merge, even when the data is not fully understood.
@@ -595,9 +659,10 @@ public interface IExtension {
 public interface IExtensionResettable : IExtension {
     void Reset();
 }
-    #+END_SRC
-*** IProtoOutput<TOutput>,IMeasuredProtoOutput<TOutput>,MeasureState<T>: 看得头大
-    #+BEGIN_SRC csharp
+\end{minted}
+\subsubsection{IProtoOutput<TOutput>,IMeasuredProtoOutput<TOutput>,MeasureState<T>: 看得头大}
+\label{sec-2-18-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // Represents the ability to serialize values to an output of type <typeparamref name="TOutput"/>
 public interface IProtoOutput<TOutput> {
     // Serialize the provided value
@@ -623,29 +688,32 @@ public struct MeasureState<T> : IDisposable {
     public void Dispose() => throw new NotImplementedException();
     public long Length => throw new NotImplementedException();
 }
-    #+END_SRC
+\end{minted}
 
-
-* ActorMessage 相关：【早上】看下
-** MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
-   #+BEGIN_SRC csharp
+\section{ActorMessage 相关：【早上】看下}
+\label{sec-3}
+\subsection{MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理}
+\label{sec-3-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
 [ComponentOf]
 public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
     // Mailbox的类型
     public MailboxType MailboxType { get; set; }
 }
-   #+END_SRC
-** MailboxType
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{MailboxType}
+\label{sec-3-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public enum MailboxType {
     MessageDispatcher, // 消息分发器
     UnOrderMessageDispatcher,// 无序分发
     GateSession,// 网关？
 }
-   #+END_SRC
-** ActorMessageSenderComponent: 管理类组件
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorMessageSenderComponent: 管理类组件}
+\label{sec-3-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public const long TIMEOUT_TIME = 40 * 1000;
@@ -655,10 +723,12 @@ public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public long TimeoutCheckTimer;
     public List<int> TimeoutActorMessageSenders = new List<int>();
 }
-   #+END_SRC
-** ActorMessageSenderComponentSystem: 多带个Timer
-- 这个类我好像认真读过，大概是小伙伴搬家超时，什么之类的，改天再读一遍
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorMessageSenderComponentSystem: 多带个Timer}
+\label{sec-3-4}
+\begin{itemize}
+\item 这个类我好像认真读过，大概是小伙伴搬家超时，什么之类的，改天再读一遍
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(ActorMessageSenderComponent))]
 public static class ActorMessageSenderComponentSystem {
     [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系
@@ -768,10 +838,12 @@ public static class ActorMessageSenderComponentSystem {
         Run(actorMessageSender, response);
     }
 }
-   #+END_SRC
+\end{minted}
+\end{itemize}
 
-** ActorHandleHelper 帮助类
-   #+BEGIN_SRC csharp
+\subsection{ActorHandleHelper 帮助类}
+\label{sec-3-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class ActorHandleHelper {
     public static void Reply(int fromProcess, IActorResponse response) {
         if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程
@@ -869,12 +941,13 @@ public static class ActorHandleHelper {
         }
     }
 }
-   #+END_SRC
+\end{minted}
 
-
-* 【拖拉机游戏房间】组件: 分析
-** TractorRoomEvent: 拖拉机房间，【待修改完成】 
-#+BEGIN_SRC csharp
+\section{【拖拉机游戏房间】组件: 分析}
+\label{sec-4}
+\subsection{TractorRoomEvent: 拖拉机房间，【待修改完成】}
+\label{sec-4-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // UI 系统的事件机制：定义，如何创建拖拉机游戏房间【TODO:】UNITY 里是需要制作相应预设的
 [UIEvent(UIType.TractorRoom)]
 public class TractorRoomEvent: AUIEvent {
@@ -894,10 +967,12 @@ public class TractorRoomEvent: AUIEvent {
         ResourcesComponent.Instance.UnloadBundle(UIType.TractorRoom.StringToAB());
     }
 }
-#+END_SRC
-** GamerComponent: 玩家【管理类组件】，是对房间里四个玩家的管理。
-- 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{GamerComponent: 玩家【管理类组件】，是对房间里四个玩家的管理。}
+\label{sec-4-2}
+\begin{itemize}
+\item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 组件：是提供给房间用，用来管理游戏中每个房间里的最多三个当前玩家
 public class GamerComponent : Entity, IAwake { // 它也有【生成系】
     private readonly Dictionary<long, int> seats = new Dictionary<long, int>();
@@ -950,9 +1025,11 @@ public class GamerComponent : Entity, IAwake { // 它也有【生成系】
             }
     }
 }
-   #+END_SRC
-** Gamer: 【服务端】一个玩家个例。对应这个玩家的相关信息
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{Gamer: 【服务端】一个玩家个例。对应这个玩家的相关信息}
+\label{sec-4-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 房间玩家对象
 public sealed class Gamer : Entity, IAwake<long> {
     // 用户ID（唯一）
@@ -978,10 +1055,12 @@ public sealed class Gamer : Entity, IAwake<long> {
         this.isOffline = false;
     }
 }
-   #+END_SRC
-** Gamer: 【客户端】一个玩家个例。它说只要一点儿信息就行
-- 传进程间消息的时候，也只传这两个关键参数。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{Gamer: 【客户端】一个玩家个例。它说只要一点儿信息就行}
+\label{sec-4-4}
+\begin{itemize}
+\item 传进程间消息的时候，也只传这两个关键参数。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public sealed class Gamer : Entity { // 玩家对象
     // 玩家唯一ID
     public long UserID { get; set; }
@@ -994,9 +1073,11 @@ public sealed class Gamer : Entity { // 玩家对象
         this.IsReady = false;
     }
 }
-   #+END_SRC
-** GamerUIComponent: 【客户端】玩家UI 组件：每个玩家背个小面板，来显示必要信息（钱，抢不抢庄，反过的主等）
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{GamerUIComponent: 【客户端】玩家UI 组件：每个玩家背个小面板，来显示必要信息（钱，抢不抢庄，反过的主等）}
+\label{sec-4-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class GamerUIComponent : Entity, IStart { // 玩家UI组件
     public GameObject Panel { get; private set; } // UI面板
     // 玩家昵称
@@ -1090,10 +1171,12 @@ public class GamerUIComponent : Entity, IStart { // 玩家UI组件
         ResetPanel(); // 重置玩家UI
     }
 }
-   #+END_SRC
-** Protobuf 里面的消息与参考 
-- 这里把 Protobuf 里面可以传的游戏相关也整理一下。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{Protobuf 里面的消息与参考}
+\label{sec-4-6}
+\begin{itemize}
+\item 这里把 Protobuf 里面可以传的游戏相关也整理一下。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 message GamerInfo {
     int64 UserID = 1;
     bool IsReady = 2;
@@ -1117,9 +1200,11 @@ message Actor_GamerGrabLandlordSelect_Ntt { // IActorMessage 参考去想：抢�
     int64 UserID = 1;
     bool IsGrab = 2;
 }
-   #+END_SRC
-** TractorRoomComponent: 游戏房间，自带其它组件，当有嵌套时，如何才能系统化地、工厂化地、UI 上的事件驱动地，生成这个组件呢？
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{TractorRoomComponent: 游戏房间，自带其它组件，当有嵌套时，如何才能系统化地、工厂化地、UI 上的事件驱动地，生成这个组件呢？}
+\label{sec-4-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class TractorRoomComponent : Entity, IAwake {
     private TractorInteractionComponent interaction; // 嵌套组件：互动组件
     private Text multiples;
@@ -1135,11 +1220,13 @@ public class TractorRoomComponent : Entity, IAwake {
             return interaction;
         }
     }
-   #+END_SRC
-** TractorInteractionComponent: 感觉是视图UI 上的一堆调控，逻辑控制
-- 上下这一两个组件里，除了 ProtoBuf 消息里传递的类找不到，没有其它错误
-- 【嵌套】：是这里的难点。其它都可以一个触发一个地由事件发布触发订阅者的回调，可是当一个组件内存在嵌套，又是系统化【内部组件生成完成后，外部组件才生成完成】生成，我是要把这两个组件合并成一个吗？还是说，我不得不把它折成粒度更小的UI 上的事件驱动机制，以符合系统框架？要去所源码弄透。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{TractorInteractionComponent: 感觉是视图UI 上的一堆调控，逻辑控制}
+\label{sec-4-8}
+\begin{itemize}
+\item 上下这一两个组件里，除了 ProtoBuf 消息里传递的类找不到，没有其它错误
+\item 【嵌套】：是这里的难点。其它都可以一个触发一个地由事件发布触发订阅者的回调，可是当一个组件内存在嵌套，又是系统化【内部组件生成完成后，外部组件才生成完成】生成，我是要把这两个组件合并成一个吗？还是说，我不得不把它折成粒度更小的UI 上的事件驱动机制，以符合系统框架？要去所源码弄透。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 【互动组件】：一堆的视图控件管理 
 public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：有些暂时是隐藏的
     private Button playButton;
@@ -1152,7 +1239,8 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 
     public bool isTrusteeship { get; set; }
     public bool IsFirst { get; set; }
-   #+END_SRC
+\end{minted}
+\end{itemize}
 
 
 
@@ -1161,10 +1249,13 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 
 
 
-* 消息处理器： AMActorHandler<E, Message> 继承类的返回类型，全改成了 void 
-** AMActorHandler<E, Message>: 基类的抽象方法 Run 的返回类型被固定死了，报了狠多错
-- 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
-   #+BEGIN_SRC csharp
+\section{消息处理器： AMActorHandler<E, Message> 继承类的返回类型，全改成了 void}
+\label{sec-5}
+\subsection{AMActorHandler<E, Message>: 基类的抽象方法 Run 的返回类型被固定死了，报了狠多错}
+\label{sec-5-1}
+\begin{itemize}
+\item 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [EnableClass]
 public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage {
 
@@ -1192,22 +1283,27 @@ public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entit
         return null;
     }
 }
-   #+END_SRC
-** IMActorHandler: 接口类的定义，同样要改
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{IMActorHandler: 接口类的定义，同样要改}
+\label{sec-5-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IMActorHandler {
     // ETTask Handle(Entity entity, int fromProcess, object actorMessage);
     void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的
     Type GetRequestType();
     Type GetResponseType();
 }
-   #+END_SRC
+\end{minted}
 
 
-* Protobuf 里的 enum: 【Identity】【Suits】【Weight】
-** OuterMessage_C_10001.proto 里三四个类的定义
-- 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
-   #+BEGIN_SRC csharp
+\section{Protobuf 里的 enum: 【Identity】【Suits】【Weight】}
+\label{sec-6}
+\subsection{OuterMessage\_C\_10001.proto 里三四个类的定义}
+\label{sec-6-1}
+\begin{itemize}
+\item 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 enum Identity { // 身份
     IdentityNone = 0;
     Farmer = 1;     // 平民
@@ -1241,9 +1337,11 @@ message Card {
     Weight CardWeight = 1;
     Suits CardSuits = 2;
 }
-   #+END_SRC
-** 【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见}
+\label{sec-6-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ETModel {
 #region Enums
     public enum Suits {
@@ -1277,11 +1375,14 @@ namespace ETModel {
     }
 #endregion
 #region Messages
-   #+END_SRC
-** ET7 框架里， enum 完全找不到
-- 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
-- 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】 
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{ET7 框架里， enum 完全找不到}
+\label{sec-6-3}
+\begin{itemize}
+\item 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
+\item 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 message SearchRequest {
     string query = 1;
     int32 page_number = 2;
@@ -1296,11 +1397,15 @@ message SearchRequest {
     }
     Corpus corpus = 4; // enum 成员变量一定义赋值
 }
-#+END_SRC
-- 觉得这个，是目前最主要的 compile-error 的来源，但不是自己重构项目的重点，还是去看其它的。看如何重构现项目。这个晚上再弄。
-** ETModel_Card_Binding: 奇异点，ILRuntime 热更新里，似乎对 Card 类的两个成员变量作了辅助链接
-- 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
-   #+BEGIN_SRC csharp
+\end{minted}
+\begin{itemize}
+\item 觉得这个，是目前最主要的 compile-error 的来源，但不是自己重构项目的重点，还是去看其它的。看如何重构现项目。这个晚上再弄。
+\end{itemize}
+\subsection{ETModel\_Card\_Binding: 奇异点，ILRuntime 热更新里，似乎对 Card 类的两个成员变量作了辅助链接}
+\label{sec-6-4}
+\begin{itemize}
+\item 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 unsafe class ETModel_Card_Binding {
     public static void Register(ILRuntime.Runtime.Enviorment.AppDomain app) {
         BindingFlags flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
@@ -1320,36 +1425,44 @@ unsafe class ETModel_Card_Binding {
         method = type.GetMethod("get_Parser", flag, null, args, null);
         app.RegisterCLRMethodRedirection(method, get_Parser_3);
     }
-   #+END_SRC
+\end{minted}
+\end{itemize}
 
 
-* ET7 数据库相关【服务端】
-- 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
-- 这里不急着整理。现框架 *DB 放在服务端的Model* 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
-- 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
-** IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧
-   #+BEGIN_SRC csharp
+\section{ET7 数据库相关【服务端】}
+\label{sec-7}
+\begin{itemize}
+\item 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
+\item 这里不急着整理。现框架 \textbf{DB 放在服务端的Model} 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
+\item 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
+\end{itemize}
+\subsection{IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧}
+\label{sec-7-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IDBCollection {}
-   #+END_SRC
-** DBComponent: 带生成系。可以查表，查询数据
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBComponent: 带生成系。可以查表，查询数据}
+\label{sec-7-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
 public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
     public const int TaskCount = 32;
     public MongoClient mongoClient;
     public IMongoDatabase database;
 }
-   #+END_SRC
-** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？}
+\label{sec-7-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class DBManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static DBManagerComponent Instance;
     public DBComponent[] DBComponents = new DBComponent[IdGenerater.MaxZone]; // 没事吃饱了撑得，占一大堆空地
 }
-   #+END_SRC
-** DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里}
+\label{sec-7-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(DBManagerComponent))]
 public static class DBManagerComponentSystem {
     [ObjectSystem]
@@ -1376,20 +1489,24 @@ public static class DBManagerComponentSystem {
         return dbComponent;
     }
 }
-   #+END_SRC
-** DBProxyComponent: 【参考项目】里的。有生成系。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBProxyComponent: 【参考项目】里的。有生成系。}
+\label{sec-7-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 用来与数据库操作代理
 public class DBProxyComponent: Component {
     public IPEndPoint dbAddress;
 }
-   #+END_SRC
+\end{minted}
 
-
-* StartConfigComponent: 找【各种服】的起始初始化地址
-- 这些组群服务器的起始被全部重构了，重构成配置单例了
-** ConfigSingleton<T>: ProtoObject, ISingleton
-   #+BEGIN_SRC csharp
+\section{StartConfigComponent: 找【各种服】的起始初始化地址}
+\label{sec-8}
+\begin{itemize}
+\item 这些组群服务器的起始被全部重构了，重构成配置单例了
+\end{itemize}
+\subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
+\label{sec-8-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
     [StaticField]
     private static T instance;
@@ -1415,11 +1532,13 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
     public override void AfterEndInit() { }
     public virtual void Dispose() { }
 }
-   #+END_SRC
-** StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 吃饱了撑得吗？
-- 当数据库集群成区服的形式，这里各服务器的配置，成了 ProtoBuf 里进程间可传的消息模式？。。。
-- 这里配置是从哪里来的呢？仍然是从各种配置文件里
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 吃饱了撑得吗？}
+\label{sec-8-2}
+\begin{itemize}
+\item 当数据库集群成区服的形式，这里各服务器的配置，成了 ProtoBuf 里进程间可传的消息模式？。。。
+\item 这里配置是从哪里来的呢？仍然是从各种配置文件里
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ProtoContract]
 [Config]
 public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
@@ -1471,9 +1590,11 @@ public partial class StartProcessConfig: ProtoObject, IConfig {
     [ProtoMember(3)]
     public int InnerPort { get; set; }
 }
-   #+END_SRC
-** SceneFactory 里可以给【匹配服】添加组件
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{SceneFactory 里可以给【匹配服】添加组件}
+\label{sec-8-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
         await ETTask.CompletedTask;
@@ -1509,9 +1630,10 @@ public static class SceneFactory {
         return scene;
     }
 }
-   #+END_SRC
-** RouterAddressComponent: 路由器组件
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{RouterAddressComponent: 路由器组件}
+\label{sec-8-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class RouterAddressComponent: Entity, IAwake<string, int> {
     public IPAddress RouterManagerIPAddress { get; set; }
@@ -1520,9 +1642,10 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
     public HttpGetRouterResponse Info;
     public int RouterIndex;
 }
-   #+END_SRC
-** RouterAddressComponentSystem: 路由器的生成系
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{RouterAddressComponentSystem: 路由器的生成系}
+\label{sec-8-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(RouterAddressComponent))]
 public static class RouterAddressComponentSystem {
     public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
@@ -1575,10 +1698,11 @@ public static class RouterAddressComponentSystem {
         return new IPEndPoint(ipAddress, int.Parse(ss[1]));
     }
 }
-   #+END_SRC
+\end{minted}
 
-** RouterHelper: 路由器帮助类，向路由器注册、申请？
-   #+BEGIN_SRC csharp
+\subsection{RouterHelper: 路由器帮助类，向路由器注册、申请？}
+\label{sec-8-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class RouterHelper {
     // 注册router
     public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
@@ -1650,9 +1774,10 @@ public static class RouterHelper {
         }
     }
 }
-   #+END_SRC
-** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例}
+\label{sec-8-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
         try {
@@ -1683,9 +1808,10 @@ public static class LoginHelper {
         }
     } 
 }
-#+END_SRC
-** HttpGetRouterResponse: 这个 ProtoBuf 的消息类型
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
+\label{sec-8-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Message(OuterMessage.HttpGetRouterResponse)]
 [ProtoContract]
 public partial class HttpGetRouterResponse: ProtoObject {
@@ -1694,12 +1820,13 @@ public partial class HttpGetRouterResponse: ProtoObject {
     [ProtoMember(2)]
     public List<string> Routers { get; set; }
 }
-   #+END_SRC
+\end{minted}
 
-
-* 组件定义，再澄明，与去重
-** OnlineComponent: 参考项目里的，现框架里查找一下
-   #+BEGIN_SRC csharp
+\section{组件定义，再澄明，与去重}
+\label{sec-9}
+\subsection{OnlineComponent: 参考项目里的，现框架里查找一下}
+\label{sec-9-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 在线组件，用于记录在线玩家
 public class OnlineComponent : Entity {
     private readonly Dictionary<long, int> dictionary = new Dictionary<long, int>();
@@ -1718,9 +1845,10 @@ public class OnlineComponent : Entity {
         dictionary.Remove(userId);
     }
 }
-   #+END_SRC
-** 框架Game 类：是单例的管理类，与服务端或是客户端的总、根场景无关
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{框架Game 类：是单例的管理类，与服务端或是客户端的总、根场景无关}
+\label{sec-9-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class Game { // 框架的Game 类
     [StaticField]
     private static readonly Dictionary<Type, ISingleton> singletonTypes = new Dictionary<Type, ISingleton>();
@@ -1804,13 +1932,18 @@ public static class Game { // 框架的Game 类
         singletonTypes.Clear();
     }
 }
-   #+END_SRC
-** ET7 的重构，将数据库相关全部去掉了？找不到数据库的踪影？
-- 扔进什么狗屁的 AI 相关里去了。不用管，可以添加自己需要用到的
-** GamerFactory: 【加工厂】全部移除掉
-- 工厂的逻辑，重构以后，全部放进了AUIEvent 的实例继承类里。全部移除掉
-- 有个 Factory 的文件夹，是会全部移除掉的
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ET7 的重构，将数据库相关全部去掉了？找不到数据库的踪影？}
+\label{sec-9-3}
+\begin{itemize}
+\item 扔进什么狗屁的 AI 相关里去了。不用管，可以添加自己需要用到的
+\end{itemize}
+\subsection{GamerFactory: 【加工厂】全部移除掉}
+\label{sec-9-4}
+\begin{itemize}
+\item 工厂的逻辑，重构以后，全部放进了AUIEvent 的实例继承类里。全部移除掉
+\item 有个 Factory 的文件夹，是会全部移除掉的
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class GamerFactory {
     // 创建玩家对象
     public static Gamer Create(long playerId, long userId, long? id = null) {
@@ -1819,100 +1952,49 @@ public static class GamerFactory {
         return gamer;
     }
 }
-   #+END_SRC
-
-
-* 写在最后：反而是自己每天查看一再更新的
-- 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
-- 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
-- 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
-- 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
-- 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
-- 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
-
-
-* 现在的修改内容，记忆
-- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        
-- 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-
-
-* TODO 
-- *Windows 下 org-mode 有几个【BUG：】* 1.org-mode 不能自动识别模式，除第一次加载可以正确，其它再加载不识别 org-mode; 2.org-export-to-pdf 在我换成为 msys64 里的 emacs 后就坏掉了。因为要花时间修，暂时还放着
-- *【IStartSystem:】* 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 *【晚点儿再检查一遍】*
-- *【Protobuf 里进程间传递的游戏数据相关信息：】* 这个现在成为重构的主要 compile-error. 因为找不到类。需要去弄懂
-  - 【Proto2CS】: 进程间消息里的，【牌相关的】，尤其是它们所属的命名空间，没写对，现在总是找不到定义。
-  - 包括Identity, Weight,Suits,抢不抢地主【抢不抢庄】，以及可能的反不反主牌花色等。
-  - 找不到的那些类，感觉更多的是命名空间没能开对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
-  - *【Identity】与【Suits/Weight】三个【enum】* ：外网消息里，怎么会找不到呢？再回去检查一遍。下午要把这个弄通，要开始思路怎么设计重构拖拉机项目。
-- Match 【匹配服】：不知道我哪根筋搭错，以为没有匹配服。可是它的配置。。。再一次从服务端看一遍起始源码，把匹配服的地址加载与获取找出来。。。
-- 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
-- 把参考游戏里，打牌相关的逻辑与模块好好看下，方便自己熟悉自己重构项目的源码后，画葫芦画飘地重构
-- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-
-* 拖拉机游戏：【重构OOP/OOD 设计思路】
-- 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
-- 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
-- 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+\end{minted}
+\end{itemize}
+
+\section{写在最后：反而是自己每天查看一再更新的}
+\label{sec-10}
+\begin{itemize}
+\item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
+\item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
+\item 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
+\item 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
+\item 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
+\item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
+\end{itemize}
+
+\section{现在的修改内容，记忆}
+\label{sec-11}
+\begin{itemize}
+\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
+\item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\end{itemize}
+\section{{\bfseries\sffamily TODO} }
+\label{sec-12}
+\begin{itemize}
+\item \textbf{Windows 下 org-mode 有几个【BUG：】} 1.org-mode 不能自动识别模式，除第一次加载可以正确，其它再加载不识别 org-mode; 2.org-export-to-pdf 在我换成为 msys64 里的 emacs 后就坏掉了。因为要花时间修，暂时还放着
+\item \textbf{【IStartSystem:】} 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 \textbf{【晚点儿再检查一遍】}
+\item \textbf{【Protobuf 里进程间传递的游戏数据相关信息：】} 这个现在成为重构的主要 compile-error. 因为找不到类。需要去弄懂
+\begin{itemize}
+\item 【Proto2CS】: 进程间消息里的，【牌相关的】，尤其是它们所属的命名空间，没写对，现在总是找不到定义。
+\item 包括Identity, Weight,Suits,抢不抢地主【抢不抢庄】，以及可能的反不反主牌花色等。
+\item 找不到的那些类，感觉更多的是命名空间没能开对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
+\item \textbf{【Identity】与【Suits/Weight】三个【enum】} ：外网消息里，怎么会找不到呢？再回去检查一遍。下午要把这个弄通，要开始思路怎么设计重构拖拉机项目。
+\end{itemize}
+\item Match 【匹配服】：不知道我哪根筋搭错，以为没有匹配服。可是它的配置。。。再一次从服务端看一遍起始源码，把匹配服的地址加载与获取找出来。。。
+\item 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
+\item 把参考游戏里，打牌相关的逻辑与模块好好看下，方便自己熟悉自己重构项目的源码后，画葫芦画飘地重构
+\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+\section{拖拉机游戏：【重构OOP/OOD 设计思路】}
+\label{sec-13}
+\begin{itemize}
+\item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
+\item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
+\end{itemize}
+% Emacs 28.2 (Org mode 8.2.7c)
+\end{document}

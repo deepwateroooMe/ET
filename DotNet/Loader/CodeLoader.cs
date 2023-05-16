@@ -11,7 +11,7 @@ namespace ET {
         public void Start() {
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
             foreach (Assembly assembly in assemblies) {
-                if (assembly.GetName().Name == "Model") {
+                if (assembly.GetName().Name == "Model") { // 不是搞不懂程序域么，可以倒着去追，去找打包时，哪些部分的源码被打进Model 里了。。
                     this.model = assembly;
                     break;
                 }
