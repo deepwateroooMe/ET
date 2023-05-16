@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 namespace ET {
-    // 这里偈是框架的Game 类
-    public static class Game {
+    
+    public static class Game { // 框架的Game 类
         [StaticField]
         private static readonly Dictionary<Type, ISingleton> singletonTypes = new Dictionary<Type, ISingleton>();
         [StaticField]

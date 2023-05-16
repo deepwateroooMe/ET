@@ -2,6 +2,126 @@
 #+title: ET 框架学习笔记（二）－－网络交互相关
 #+author: deepwaterooo 
 
+* Net 网络交互相关：只在【服务端】用
+** NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件
+   #+BEGIN_SRC csharp
+namespace ET.Server {
+    // 【服务器】：对不同进程的一些处理
+    public struct ProcessActorId {
+        public int Process;
+        public long ActorId;
+        public ProcessActorId(long actorId) {
+            InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
+            this.Process = instanceIdStruct.Process;
+            instanceIdStruct.Process = Options.Instance.Process;
+            this.ActorId = instanceIdStruct.ToLong();
+        }
+    }
+    
+    public struct NetInnerComponentOnRead {
+        public long ActorId;
+        public object Message;
+    }
+    
+    [ComponentOf(typeof(Scene))]
+    public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
+        public int ServiceId;
+        
+        public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
+        [StaticField]
+        public static NetInnerComponent Instance;
+    }
+}
+   #+END_SRC
+** NetInnerComponentSystem: 生成系
+   #+BEGIN_SRC csharp
+[FriendOf(typeof(NetInnerComponent))]
+public static class NetInnerComponentSystem {
+    [ObjectSystem]
+    public class NetInnerComponentAwakeSystem: AwakeSystem<NetInnerComponent> {
+        protected override void Awake(NetInnerComponent self) {
+            NetInnerComponent.Instance = self;
+            switch (self.InnerProtocol) {
+                case NetworkProtocol.TCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new TService(AddressFamily.InterNetwork, ServiceType.Inner));
+                    break;
+                }
+                case NetworkProtocol.KCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new KService(AddressFamily.InterNetwork, ServiceType.Inner));
+                    break;
+                }
+            }
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }
+    [ObjectSystem]
+    public class NetInnerComponentAwake1System: AwakeSystem<NetInnerComponent, IPEndPoint> {
+        protected override void Awake(NetInnerComponent self, IPEndPoint address) {
+            NetInnerComponent.Instance = self;
+            switch (self.InnerProtocol) {
+                case NetworkProtocol.TCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new TService(address, ServiceType.Inner));
+                    break;
+                }
+                case NetworkProtocol.KCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Inner));
+                    break;
+                }
+            }
+            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept);
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }
+    [ObjectSystem]
+    public class NetInnerComponentDestroySystem: DestroySystem<NetInnerComponent> {
+        protected override void Destroy(NetInnerComponent self) {
+            NetServices.Instance.RemoveService(self.ServiceId);
+        }
+    }
+    private static void OnRead(this NetInnerComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) 
+            return;
+        session.LastRecvTime = TimeHelper.ClientFrameTime();
+        self.HandleMessage(actorId, message);
+    }
+    public static void HandleMessage(this NetInnerComponent self, long actorId, object message) {
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetInnerComponentOnRead() { ActorId = actorId, Message = message });
+    }
+    private static void OnError(this NetInnerComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) 
+            return;
+        session.Error = error;
+        session.Dispose();
+    }
+    // 这个channelId是由CreateAcceptChannelId生成的
+    private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint;
+        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
+    }
+    private static Session CreateInner(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint;
+        NetServices.Instance.CreateChannel(self.ServiceId, channelId, ipEndPoint);
+        // session.AddComponent<InnerPingComponent>();
+        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
+        return session;
+    }
+    // 内网actor session，channelId是进程号
+    public static Session Get(this NetInnerComponent self, long channelId) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session != null) 
+            return session;
+        IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
+        session = self.CreateInner(channelId, ipEndPoint);
+        return session;
+    }
+}
+   #+END_SRC
 * IAwake 接口类系统，IStart 重构丢了
 - 感觉还比较直接，就是帮助搭建热更新域与Unity 常规工程域生命周期回调的桥，搭桥连线，连能就可以了。应该可以扩散出个IStart 接口类
 ** IMessage,IRequest,IResponse: 进程内？消息类
@@ -727,128 +847,6 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 
 
 
-
-
-* Net 网络交互相关：只在【服务端】用
-** NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件
-   #+BEGIN_SRC csharp
-namespace ET.Server {
-    // 【服务器】：对不同进程的一些处理
-    public struct ProcessActorId {
-        public int Process;
-        public long ActorId;
-        public ProcessActorId(long actorId) {
-            InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
-            this.Process = instanceIdStruct.Process;
-            instanceIdStruct.Process = Options.Instance.Process;
-            this.ActorId = instanceIdStruct.ToLong();
-        }
-    }
-    
-    public struct NetInnerComponentOnRead {
-        public long ActorId;
-        public object Message;
-    }
-    
-    [ComponentOf(typeof(Scene))]
-    public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
-        public int ServiceId;
-        
-        public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
-        [StaticField]
-        public static NetInnerComponent Instance;
-    }
-}
-   #+END_SRC
-** NetInnerComponentSystem: 生成系
-   #+BEGIN_SRC csharp
-[FriendOf(typeof(NetInnerComponent))]
-public static class NetInnerComponentSystem {
-    [ObjectSystem]
-    public class NetInnerComponentAwakeSystem: AwakeSystem<NetInnerComponent> {
-        protected override void Awake(NetInnerComponent self) {
-            NetInnerComponent.Instance = self;
-            switch (self.InnerProtocol) {
-                case NetworkProtocol.TCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new TService(AddressFamily.InterNetwork, ServiceType.Inner));
-                    break;
-                }
-                case NetworkProtocol.KCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new KService(AddressFamily.InterNetwork, ServiceType.Inner));
-                    break;
-                }
-            }
-            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
-            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
-        }
-    }
-    [ObjectSystem]
-    public class NetInnerComponentAwake1System: AwakeSystem<NetInnerComponent, IPEndPoint> {
-        protected override void Awake(NetInnerComponent self, IPEndPoint address) {
-            NetInnerComponent.Instance = self;
-            switch (self.InnerProtocol) {
-                case NetworkProtocol.TCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new TService(address, ServiceType.Inner));
-                    break;
-                }
-                case NetworkProtocol.KCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Inner));
-                    break;
-                }
-            }
-            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept);
-            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
-            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
-        }
-    }
-    [ObjectSystem]
-    public class NetInnerComponentDestroySystem: DestroySystem<NetInnerComponent> {
-        protected override void Destroy(NetInnerComponent self) {
-            NetServices.Instance.RemoveService(self.ServiceId);
-        }
-    }
-    private static void OnRead(this NetInnerComponent self, long channelId, long actorId, object message) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session == null) 
-            return;
-        session.LastRecvTime = TimeHelper.ClientFrameTime();
-        self.HandleMessage(actorId, message);
-    }
-    public static void HandleMessage(this NetInnerComponent self, long actorId, object message) {
-        EventSystem.Instance.Publish(Root.Instance.Scene, new NetInnerComponentOnRead() { ActorId = actorId, Message = message });
-    }
-    private static void OnError(this NetInnerComponent self, long channelId, int error) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session == null) 
-            return;
-        session.Error = error;
-        session.Dispose();
-    }
-    // 这个channelId是由CreateAcceptChannelId生成的
-    private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-        session.RemoteAddress = ipEndPoint;
-        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
-    }
-    private static Session CreateInner(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-        session.RemoteAddress = ipEndPoint;
-        NetServices.Instance.CreateChannel(self.ServiceId, channelId, ipEndPoint);
-        // session.AddComponent<InnerPingComponent>();
-        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
-        return session;
-    }
-    // 内网actor session，channelId是进程号
-    public static Session Get(this NetInnerComponent self, long channelId) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session != null) 
-            return session;
-        IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
-        session = self.CreateInner(channelId, ipEndPoint);
-        return session;
-    }
-}
-   #+END_SRC
 * 消息处理器： AMActorHandler<E, Message> 继承类的返回类型，全改成了 void 
 ** AMActorHandler<E, Message>: 基类的抽象方法 Run 的返回类型被固定死了，报了狠多错
 - 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
@@ -892,6 +890,297 @@ public interface IMActorHandler {
    #+END_SRC
 
 
+* Protobuf 里的 enum: 【Identity】【Suits】【Weight】
+** OuterMessage_C_10001.proto 里三四个类的定义
+- 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
+   #+BEGIN_SRC csharp
+enum Identity { // 身份
+    IdentityNone = 0;
+    Farmer = 1;     // 平民
+    Landlord = 2;   // 地主
+}
+enum Suits { // 花色
+    Club = 0;    // 梅花
+    Diamond = 1; // 方块
+    Heart = 2;   // 红心
+    Spade = 3;   // 黑桃
+    None = 4;
+}
+enum Weight { // 权重
+    Three = 0;      // 3
+    Four = 1;       // 4
+    Five = 2;       // 5
+    Six = 3;        // 6
+    Seven = 4;      // 7
+    Eight = 5;      // 8
+    Nine = 6;       // 9
+    Ten = 7;        // 10
+    Jack = 8;       // J
+    Queen = 9;      // Q
+    King = 10;       // K
+    One = 11;        // A
+    Two = 12;        // 2
+    SJoker = 13;     // 小王
+    LJoker = 14;     // 大王
+}
+message Card {
+    Weight CardWeight = 1;
+    Suits CardSuits = 2;
+}
+   #+END_SRC
+** 【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见
+   #+BEGIN_SRC csharp
+namespace ETModel {
+#region Enums
+    public enum Suits {
+        Club = 0,
+        Diamond = 1,
+        Heart = 2,
+        Spade = 3,
+        None = 4,
+    }
+    public enum Weight {
+        Three = 0,
+        Four = 1,
+        Five = 2,
+        Six = 3,
+        Seven = 4,
+        Eight = 5,
+        Nine = 6,
+        Ten = 7,
+        Jack = 8,
+        Queen = 9,
+        King = 10,
+        One = 11,
+        Two = 12,
+        Sjoker = 13,
+        Ljoker = 14,
+    }
+    public enum Identity {
+        None = 0,
+        Farmer = 1,
+        Landlord = 2,
+    }
+#endregion
+#region Messages
+   #+END_SRC
+** ET7 框架里， enum 完全找不到
+- 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
+- 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】 
+#+BEGIN_SRC csharp
+message SearchRequest {
+    string query = 1;
+    int32 page_number = 2;
+    enum Corpus { // enum 成员变量一定义嵌套
+        UNIVERSAL = 0;
+        WEB = 1;
+        IMAGES = 2;
+        LOCAL = 3;
+        NEWS = 4;
+        PRODUCTS = 5;
+        VIDEO = 6;
+    }
+    Corpus corpus = 4; // enum 成员变量一定义赋值
+}
+#+END_SRC
+- 觉得这个，是目前最主要的 compile-error 的来源，但不是自己重构项目的重点，还是去看其它的。看如何重构现项目。这个晚上再弄。
+** ETModel_Card_Binding: 奇异点，ILRuntime 热更新里，似乎对 Card 类的两个成员变量作了辅助链接
+- 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
+   #+BEGIN_SRC csharp
+unsafe class ETModel_Card_Binding {
+    public static void Register(ILRuntime.Runtime.Enviorment.AppDomain app) {
+        BindingFlags flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+        MethodBase method;
+        Type[] args;
+        Type type = typeof(ETModel.Card);
+        args = new Type[]{};
+        method = type.GetMethod("GetName", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, GetName_0);
+        args = new Type[]{};
+        method = type.GetMethod("get_CardWeight", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, get_CardWeight_1);
+        args = new Type[]{};
+        method = type.GetMethod("get_CardSuits", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, get_CardSuits_2);
+        args = new Type[]{};
+        method = type.GetMethod("get_Parser", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, get_Parser_3);
+    }
+   #+END_SRC
+
+* ET7 数据库相关【服务端】
+- 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
+- 这里不急着整理。现框架 *DB 放在服务端的Model* 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
+- 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
+** IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧
+   #+BEGIN_SRC csharp
+public interface IDBCollection {}
+   #+END_SRC
+** DBComponent: 带生成系。可以查表，查询数据
+   #+BEGIN_SRC csharp
+[ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
+public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
+    public const int TaskCount = 32;
+    public MongoClient mongoClient;
+    public IMongoDatabase database;
+}
+   #+END_SRC
+** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？
+   #+BEGIN_SRC csharp
+public class DBManagerComponent: Entity, IAwake, IDestroy {
+    [StaticField]
+    public static DBManagerComponent Instance;
+    public DBComponent[] DBComponents = new DBComponent[IdGenerater.MaxZone]; // 没事吃饱了撑得，占一大堆空地
+}
+   #+END_SRC
+** DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里
+   #+BEGIN_SRC csharp
+[FriendOf(typeof(DBManagerComponent))]
+public static class DBManagerComponentSystem {
+    [ObjectSystem]
+    public class DBManagerComponentAwakeSystem: AwakeSystem<DBManagerComponent> {
+        protected override void Awake(DBManagerComponent self) {
+            DBManagerComponent.Instance = self;
+        }
+    }
+    [ObjectSystem]
+    public class DBManagerComponentDestroySystem: DestroySystem<DBManagerComponent> {
+        protected override void Destroy(DBManagerComponent self) {
+            DBManagerComponent.Instance = null;
+        }
+    }
+    public static DBComponent GetZoneDB(this DBManagerComponent self, int zone) {
+        DBComponent dbComponent = self.DBComponents[zone];
+        if (dbComponent != null) 
+            return dbComponent;
+        StartZoneConfig startZoneConfig = StartZoneConfigCategory.Instance.Get(zone);
+        if (startZoneConfig.DBConnection == "") 
+            throw new Exception($"zone: {zone} not found mongo connect string");
+        dbComponent = self.AddChild<DBComponent, string, string, int>(startZoneConfig.DBConnection, startZoneConfig.DBName, zone);
+        self.DBComponents[zone] = dbComponent;
+        return dbComponent;
+    }
+}
+   #+END_SRC
+** DBProxyComponent: 【参考项目】里的。有生成系。
+   #+BEGIN_SRC csharp
+// 用来与数据库操作代理
+public class DBProxyComponent: Component {
+    public IPEndPoint dbAddress;
+}
+   #+END_SRC
+
+* 组件定义，再澄明，与去重
+** OnlineComponent: 参考项目里的，现框架里查找一下
+   #+BEGIN_SRC csharp
+// 在线组件，用于记录在线玩家
+public class OnlineComponent : Entity {
+    private readonly Dictionary<long, int> dictionary = new Dictionary<long, int>();
+    // 添加在线玩家
+    public void Add(long userId, int gateAppId) {
+        dictionary.Add(userId, gateAppId);
+    }
+    // 获取在线玩家网关服务器ID
+    public int Get(long userId) {
+        int gateAppId;
+        dictionary.TryGetValue(userId, out gateAppId);
+        return gateAppId;
+    }
+    // 移除在线玩家
+    public void Remove(long userId) {
+        dictionary.Remove(userId);
+    }
+}
+   #+END_SRC
+** 框架Game 类：是单例的管理类，与服务端或是客户端的总、根场景无关
+   #+BEGIN_SRC csharp
+public static class Game { // 框架的Game 类
+    [StaticField]
+    private static readonly Dictionary<Type, ISingleton> singletonTypes = new Dictionary<Type, ISingleton>();
+    [StaticField]
+    private static readonly Stack<ISingleton> singletons = new Stack<ISingleton>();
+    [StaticField]
+    private static readonly Queue<ISingleton> updates = new Queue<ISingleton>();
+    [StaticField]
+    private static readonly Queue<ISingleton> lateUpdates = new Queue<ISingleton>();
+    [StaticField]
+    private static readonly Queue<ETTask> frameFinishTask = new Queue<ETTask>();
+    public static T AddSingleton<T>() where T: Singleton<T>, new() {
+        T singleton = new T();
+        AddSingleton(singleton);
+        return singleton;
+    }
+    public static void AddSingleton(ISingleton singleton) { // 对单例的生命周期进行回调
+        Type singletonType = singleton.GetType();
+        if (singletonTypes.ContainsKey(singletonType)) 
+            throw new Exception($"already exist singleton: {singletonType.Name}");
+        singletonTypes.Add(singletonType, singleton);
+        singletons.Push(singleton);
+        singleton.Register();
+        if (singleton is ISingletonAwake awake) 
+            awake.Awake();
+        if (singleton is ISingletonUpdate) 
+            updates.Enqueue(singleton);
+        if (singleton is ISingletonLateUpdate) 
+            lateUpdates.Enqueue(singleton);
+    }
+    public static async ETTask WaitFrameFinish() {
+        ETTask task = ETTask.Create(true);
+        frameFinishTask.Enqueue(task);
+        await task;
+    }
+    public static void Update() {
+        int count = updates.Count;
+        while (count-- > 0) {
+            ISingleton singleton = updates.Dequeue();
+            if (singleton.IsDisposed()) 
+                continue;
+            if (singleton is not ISingletonUpdate update) 
+                continue;
+            updates.Enqueue(singleton);
+            try {
+                update.Update();
+            }
+            catch (Exception e) {
+                Log.Error(e);
+            }
+        }
+    }
+    public static void LateUpdate() {
+        int count = lateUpdates.Count;
+        while (count-- > 0) {
+            ISingleton singleton = lateUpdates.Dequeue();
+            if (singleton.IsDisposed()) 
+                continue;
+            if (singleton is not ISingletonLateUpdate lateUpdate) 
+                continue;
+            lateUpdates.Enqueue(singleton);
+            try {
+                lateUpdate.LateUpdate();
+            }
+            catch (Exception e) {
+                Log.Error(e);
+            }
+        }
+    }
+    public static void FrameFinishUpdate() {
+        while (frameFinishTask.Count > 0) {
+            ETTask task = frameFinishTask.Dequeue();
+            task.SetResult();
+        }
+    }
+    public static void Close() { // 顺序反过来清理
+        while (singletons.Count > 0) {
+            ISingleton iSingleton = singletons.Pop();
+            iSingleton.Destroy();
+        }
+        singletonTypes.Clear();
+    }
+}
+   #+END_SRC
+** ET7 的重构，将数据库相关全部去掉了？找不到数据库的踪影？
+- 扔进什么狗屁的 AI 相关里去了。不用管，可以添加自己需要用到的
+
 * 写在最后：反而是自己每天查看一再更新的
 - 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 - 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
@@ -903,13 +1192,14 @@ public interface IMActorHandler {
 * 现在的修改内容，记忆
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-* TODO 今天晚上把几个消息抓全了，免得一堆的报错
+* TODO 
+- *Windows 下 org-mode 有几个【BUG：】* 1.org-mode 不能自动识别模式，除第一次加载可以正确，其它再加载不识别 org-mode; 2.org-export-to-pdf 在我换成为 msys64 里的 emacs 后就坏掉了。因为要花时间修，暂时还放着
 - *【IStartSystem:】* 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 *【晚点儿再检查一遍】*
-- 【Proto2CS】: 进程间消息里的，【牌相关的】，尤其是它们所属的命名空间，没写对，现在总是找不到定义。
 - *【Protobuf 里进程间传递的游戏数据相关信息：】* 这个现在成为重构的主要 compile-error. 因为找不到类。需要去弄懂
+  - 【Proto2CS】: 进程间消息里的，【牌相关的】，尤其是它们所属的命名空间，没写对，现在总是找不到定义。
   - 包括Identity, Weight,Suits,抢不抢地主【抢不抢庄】，以及可能的反不反主牌花色等。
-  - 找不到的那些类，我可能【内网】【外网】消息没分对。
-  - 【Identity】与【Card】：外网消息里，怎么会找不到呢？再回去检查一遍。下午要把这个弄通，要开始思路怎么设计重构拖拉机项目。
+  - 找不到的那些类，感觉更多的是命名空间没能开对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
+  - *【Identity】与【Suits/Weight】三个【enum】* ：外网消息里，怎么会找不到呢？再回去检查一遍。下午要把这个弄通，要开始思路怎么设计重构拖拉机项目。
 - 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
 - 把参考游戏里，打牌相关的逻辑与模块好好看下，方便自己熟悉自己重构项目的源码后，画葫芦画飘地重构
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
@@ -917,3 +1207,12 @@ public interface IMActorHandler {
 - 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 - 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
 - 
+
+
+
+
+
+
+
+
+
