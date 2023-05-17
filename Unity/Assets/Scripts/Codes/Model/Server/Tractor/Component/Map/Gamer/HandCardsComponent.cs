@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-
+using ET;
 namespace ET.Server {
     public class HandCardsComponent : Entity, IAwake {
         // 所有手牌

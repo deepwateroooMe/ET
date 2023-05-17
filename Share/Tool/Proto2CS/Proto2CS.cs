@@ -22,6 +22,7 @@ namespace ET {
         private const string clientServerMessagePath = "../Unity/Assets/Scripts/Codes/Model/Generate/ClientServer/Message/";
         private static readonly char[] splitChars = { ' ', '\t' };
         private static readonly List<OpcodeInfo> msgOpcode = new List<OpcodeInfo>();
+        // 【感觉奇怪】：明明生成的 .cs 是按照自定义逻辑完成的。两边都没有处理 enum, 为什么参考项目会处理得狠好？
         public static void Proto2CS() {
             msgOpcode.Clear();
             if (Directory.Exists(clientMessagePath)) {
@@ -57,7 +58,7 @@ namespace ET {
             sb.Append("using ET;\n");
             sb.Append("using ProtoBuf;\n");
             sb.Append("using System.Collections.Generic;\n");
-            sb.Append($"namespace {ns}\n");
+            sb.Append($"namespace {ns}\n"); // 这里的命名空间：也全是 ET. 它是怎么一式三份出来的？
             sb.Append("{\n");
             
             bool isMsgStart = false;
@@ -135,18 +136,18 @@ namespace ET {
             sb.Append("\t}\n");
             
             sb.Append("}\n");
-            if (cs.Contains("C")) {
+            if (cs.Contains("C")) { // 客户端
                 GenerateCS(sb, clientMessagePath, proto);
                 GenerateCS(sb, serverMessagePath, proto);
                 GenerateCS(sb, clientServerMessagePath, proto);
             }
             
-            if (cs.Contains("S")) {
+            if (cs.Contains("S")) { // 服务器
                 GenerateCS(sb, serverMessagePath, proto);
                 GenerateCS(sb, clientServerMessagePath, proto);
             }
         }
-        private static void GenerateCS(StringBuilder sb, string path, string proto) {
+        private static void GenerateCS(StringBuilder sb, string path, string proto) { // 无差别写成命名空间ET, 不管是哪个端还是双端
             if (!Directory.Exists(path)) {
                 Directory.CreateDirectory(path);
             }

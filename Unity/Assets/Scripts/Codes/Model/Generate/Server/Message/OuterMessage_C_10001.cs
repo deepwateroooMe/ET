@@ -648,12 +648,7 @@ namespace ET
 	[ProtoContract]
 	public partial class Card: ProtoObject
 	{
-		[ProtoMember(1)]
-		public Weight CardWeight { get; set; }
-
-		[ProtoMember(2)]
-		public Suits CardSuits { get; set; }
-
+	{
 	}
 
 	public static class OuterMessage

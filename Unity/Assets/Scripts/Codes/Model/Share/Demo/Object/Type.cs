@@ -1,4 +1,4 @@
-namespace ET.Client {
+namespace ET {
 
     // 房间等级: 示例游戏，目前全局一种，可以有多种 
     public enum RoomLevel : byte {
