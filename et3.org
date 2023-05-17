@@ -64,9 +64,11 @@ public class DBProxyComponent: Component {
 }
 #+END_SRC
 
-
 * StartConfigComponent: 找【各种服】的起始初始化地址
 - 这些组群服务器的起始被全部重构了，重构成配置单例了
+- 这里是，昨天之前理这部分的时候，理得不够透彻。去重构一个服的初始化与配置，就需要理清、找到这个服所关联的所有的起始配置相关。昨天之前做得还不够好。
+- 昨天晚上稍微理解得再深一点儿。应该也是，总结自己理一个相对大型框架的方法总结吧。
+- 今天早上的脑袋还是相对比较清醒，就把这块儿对自己来说相对不够熟悉相对难点儿的，再看一遍，希望有更多的收获！
 ** ConfigSingleton<T>: ProtoObject, ISingleton
 #+BEGIN_SRC java
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
@@ -274,6 +276,7 @@ public static class RouterHelper {
     }
 }
 #+END_SRC
+
 ** StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
   #+BEGIN_SRC java
 [ProtoContract]
@@ -328,7 +331,7 @@ public partial class StartProcessConfig: ProtoObject, IConfig {
     public int InnerPort { get; set; }
 }
   #+END_SRC
-** StartSceneConfig: ISupportInitialize 【各种服－配置，场景配置】需要提取足够的信息，帮助自己真正理解这些内在配置关系。
+** StartSceneConfig: ISupportInitialize 【各种服－配置，场景配置】
 #+BEGIN_SRC csharp
 public partial class StartSceneConfig: ISupportInitialize {
     public long InstanceId;
@@ -371,9 +374,11 @@ public partial class StartSceneConfig: ISupportInitialize {
     }
 }
 #+END_SRC
-** StartSceneConfigCategory : 【待扩展】ConfigSingleton<StartSceneConfigCategory>, IMerge
-- 读里面的登录服，会知道它是如何管理登录服的，它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
+** StartSceneConfigCategory : 【Matchs!】ConfigSingleton<StartSceneConfigCategory>, IMerge
+- 读里面的登录服，会知道它是如何管理登录服的（就是后面的例子，当它要拿登录服的地址的时候），它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
 - 那么这个配置管理里，因为我要用匹配服与地图服，也要对至少是匹配服进行管理。那么，我在申请匹配的时候，网关服才能拿到匹配服的地址。
+- 只在【服务端】存在。但是在双端模式、与服务端模式下，每种端有两个文件来定义这个类。。一个在【ProtoContract】里，可能可以进程间消息传递？一个在 ConfigPartial 文件夹里
+- 上面的文件重复，还不是很懂。【重构】：因为我现在还比较喜欢使用Unity 下自带的双端模式，可是暂时只改【双端模式 ClientServer】下的文件，另一个专职服务端可能晚点儿再补上去。不用昨天晚上一样每个文件都改。
 #+BEGIN_SRC csharp
 // 配置文件处理，或是服务器启动相关类，以前都没仔细读过
 public partial class StartSceneConfigCategory {
@@ -429,6 +434,62 @@ public partial class StartSceneConfigCategory {
     }
 }
 #+END_SRC
+** HttpGetRouterResponse: 这个 ProtoBuf 的消息类型
+- 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
+- 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
+#+BEGIN_SRC java
+[Message(OuterMessage.HttpGetRouterResponse)]
+[ProtoContract]
+public partial class HttpGetRouterResponse: ProtoObject {
+    [ProtoMember(1)]
+    public List<string> Realms { get; set; }
+    [ProtoMember(2)]
+    public List<string> Routers { get; set; }
+}
+message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
+	repeated string Realms = 1;
+	repeated string Routers = 2;
+	repeated string Matchs = 3;// 这行是我需要添加，和生成消息的
+}
+#+END_SRC
+** HttpGetRouterHandler : IHttpHandler: 获取各路由器的地址
+- 【匹配服】：因为我想拿这个服的地址，也需要这个帮助类里作相应的修改
+- StartSceneConfigCategory.Instance: 不明白这个实例是存放在哪里，因为可以 proto 消息进程间传递，那么可以试找，哪里调用这个帮助类拿东西？
+- 这个模块：现在还是理解不透。需要某个上午，把所有 RouterComponent 组件及其相关，再理一遍。
+   #+BEGIN_SRC csharp
+[HttpHandler(SceneType.RouterManager, "/get_router")]
+public class HttpGetRouterHandler : IHttpHandler {
+    public async ETTask Handle(Entity domain, HttpListenerContext context) {
+        HttpGetRouterResponse response = new HttpGetRouterResponse();
+        response.Realms = new List<string>();
+        response.Matchs = new List<string>();// 匹配服链表  // <<<<<<<<<<<<<<<<<<<< 
+        response.Routers = new List<string>();
+        // 是去StartSceneConfigCategory 这里拿的：因为它可以 proto 消息里、进程间传递，这里还不是狠懂，这个东西存放在哪里？
+        foreach (StartSceneConfig startSceneConfig in StartSceneConfigCategory.Instance.Realms) {
+            response.Realms.Add(startSceneConfig.InnerIPOutPort.ToString());
+        }
+        foreach (StartSceneConfig startSceneConfig in StartSceneConfigCategory.Instance.Matchs) {
+            response.Matchs.Add(startSceneConfig.InnerIPOutPort.ToString());
+        }
+        foreach (StartSceneConfig startSceneConfig in StartSceneConfigCategory.Instance.Routers) {
+            response.Routers.Add($"{startSceneConfig.StartProcessConfig.OuterIP}:{startSceneConfig.OuterPort}");
+        }
+        HttpHelper.Response(context, response);
+        await ETTask.CompletedTask;
+    }
+}
+   #+END_SRC
+** HttpHandler 标签系：标签自带场景类型
+   #+BEGIN_SRC csharp
+public class HttpHandlerAttribute: BaseAttribute {
+    public SceneType SceneType { get; }
+    public string Path { get; }
+    public HttpHandlerAttribute(SceneType sceneType, string path) {
+        this.SceneType = sceneType;
+        this.Path = path;
+    }
+}
+   #+END_SRC
 ** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例
 #+BEGIN_SRC java
 public static class LoginHelper {
@@ -462,17 +523,15 @@ public static class LoginHelper {
     } 
 }
 #+END_SRC
-** HttpGetRouterResponse: 这个 ProtoBuf 的消息类型
-#+BEGIN_SRC java
-[Message(OuterMessage.HttpGetRouterResponse)]
-[ProtoContract]
-public partial class HttpGetRouterResponse: ProtoObject {
-    [ProtoMember(1)]
-    public List<string> Realms { get; set; }
-    [ProtoMember(2)]
-    public List<string> Routers { get; set; }
-}
-#+END_SRC
+
+* 服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）
+- Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。
+- Realm：对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址。内网组件NetInnerComponent，外网组件NetOuterComponent，Gate服务器随机分发组件。客户端登录时连接的第一个服务器，也可称为登录服务器。
+- Gate：对玩家进行管理，对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址，对Actor消息进程进行管理，对玩家ID登录后的Key进行管理。加载有玩家管理组件PlayerComponent，管理登陆时联网的Key组件GateSessionKeyComponent。
+- Location：连接内网，服务器进程状态集中管理（Actor消息IP管理服务器）。加载有内网组件NetInnerComponent，服务器消息处理状态存储组件LocationComponent。对客户端的登录信息进行验证和客户端登录后连接的服务器，登录后通过此服务器进行消息互动，也可称为验证服务器。
+- Map：连接内网，对ActorMessage消息进行管理（添加、移除、分发等），对场景内现在活动物体存储管理，对内网服务器进程进行操作，对Actor消息进程进行管理，对Actor消息进行管理（添加、移除、分发等），服务器帧率管理。服务器帧率管理组件ServerFrameComponent。
+- AllServer：将以上服务器功能集中合并成一个服务器。另外增加DB连接组件DBComponent
+- Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
 
 * Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】
 - 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
@@ -496,19 +555,25 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
 - 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
 - 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
-* 现在的修改内容，记忆
-- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】        
+* 现在的修改内容：
+- *【UILobbyComponent 可以测试】* ：这个大厅组件，Unity 里预设简单，可以试运行一下，看是否完全消除这个UI 组件的报错，这个屏的控件能否显示出来？还是错出得早，这个屏就出不来已经报错了？
+- *【TractorRoomComponent】* ：因为是多组件嵌套，可以合并多组件为同一个组件；另早上看得一知半解的一个【ChildOf】标签，可以帮助组件套用吗？再找找理解消化一下
+- 【房间组件】：几个现存的 working-on 的问题：
+  - 多组件嵌套：手工合并为一个组件。彻底理解确认后，会合并
+  - 【数据库模块的整合】：网关服在转发请求匹配时，验证会话框有效后，验证用户身份时，需要去【用户数据库】拿用户数据。ET7 留了个DBManagerComponent, 还没能整合出这个模块
+  - 【匹配服地址】网关服的处理逻辑里，验证完用户合格后，为代为转发消息到匹配服，但需要拿匹配服的地址。ET7 重构里，还没能改出这部分。服务器系统配置初始化时，可以链表管理各小构匹配服，再去拿相关匹配服的地址。ET7 框架里的路由器系统，自己还没有弄懂。
+- *【Windows 下 proto2cs 消息转化】* ：上面拿匹配服地址，一个路由器相关消息加了参数，要重新生成一下。这个 mac 系统下不难，改天有时间也可以把 mac 下的运行环境配置好，这个功能模块就不用一定要切换电脑了。
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-* TODO 
-- *Windows 下 org-mode 有几个【BUG：】* 1.org-mode 不能自动识别模式，除第一次加载可以正确，其它再加载不识别 org-mode; 2.org-export-to-pdf 在我换成为 msys64 里的 emacs 后就坏掉了。因为要花时间修，暂时还放着
-  - org-mode 是被我误删除了原 compile 好的 org-mode 里的文件。可是现在对于两个大文件无法处理，与 org-mode 其实没有任何相关。只是台式机电脑CPU 或是内存不足。以前总结算法题出大文件的时候，也出过这样的问题。所以目前这个平台上，只能处理小文件。同样的是 fontify 的问题。我觉得同样与电脑配置相关。因为它时灵时不灵的。所以这个平台已经没法再好好工作了。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】这个平台上，这个 org-mode 也不能生成健全的 table-of-contents, 看着这个平台的性能表现真差急呀。。。不死心地又试了狠久，还是破平台的CPU 与内存表现不稳定的问题。不用怀疑自己的 snippets. 任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
+* TODO 其它的：部分完成，或是待完成的大的功能版块，列举
 - *【IStartSystem:】* 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 *【晚点儿再检查一遍】*
-- 如果这个一时半会儿解决不好，就把重构的设计思路再理一理。同时尽量去改重构的ET 框架里的编译错误。  
+- 如果这个一时半会儿解决不好，就把重构的设计思路再理一理。同时尽量去改重构的ET 框架里的编译错误。
+- 【Tractor】原 windows-form 项目，源码需要读懂，理解透彻，方便重构。  
 - 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
-- 把参考游戏里，打牌相关的逻辑与模块好好看下，方便自己熟悉自己重构项目的源码后，画葫芦画飘地重构
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 * 拖拉机游戏：【重构OOP/OOD 设计思路】
 - 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
+- ET7 重构里，各组件都该是自己设计重构原项目的类的设计的必要起点。可以根据这些来系统设计重构。【活宝妹就是一定要嫁给亲爱的表哥！！！】
 - 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
+- 【Gamer】：每一个玩家
+- 【拖拉机游戏房间】：
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
-

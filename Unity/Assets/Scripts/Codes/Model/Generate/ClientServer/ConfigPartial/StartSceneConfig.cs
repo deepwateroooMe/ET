@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Net;
 namespace ET {
     // 配置文件处理，或是服务器启动相关类，以前都没仔细读过
-    public partial class StartSceneConfigCategory {
+    public partial class StartSceneConfigCategory { // 【双端】
 
         public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
         public MultiMap<int, StartSceneConfig> ProcessScenes = new MultiMap<int, StartSceneConfig>();
@@ -33,6 +33,9 @@ namespace ET {
                 switch (startSceneConfig.Type) {
                         case SceneType.Realm:
                             this.Realms.Add(startSceneConfig);
+                            break;
+                        case SceneType.Match: // 对【匹配服】的管理
+                            this.Matchs.Add(startSceneConfig.Zone, startSceneConfig);
                             break;
                         case SceneType.Gate:
                             this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
