@@ -2,15 +2,19 @@
 using System.ComponentModel;
 using System.Net;
 namespace ET {
+    // 配置文件处理，或是服务器启动相关类，以前都没仔细读过
     public partial class StartSceneConfigCategory {
+
         public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
         public MultiMap<int, StartSceneConfig> ProcessScenes = new MultiMap<int, StartSceneConfig>();
         public Dictionary<long, Dictionary<string, StartSceneConfig>> ClientScenesByName = new Dictionary<long, Dictionary<string, StartSceneConfig>>();
         public StartSceneConfig LocationConfig;
         public List<StartSceneConfig> Realms = new List<StartSceneConfig>();
+        public List<StartSceneConfig> Matchs = new List<StartSceneConfig>(); // <<<<<<<<<<<<<<<<<<<< 添加管理
         public List<StartSceneConfig> Routers = new List<StartSceneConfig>();
         public List<StartSceneConfig> Robots = new List<StartSceneConfig>();
         public StartSceneConfig BenchmarkServer;
+
         public List<StartSceneConfig> GetByProcess(int process) {
             return this.ProcessScenes[process];
         }
@@ -27,31 +31,32 @@ namespace ET {
                 this.ClientScenesByName[startSceneConfig.Zone].Add(startSceneConfig.Name, startSceneConfig);
                 
                 switch (startSceneConfig.Type) {
-                case SceneType.Realm:
-                    this.Realms.Add(startSceneConfig);
-                    break;
-                case SceneType.Gate:
-                    this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
-                    break;
-                case SceneType.Location:
-                    this.LocationConfig = startSceneConfig;
-                    break;
-                case SceneType.Robot:
-                    this.Robots.Add(startSceneConfig);
-                    break;
-                case SceneType.Router:
-                    this.Routers.Add(startSceneConfig);
-                    break;
-                case SceneType.BenchmarkServer:
-                    this.BenchmarkServer = startSceneConfig;
-                    break;
+                        case SceneType.Realm:
+                            this.Realms.Add(startSceneConfig);
+                            break;
+                        case SceneType.Gate:
+                            this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
+                            break;
+                        case SceneType.Location:
+                            this.LocationConfig = startSceneConfig;
+                            break;
+                        case SceneType.Robot:
+                            this.Robots.Add(startSceneConfig);
+                            break;
+                        case SceneType.Router:
+                            this.Routers.Add(startSceneConfig);
+                            break;
+                        case SceneType.BenchmarkServer:
+                            this.BenchmarkServer = startSceneConfig;
+                            break;
                 }
             }
         }
     }
     public partial class StartSceneConfig: ISupportInitialize {
         public long InstanceId;
-        public SceneType Type;
+        public SceneType Type; // 场景类型
+
         public StartProcessConfig StartProcessConfig {
             get {
                 return StartProcessConfigCategory.Instance.Get(this.Process);
@@ -72,8 +77,8 @@ namespace ET {
                 return this.innerIPOutPort;
             }
         }
-        private IPEndPoint outerIPPort;
         // 外网地址外网端口
+        private IPEndPoint outerIPPort;
         public IPEndPoint OuterIPPort {
             get {
                 if (this.outerIPPort == null) {
@@ -89,3 +94,7 @@ namespace ET {
         }
     }
 }
+
+
+
+

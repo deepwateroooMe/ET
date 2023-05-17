@@ -3,6 +3,61 @@ using ProtoBuf;
 using System.Collections.Generic;
 namespace ET
 {
+
+    // 花色
+    public enum Suits {
+        // 梅花
+        Club = 0,
+        // 方块
+        Diamond = 1,
+        // 红心
+        Heart = 2,
+        // 黑桃
+        Spade = 3,
+        None = 4,
+    }
+    // 权重
+    public enum Weight {
+        // 3
+        Three = 0,
+        // 4
+        Four = 1,
+        // 5
+        Five = 2,
+        // 6
+        Six = 3,
+        // 7
+        Seven = 4,
+        // 8
+        Eight = 5,
+        // 9
+        Nine = 6,
+        // 10
+        Ten = 7,
+        // J
+        Jack = 8,
+        // Q
+        Queen = 9,
+        // K
+        King = 10,
+        // A
+        One = 11,
+        // 2
+        Two = 12,
+        // 小王
+        Sjoker = 13,
+        // 大王
+        Ljoker = 14,
+    }
+    // 身份
+    public enum Identity {
+        None = 0,
+        //平民
+        Farmer = 1,
+        //地主
+        Landlord = 2,
+    }
+    
 	[Message(OuterMessage.HttpGetRouterResponse)]
 	[ProtoContract]
 	public partial class HttpGetRouterResponse: ProtoObject
@@ -644,13 +699,70 @@ namespace ET
 //花色
 //权重
 //身份
+    public partial class Card : pb::IMessage {
+        private static readonly pb::MessageParser<Card> _parser = new pb::MessageParser<Card>(() => (Card)MessagePool.Instance.Fetch(typeof(Card)));
+        public static pb::MessageParser<Card> Parser { get { return _parser; } }
+        private global::ETModel.Weight cardWeight_ = 0;
+        public global::ETModel.Weight CardWeight {
+            get { return cardWeight_; }
+            set {
+                cardWeight_ = value;
+            }
+        }
+        private global::ETModel.Suits cardSuits_ = 0;
+        public global::ETModel.Suits CardSuits {
+            get { return cardSuits_; }
+            set {
+                cardSuits_ = value;
+            }
+        }
+        public void WriteTo(pb::CodedOutputStream output) {
+            if (CardWeight != 0) {
+                output.WriteRawTag(8);
+                output.WriteEnum((int) CardWeight);
+            }
+            if (CardSuits != 0) {
+                output.WriteRawTag(16);
+                output.WriteEnum((int) CardSuits);
+            }
+        }
+        public int CalculateSize() {
+            int size = 0;
+            if (CardWeight != 0) {
+                size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CardWeight);
+            }
+            if (CardSuits != 0) {
+                size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CardSuits);
+            }
+            return size;
+        }
+        public void MergeFrom(pb::CodedInputStream input) {
+            uint tag;
+            while ((tag = input.ReadTag()) != 0) {
+                switch(tag) {
+                default:
+                    input.SkipLastField();
+                    break;
+                case 8: {
+                    cardWeight_ = (global::ETModel.Weight) input.ReadEnum();
+                    break;
+                }
+                case 16: {
+                    cardSuits_ = (global::ETModel.Suits) input.ReadEnum();
+                    break;
+                }
+                }
+            }
+        }
+    }
+/* 
 	[Message(OuterMessage.Card)]
 	[ProtoContract]
 	public partial class Card: ProtoObject
 	{
 	{
 	}
-
+ */
 	public static class OuterMessage
 	{
 		 public const ushort HttpGetRouterResponse = 10002;
