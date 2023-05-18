@@ -2,7 +2,8 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-namespace ET.Client {
+using ET.Client;
+namespace ET {
     [FriendOf(typeof(RouterAddressComponent))]
     public static class RouterAddressComponentSystem {
         public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
@@ -28,12 +29,12 @@ namespace ET.Client {
             Log.Debug($"start get router info finish: {JsonHelper.ToJson(httpGetRouterResponse)}");
             // 打乱顺序
             RandomGenerator.BreakRank(self.Info.Routers);
-            self.WaitTenMinGetAllRouter().Coroutine(); // <<<<<<<<<<<<<<<<<<<< 
+            self.WaitTenMinGetAllRouter().Coroutine(); // 无限循环 
         }
         // 等10分钟再获取一次: 明明是 5 分钟，哪里有 10 分钟呢？
         public static async ETTask WaitTenMinGetAllRouter(this RouterAddressComponent self) {
             await TimerComponent.Instance.WaitAsync(5 * 60 * 1000);
-            if (self.IsDisposed) 
+            if (self.IsDisposed) // 所以，如果移除组件了，这个无限循环，应该是会停止的 
                 return;
             await self.GetAllRouter();
         }

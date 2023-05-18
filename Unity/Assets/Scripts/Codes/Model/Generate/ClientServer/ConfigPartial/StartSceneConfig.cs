@@ -37,7 +37,7 @@ namespace ET {
                         case SceneType.Match: // 对【匹配服】的管理, 参照登录服来的
                             this.Matchs.Add(startSceneConfig);
                             break;
-                        case SceneType.Gate:
+                        case SceneType.Gate: // 网关：小区区号，与配置 
                             this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
                             break;
                         case SceneType.Location:

@@ -10,7 +10,7 @@ namespace ET.Server {
             try {
                 long key = RandomGenerator.RandInt64();
                 // 这些【拖拉机游戏组件】，我需要找一个合适的地方，来添加这些组件。原是在 AppType.AllServer 下添加的, 可以加在【网关服】下
-                Game.Scene.GetComponent<LandlordsGateSessionKeyComponent>().Add(key, message.UserID);
+                Root.Instance.Scene.GetComponent<LandlordsGateSessionKeyComponent>().Add(key, message.UserID);
                 response.Key = key;
                 reply(response);
             }

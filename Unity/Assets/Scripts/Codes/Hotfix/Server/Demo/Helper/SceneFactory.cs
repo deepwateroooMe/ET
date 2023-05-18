@@ -18,7 +18,7 @@ namespace ET.Server {
                     // 云服务器在防火墙那里做端口映射
                     scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
                     break;
-            case SceneType.Realm: // 注册登录服：
+                case SceneType.Realm: // 注册登录服：
                     scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
                     break;
                 case SceneType.Gate:

@@ -31,15 +31,12 @@ namespace ET.Server {
 // 这里的顺序就显得关键：因为只有网关服向客户端返回服务器的匹配响应【并不一定说已经匹配完成，但告诉客户端服务器在着手处理这个工作。。。】，客户端才能创建房间UI 控件
                 reply(response); 
 // // 向匹配服务器发送匹配请求: 【路由器系统】ET7 重构后的路由器系统还没有弄懂。现在拿不到匹配服的地址.
-//                 // 考虑：与用户登录前不同的是，这里是网关服，他与匹配服是走内网消息，会有什么不同呢？
-//                 StartConfigComponent config = Game.Scene.GetComponent<StartConfigComponent>();
-//                 IPEndPoint matchIPEndPoint = config.MatchConfig.GetComponent<InnerConfig>().IPEndPoint; // 匹配服务器的远程IP 地址
-//                 Session matchSession = Game.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint); // 拿到与这个匹配服务器通信的会话框实例
+                Scene scene = session.DomainScene();
+                RouterAddressComponent routerAddressComponent = scene.GetComponent<RouterAddressComponent>(); // 拿的是【网关服】的这个路由器组件
+                IPEndPoint realmAddress = RouterAddressComponentSystem.GetMatchAddress(scene.GetComponent<PlayerComponent>().Get(user.UserID).Account); // 随机分配一个，取模分配
+                Session matchSession = Root.Instance.Scene.GetComponent<NetInnerComponent>().Get(matchIPEndPoint); // 应该还是用这个组件去拿
+                // Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
 
-                // 先去拿 routerAddressComponent 这个组件的一个引用，实时的。去找个网关服，或者是否还有去拿这个组件的例子
-                
-                IPEndPoint realmAddress = routerAddressComponent.GetMatchAddress(account); // 随机分配一个，取模分配
-                Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
                 M2G_PlayerEnterMatch_Ack m2G_PlayerEnterMatch_Ack = await matchSession.Call(new G2M_PlayerEnterMatch_Req() { // 发消息代为客户端申请：申请匹配游戏
                         PlayerID = user.InstanceId,
                             UserID = user.UserID,
@@ -50,7 +47,7 @@ namespace ET.Server {
             catch (Exception e) {
                 ReplyError(response, e, reply);
             }
-//             try { // 贴这里：供自己参考 LoginHelper.cs
+//             try { // 贴这里：供自己参考 LoginHelper.cs 【客户端逻辑】
 //                 // 创建一个ETModel层的Session. 【没看懂】：如何区分不同层，为什么先移去，又添加？
 // // 这个组件：热更新域与常规域有不同吗? 尽管可能会没有不同，但它是实时的，就是过程中可能会有服务器掉线？所以取最新的？
 //                 clientScene.RemoveComponent<RouterAddressComponent>(); 

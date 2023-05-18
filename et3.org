@@ -492,7 +492,7 @@ public class HttpHandlerAttribute: BaseAttribute {
    #+END_SRC
 ** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例
 - 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿
-- 这个地方，有点儿奇怪的是：RouterAddressComponent 这个组件，找不到添加的地方。它可能有点儿特殊，就是它不走常规 AddComponent<>() 的方法添加，所以找不到添加，而只有获取。
+- 【RouterAddressComponent】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下，没什么奇怪的。
 #+BEGIN_SRC java
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -525,7 +525,54 @@ public static class LoginHelper {
     } 
 }
 #+END_SRC
-**
+** GateSessionKeyComponent: 
+#+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class GateSessionKeyComponent : Entity, IAwake {
+    public readonly Dictionary<long, string> sessionKey = new Dictionary<long, string>();
+}
+#+END_SRC
+
+
+* 网关服：客户端信息发送的直接代理，中转站，组件分析 
+- SceneFactory: 【初始化】时，带如下几个组件
+#+BEGIN_SRC csharp
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
+        await ETTask.CompletedTask;
+        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
+        // 任何场景：无序消息分发器，可接收消息，队列处理；发呢？
+        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher); // 重构？应该是对进程间消息发收的浓缩与提练
+
+        switch (scene.SceneType) {
+            case SceneType.Router:
+                scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+                break;
+            case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+                // 云服务器在防火墙那里做端口映射
+                scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+                break;
+            // // case SceneType.Realm: // 注册登录服：
+            // //     scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+            // //     break;
+            case SceneType.Gate:
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                scene.AddComponent<PlayerComponent>();
+                scene.AddComponent<GateSessionKeyComponent>();
+                break; // ...
+#+END_SRC
+** NetServerComponent: 
+   #+BEGIN_SRC csharp
+public struct NetServerComponentOnRead {
+    public Session Session;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
+    public int ServiceId;
+}
+   #+END_SRC
+
 
 * 服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）
 - Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。

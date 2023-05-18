@@ -1,29 +1,19 @@
 ﻿using System.Diagnostics;
-
-namespace ET
-{
+namespace ET {
     [EnableMethod]
     [DebuggerDisplay("ViewName,nq")]
     [ChildOf]
-    public sealed class Scene: Entity
-    {
-        public int Zone
-        {
+    public sealed class Scene: Entity {
+        public int Zone {
             get;
         }
-
-        public SceneType SceneType
-        {
+        public SceneType SceneType {
             get;
         }
-
-        public string Name
-        {
+        public string Name {
             get;
         }
-
-        public Scene(long instanceId, int zone, SceneType sceneType, string name, Entity parent)
-        {
+        public Scene(long instanceId, int zone, SceneType sceneType, string name, Entity parent) {
             this.Id = instanceId;
             this.InstanceId = instanceId;
             this.Zone = zone;
@@ -36,9 +26,7 @@ namespace ET
             this.IsRegister = true;
             Log.Info($"scene create: {this.SceneType} {this.Name} {this.Id} {this.InstanceId} {this.Zone}");
         }
-
-        public Scene(long id, long instanceId, int zone, SceneType sceneType, string name, Entity parent)
-        {
+        public Scene(long id, long instanceId, int zone, SceneType sceneType, string name, Entity parent) {
             this.Id = id;
             this.InstanceId = instanceId;
             this.Zone = zone;
@@ -51,43 +39,29 @@ namespace ET
             this.IsRegister = true;
             Log.Info($"scene create: {this.SceneType} {this.Name} {this.Id} {this.InstanceId} {this.Zone}");
         }
-
-        public override void Dispose()
-        {
+        public override void Dispose() {
             base.Dispose();
-            
             Log.Info($"scene dispose: {this.SceneType} {this.Name} {this.Id} {this.InstanceId} {this.Zone}");
         }
-
-        public new Entity Domain
-        {
+        public new Entity Domain {
             get => this.domain;
             private set => this.domain = value;
         }
-
-        public new Entity Parent
-        {
-            get
-            {
+        public new Entity Parent {
+            get {
                 return this.parent;
             }
-            private set
-            {
-                if (value == null)
-                {
-                    //this.parent = this;
+            private set {
+                if (value == null) {
+                    // this.parent = this;
                     return;
                 }
-
                 this.parent = value;
                 this.parent.Children.Add(this.Id, this);
             }
         }
-        
-        protected override string ViewName
-        {
-            get
-            {
+        protected override string ViewName {
+            get {
                 return $"{this.GetType().Name} ({this.SceneType})";    
             }
         }

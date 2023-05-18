@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 namespace ET.Server {
-    [Invoke] // 激活系
+    [Invoke] // 激活系: 这个激活系是从配置的 .excel 文件加载的
     public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
 
         public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {

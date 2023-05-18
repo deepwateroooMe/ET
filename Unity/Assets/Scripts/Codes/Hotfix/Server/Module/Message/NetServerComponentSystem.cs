@@ -1,6 +1,5 @@
 ﻿using System.Net;
 namespace ET.Server {
-
     [FriendOf(typeof(NetServerComponent))]
     public static class NetServerComponentSystem {
 
@@ -22,11 +21,11 @@ namespace ET.Server {
 
         private static void OnError(this NetServerComponent self, long channelId, int error) {
             Session session = self.GetChild<Session>(channelId);
-            if (session == null) 
-                return;
+            if (session == null) return;
             session.Error = error;
             session.Dispose();
         }
+
         // 这个channelId是由CreateAcceptChannelId生成的
         private static void OnAccept(this NetServerComponent self, long channelId, IPEndPoint ipEndPoint) {
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
@@ -38,6 +37,7 @@ namespace ET.Server {
                 session.AddComponent<SessionIdleCheckerComponent>();
             }
         }
+
         private static void OnRead(this NetServerComponent self, long channelId, long actorId, object message) {
             Session session = self.GetChild<Session>(channelId);
             if (session == null) 

@@ -6,11 +6,11 @@ namespace ET.Client {
 
         public static async ETTask Login(Scene clientScene, string account, string password) {
             try {
-                // 创建一个ETModel层的Session. 【没看懂】：如何区分不同层，为什么先移去，又添加？
+                // 创建一个ETModel层的Session.
 // 这个组件：热更新域与常规域有不同吗? 尽管可能会没有不同，但它是实时的，就是过程中可能会有服务器掉线？所以取最新的？
-                clientScene.RemoveComponent<RouterAddressComponent>(); 
+                clientScene.RemoveComponent<RouterAddressComponent>(); // 这里先删除，再去读：有读【实时数据】的目的。过程中可能有服务器掉线？ 
                 // 获取路由跟realmDispatcher地址
-                RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>();
+                RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>(); // 它可以神奇地自己添加。。它有个无限循环
                 if (routerAddressComponent == null) {
                     routerAddressComponent = clientScene.AddComponent<RouterAddressComponent, string, int>(ConstValue.RouterHttpHost, ConstValue.RouterHttpPort);
                     await routerAddressComponent.Init();

@@ -2,7 +2,7 @@
 #+title: ET 框架学习笔记（二）－－网络交互相关
 #+author: deepwaterooo 
 
-* Net 网络交互相关：【服务端】
+* Net 网络交互相关：【服务端+客户端】只是稍微改装成事件系统而已
 - 这次重构里，以前是Model 里，生成系为非静态，这次全搬进热更新域里，生成系与方法全是静态的。
 - 因为生成系全变成了静态，那么调用方法就成为比如：直接使用生成系的类名，与静态方法调用。
 #+BEGIN_SRC java
@@ -187,8 +187,158 @@ public static class NetServerComponentSystem {
     }
 }
    #+END_SRC
+** NetClientComponent: 【客户端】组件
+#+BEGIN_SRC csharp
+public struct NetClientComponentOnRead {
+    public Session Session;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetClientComponent: Entity, IAwake<AddressFamily>, IDestroy {
+    public int ServiceId;
+}
+#+END_SRC
+** NetClientComponentSystem: 【服务端】也是类似事件系统的改装
+#+BEGIN_SRC csharp
+[FriendOf(typeof(NetClientComponent))]
+public static class NetClientComponentSystem { // ... Awake() etc
+    private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) // 总是检查：会话框是否已经销毁了 
+            return;
+        session.LastRecvTime = TimeHelper.ClientNow();
+        OpcodeHelper.LogMsg(self.DomainZone(), message);
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message});
+    }
+    private static void OnError(this NetClientComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) 
+            return;
+        session.Error = error;
+        session.Dispose();
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint realIPEndPoint) {
+        long channelId = NetServices.Instance.CreateConnectChannelId();
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>();
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint);
+        return session;
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint routerIPEndPoint, IPEndPoint realIPEndPoint, uint localConn) {
+        long channelId = localConn;
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>();
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
+        return session;
+    }
+#+END_SRC
+** NetClientComponentOnReadEvent
+#+BEGIN_SRC csharp
+[Event(SceneType.Process)]
+public class NetClientComponentOnReadEvent: AEvent<NetClientComponentOnRead> {
+    protected override async ETTask Run(Scene scene, NetClientComponentOnRead args) {
+        Session session = args.Session;
+        object message = args.Message;
+        if (message is IResponse response) {
+            session.OnResponse(response);
+            return;
+        }
+        // 普通消息或者是Rpc请求消息
+        MessageDispatcherComponent.Instance.Handle(session, message);
+        await ETTask.CompletedTask;
+    }
+}
+#+END_SRC
+** MessageDispatcherComponentHelper:
+- 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
+#+BEGIN_SRC csharp
+// 消息分发组件
+[FriendOf(typeof(MessageDispatcherComponent))]
+public static class MessageDispatcherComponentHelper { // Awake() etc...
+    private static void Load(this MessageDispatcherComponent self) {
+        self.Handlers.Clear();
+        HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+        foreach (Type type in types) {
+            IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+            if (iMHandler == null) {
+                Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+                continue;
+            }
+            object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+            foreach (object attr in attrs) {
+                MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+                Type messageType = iMHandler.GetMessageType();
+                ushort opcode = NetServices.Instance.GetOpcode(messageType);
+                if (opcode == 0) {
+                    Log.Error($"消息opcode为0: {messageType.Name}");
+                    continue;
+                }
+                MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+                self.RegisterHandler(opcode, messageDispatcherInfo);
+            }
+        }
+    }
+    private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+        if (!self.Handlers.ContainsKey(opcode)) {
+            self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+        }
+        self.Handlers[opcode].Add(handler);
+    }
+    public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+        List<MessageDispatcherInfo> actions;
+        ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+        if (!self.Handlers.TryGetValue(opcode, out actions)) {
+            Log.Error($"消息没有处理: {opcode} {message}");
+            return;
+        }
+        SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
+        foreach (MessageDispatcherInfo ev in actions) {
+            if (ev.SceneType != sceneType) 
+                continue;
+            try {
+                ev.IMHandler.Handle(session, message);
+            }
+            catch (Exception e) {
+                Log.Error(e);
+            }
+        }
+    }
+}
+#+END_SRC
 
+** NetInnerComponent: 
+#+BEGIN_SRC csharp
+// 【服务器】：对不同进程的一些处理
+public struct ProcessActorId {
+    public int Process;
+    public long ActorId;
+    public ProcessActorId(long actorId) {
+        InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
+        this.Process = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        this.ActorId = instanceIdStruct.ToLong();
+    }
+}
+public struct NetInnerComponentOnRead {
+    public long ActorId;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
+    public int ServiceId;
 
+    public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
+    [StaticField]
+    public static NetInnerComponent Instance;
+}
+#+END_SRC
+** 
 * IAwake 接口类系统，IStart 重构丢了
 - 感觉还比较直接，就是帮助搭建热更新域与Unity 常规工程域生命周期回调的桥，搭桥连线，连能就可以了。应该可以扩散出个IStart 接口类
 ** IMessage,IRequest,IResponse: 进程内？消息类

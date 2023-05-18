@@ -2,10 +2,11 @@
 using System.Net;
 using System.Net.Sockets;
 namespace ET.Client {
+    // 【路由器】：这个类比较难懂。以前不曾接触过。今天早上好好读下
     public static class RouterHelper {
         // 注册router
         public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
-            (uint recvLocalConn, IPEndPoint routerAddress) = await GetRouterAddress(clientScene, address, 0, 0);
+            (uint recvLocalConn, IPEndPoint routerAddress) = await GetRouterAddress(clientScene, address, 0, 0); // 拿客户端场景路由器地址
             if (recvLocalConn == 0) {
                 throw new Exception($"get router fail: {clientScene.Id} {address}");
             }
@@ -18,7 +19,7 @@ namespace ET.Client {
         public static async ETTask<(uint, IPEndPoint)> GetRouterAddress(Scene clientScene, IPEndPoint address, uint localConn, uint remoteConn) {
             Log.Info($"start get router address: {clientScene.Id} {address} {localConn} {remoteConn}");
             // return (RandomHelper.RandUInt32(), address);
-            RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>();
+            RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>(); // 它就是在 LoginHelper 里添加的呀
             IPEndPoint routerInfo = routerAddressComponent.GetAddress();
             uint recvLocalConn = await Connect(routerInfo, address, localConn, remoteConn);
             Log.Info($"finish get router address: {clientScene.Id} {address} {localConn} {remoteConn} {recvLocalConn} {routerInfo}");

@@ -1,4 +1,4 @@
-% Created 2023-05-15 Mon 22:13
+% Created 2023-05-18 Thu 10:03
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -35,20 +35,20 @@
 \tableofcontents
 
 
-\section{Net 网络交互相关：【服务端】}
+\section{Net 网络交互相关：【服务端+客户端】只是稍微改装成事件系统而已}
 \label{sec-1}
 \begin{itemize}
 \item 这次重构里，以前是Model 里，生成系为非静态，这次全搬进热更新域里，生成系与方法全是静态的。
 \item 因为生成系全变成了静态，那么调用方法就成为比如：直接使用生成系的类名，与静态方法调用。
 \end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【这是它给出来的例子】
 // 上面这种，就必须组件里，而非生成系里，已经申明了公用方法，否则用下面的
 Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
 \end{minted}
 \subsection{NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件}
 \label{sec-1-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 namespace ET.Server {
     // 【服务器】：对不同进程的一些处理
     public struct ProcessActorId {
@@ -79,7 +79,7 @@ namespace ET.Server {
 \end{minted}
 \subsection{NetInnerComponentSystem: 生成系}
 \label{sec-1-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(NetInnerComponent))]
 public static class NetInnerComponentSystem {
     [ObjectSystem]
@@ -169,7 +169,7 @@ public static class NetInnerComponentSystem {
 \end{minted}
 \subsection{NetServerComponent:}
 \label{sec-1-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public struct NetServerComponentOnRead {
     public Session Session;
     public object Message;
@@ -181,7 +181,7 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 \end{minted}
 \subsection{NetServerComponentSystem: 生成系}
 \label{sec-1-4}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(NetServerComponent))]
 public static class NetServerComponentSystem {
     [ObjectSystem]
@@ -227,6 +227,136 @@ public static class NetServerComponentSystem {
     }
 }
 \end{minted}
+\subsection{NetClientComponent: 【客户端】组件}
+\label{sec-1-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public struct NetClientComponentOnRead {
+    public Session Session;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetClientComponent: Entity, IAwake<AddressFamily>, IDestroy {
+    public int ServiceId;
+}
+\end{minted}
+\subsection{NetClientComponentSystem: 【服务端】也是类似事件系统的改装}
+\label{sec-1-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[FriendOf(typeof(NetClientComponent))]
+public static class NetClientComponentSystem { // ... Awake() etc
+    private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) // 总是检查：会话框是否已经销毁了 
+            return;
+        session.LastRecvTime = TimeHelper.ClientNow();
+        OpcodeHelper.LogMsg(self.DomainZone(), message);
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message});
+    }
+    private static void OnError(this NetClientComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) 
+            return;
+        session.Error = error;
+        session.Dispose();
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint realIPEndPoint) {
+        long channelId = NetServices.Instance.CreateConnectChannelId();
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>();
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint);
+        return session;
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint routerIPEndPoint, IPEndPoint realIPEndPoint, uint localConn) {
+        long channelId = localConn;
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>();
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
+        return session;
+    }
+\end{minted}
+\subsection{NetClientComponentOnReadEvent}
+\label{sec-1-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Event(SceneType.Process)]
+public class NetClientComponentOnReadEvent: AEvent<NetClientComponentOnRead> {
+    protected override async ETTask Run(Scene scene, NetClientComponentOnRead args) {
+        Session session = args.Session;
+        object message = args.Message;
+        if (message is IResponse response) {
+            session.OnResponse(response);
+            return;
+        }
+        // 普通消息或者是Rpc请求消息
+        MessageDispatcherComponent.Instance.Handle(session, message);
+        await ETTask.CompletedTask;
+    }
+}
+\end{minted}
+\subsection{MessageDispatcherComponentHelper:}
+\label{sec-1-8}
+\begin{itemize}
+\item 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 消息分发组件
+[FriendOf(typeof(MessageDispatcherComponent))]
+public static class MessageDispatcherComponentHelper { // Awake() etc...
+    private static void Load(this MessageDispatcherComponent self) {
+        self.Handlers.Clear();
+        HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+        foreach (Type type in types) {
+            IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+            if (iMHandler == null) {
+                Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+                continue;
+            }
+            object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+            foreach (object attr in attrs) {
+                MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+                Type messageType = iMHandler.GetMessageType();
+                ushort opcode = NetServices.Instance.GetOpcode(messageType);
+                if (opcode == 0) {
+                    Log.Error($"消息opcode为0: {messageType.Name}");
+                    continue;
+                }
+                MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+                self.RegisterHandler(opcode, messageDispatcherInfo);
+            }
+        }
+    }
+    private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+        if (!self.Handlers.ContainsKey(opcode)) {
+            self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+        }
+        self.Handlers[opcode].Add(handler);
+    }
+    public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+        List<MessageDispatcherInfo> actions;
+        ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+        if (!self.Handlers.TryGetValue(opcode, out actions)) {
+            Log.Error($"消息没有处理: {opcode} {message}");
+            return;
+        }
+        SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
+        foreach (MessageDispatcherInfo ev in actions) {
+            if (ev.SceneType != sceneType) 
+                continue;
+            try {
+                ev.IMHandler.Handle(session, message);
+            }
+            catch (Exception e) {
+                Log.Error(e);
+            }
+        }
+    }
+}
+\end{minted}
 
 \section{IAwake 接口类系统，IStart 重构丢了}
 \label{sec-2}
@@ -235,7 +365,7 @@ public static class NetServerComponentSystem {
 \end{itemize}
 \subsection{IMessage,IRequest,IResponse: 进程内？消息类}
 \label{sec-2-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IMessage {}
 public interface IRequest: IMessage {
     int RpcId { get; set; }
@@ -248,7 +378,7 @@ public interface IResponse: IMessage {
 \end{minted}
 \subsection{IActorMessage,IActorRequest,IActorResponse: 进程间的？消息类}
 \label{sec-2-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 不需要返回消息
 public interface IActorMessage: IMessage {}
 public interface IActorRequest: IRequest {}
@@ -256,14 +386,14 @@ public interface IActorResponse: IResponse {}
 \end{minted}
 \subsection{IActorLocationMessage: 进程间的位置消息相关}
 \label{sec-2-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IActorLocationMessage: IActorRequest {}
 public interface IActorLocationRequest: IActorRequest {}
 public interface IActorLocationResponse: IActorResponse {}
 \end{minted}
 \subsection{IMHandler,IMActorHandler: 消息处理器口类【傻傻分不清楚】}
 \label{sec-2-4}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IMHandler { // 同进程内的
     void Handle(Session session, object message);
     Type GetMessageType();
@@ -278,7 +408,7 @@ public interface IMActorHandler { // 进程间的？
 \end{minted}
 \subsection{ILoad,ISystemType: 加载系}
 \label{sec-2-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISystemType {
     Type Type();
     Type SystemType();
@@ -309,7 +439,7 @@ public abstract class LoadSystem<T> : ILoadSystem where T: Entity, ILoad {
 \end{minted}
 \subsection{IAwake: 最多可以带四个参数}
 \label{sec-2-6}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
  public interface IAwake {}
  public interface IAwake<A> {}
  public interface IAwake<A, B> {}
@@ -318,7 +448,7 @@ public abstract class LoadSystem<T> : ILoadSystem where T: Entity, ILoad {
 \end{minted}
 \subsection{IStartSystem,StartSystem<T>: 自己加的。【还有问题】系统找不到}
 \label{sec-2-7}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IStart { }
 public interface IStartSystem : ISystemType {
     void Run(Entity o);
@@ -355,7 +485,7 @@ public enum InstanceQueueIndex {
 \end{itemize}
 \subsection{IUpdateSystem:}
 \label{sec-2-8}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IUpdate {
 }
 public interface IUpdateSystem: ISystemType {
@@ -380,7 +510,7 @@ public abstract class UpdateSystem<T> : IUpdateSystem where T: Entity, IUpdate {
 \end{minted}
 \subsection{ILateUpdate: 好像是用于物理引擎，或是相机什么的更新，生命周期回调}
 \label{sec-2-9}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ILateUpdate {
 }
 public interface ILateUpdateSystem: ISystemType {
@@ -405,7 +535,7 @@ public abstract class LateUpdateSystem<T> : ILateUpdateSystem where T: Entity, I
 \end{minted}
 \subsection{ISingletonAwake|Update|LateUpdate: Singleton 生命周期回调}
 \label{sec-2-10}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISingletonAwake {
     void Awake();
 }
@@ -418,7 +548,7 @@ public interface ISingletonLateUpdate {
 \end{minted}
 \subsection{ISingleton,Singleton<T>: 单例}
 \label{sec-2-11}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISingleton: IDisposable {
     void Register();
     void Destroy();
@@ -457,7 +587,7 @@ public abstract class Singleton<T>: ISingleton where T: Singleton<T>, new() {
 \end{minted}
 \subsection{IDestroy,IDestroySystem,DestroySystem<T>: 销毁系}
 \label{sec-2-12}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IDestroy {
 }
 public interface IDestroySystem: ISystemType {
@@ -482,7 +612,7 @@ public abstract class DestroySystem<T> : IDestroySystem where T: Entity, IDestro
 \end{minted}
 \subsection{IEvent,AEvent<A>: 事件}
 \label{sec-2-13}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IEvent {
     Type Type { get; }
 }
@@ -505,7 +635,7 @@ public abstract class AEvent<A>: IEvent where A: struct {
 \end{minted}
 \subsection{IAddComponent: 添加组件系}
 \label{sec-2-14}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
  public interface IAddComponent { }
  public interface IAddComponentSystem: ISystemType {
      void Run(Entity o, Entity component);
@@ -529,7 +659,7 @@ public abstract class AEvent<A>: IEvent where A: struct {
 \end{minted}
 \subsection{IGetComponent: 获取组件系。【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<<}
 \label{sec-2-15}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
  // GetComponentSystem有巨大作用，比如每次保存Unit的数据不需要所有组件都保存，只需要保存Unit变化过的组件
  // 是否变化可以通过判断该组件是否GetComponent，Get了就记录该组件【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<< 
  // 这样可以只保存Unit变化过的组件
@@ -558,7 +688,7 @@ public abstract class AEvent<A>: IEvent where A: struct {
 \end{minted}
 \subsection{ISerializeToEntity,IDeserialize,IDeserializeSystem,DeserializeSystem<T>: 序列化，反序列化}
 \label{sec-2-16}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISerializeToEntity {
 }
 public interface IDeserialize {
@@ -586,7 +716,7 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
 \end{minted}
 \subsection{IInvoke,AInvokeHandler<A>,AInvokeHandler<A, T>: 激活类}
 \label{sec-2-17}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IInvoke {
     Type Type { get; }
 }
@@ -611,7 +741,7 @@ public abstract class AInvokeHandler<A, T>: IInvoke where A: struct {
 \label{sec-2-18}
 \subsubsection{IExtensible}
 \label{sec-2-18-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // Indicates that the implementing type has support for protocol-buffer
 // <see cref="IExtension">extensions</see>.
 // <remarks>Can be implemented by deriving from Extensible.</remarks>
@@ -629,7 +759,7 @@ public interface IExtensible {
 \end{minted}
 \subsubsection{IExtension}
 \label{sec-2-18-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // Provides addition capability for supporting unexpected fields during
 // protocol-buffer serialization/deserialization. This allows for loss-less
 // round-trip/merge, even when the data is not fully understood.
@@ -662,7 +792,7 @@ public interface IExtensionResettable : IExtension {
 \end{minted}
 \subsubsection{IProtoOutput<TOutput>,IMeasuredProtoOutput<TOutput>,MeasureState<T>: 看得头大}
 \label{sec-2-18-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // Represents the ability to serialize values to an output of type <typeparamref name="TOutput"/>
 public interface IProtoOutput<TOutput> {
     // Serialize the provided value
@@ -690,11 +820,12 @@ public struct MeasureState<T> : IDisposable {
 }
 \end{minted}
 
+
 \section{ActorMessage 相关：【早上】看下}
 \label{sec-3}
 \subsection{MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理}
 \label{sec-3-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
 [ComponentOf]
 public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
@@ -704,7 +835,7 @@ public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
 \end{minted}
 \subsection{MailboxType}
 \label{sec-3-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public enum MailboxType {
     MessageDispatcher, // 消息分发器
     UnOrderMessageDispatcher,// 无序分发
@@ -713,7 +844,7 @@ public enum MailboxType {
 \end{minted}
 \subsection{ActorMessageSenderComponent: 管理类组件}
 \label{sec-3-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ComponentOf(typeof(Scene))]
 public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public const long TIMEOUT_TIME = 40 * 1000;
@@ -728,7 +859,7 @@ public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
 \label{sec-3-4}
 \begin{itemize}
 \item 这个类我好像认真读过，大概是小伙伴搬家超时，什么之类的，改天再读一遍
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(ActorMessageSenderComponent))]
 public static class ActorMessageSenderComponentSystem {
     [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系
@@ -843,7 +974,7 @@ public static class ActorMessageSenderComponentSystem {
 
 \subsection{ActorHandleHelper 帮助类}
 \label{sec-3-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class ActorHandleHelper {
     public static void Reply(int fromProcess, IActorResponse response) {
         if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程
@@ -943,11 +1074,12 @@ public static class ActorHandleHelper {
 }
 \end{minted}
 
+
 \section{【拖拉机游戏房间】组件: 分析}
 \label{sec-4}
 \subsection{TractorRoomEvent: 拖拉机房间，【待修改完成】}
 \label{sec-4-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // UI 系统的事件机制：定义，如何创建拖拉机游戏房间【TODO:】UNITY 里是需要制作相应预设的
 [UIEvent(UIType.TractorRoom)]
 public class TractorRoomEvent: AUIEvent {
@@ -972,7 +1104,7 @@ public class TractorRoomEvent: AUIEvent {
 \label{sec-4-2}
 \begin{itemize}
 \item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 组件：是提供给房间用，用来管理游戏中每个房间里的最多三个当前玩家
 public class GamerComponent : Entity, IAwake { // 它也有【生成系】
     private readonly Dictionary<long, int> seats = new Dictionary<long, int>();
@@ -1029,7 +1161,7 @@ public class GamerComponent : Entity, IAwake { // 它也有【生成系】
 \end{itemize}
 \subsection{Gamer: 【服务端】一个玩家个例。对应这个玩家的相关信息}
 \label{sec-4-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 房间玩家对象
 public sealed class Gamer : Entity, IAwake<long> {
     // 用户ID（唯一）
@@ -1060,7 +1192,7 @@ public sealed class Gamer : Entity, IAwake<long> {
 \label{sec-4-4}
 \begin{itemize}
 \item 传进程间消息的时候，也只传这两个关键参数。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public sealed class Gamer : Entity { // 玩家对象
     // 玩家唯一ID
     public long UserID { get; set; }
@@ -1077,7 +1209,7 @@ public sealed class Gamer : Entity { // 玩家对象
 \end{itemize}
 \subsection{GamerUIComponent: 【客户端】玩家UI 组件：每个玩家背个小面板，来显示必要信息（钱，抢不抢庄，反过的主等）}
 \label{sec-4-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class GamerUIComponent : Entity, IStart { // 玩家UI组件
     public GameObject Panel { get; private set; } // UI面板
     // 玩家昵称
@@ -1176,7 +1308,7 @@ public class GamerUIComponent : Entity, IStart { // 玩家UI组件
 \label{sec-4-6}
 \begin{itemize}
 \item 这里把 Protobuf 里面可以传的游戏相关也整理一下。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 message GamerInfo {
     int64 UserID = 1;
     bool IsReady = 2;
@@ -1204,7 +1336,7 @@ message Actor_GamerGrabLandlordSelect_Ntt { // IActorMessage 参考去想：抢�
 \end{itemize}
 \subsection{TractorRoomComponent: 游戏房间，自带其它组件，当有嵌套时，如何才能系统化地、工厂化地、UI 上的事件驱动地，生成这个组件呢？}
 \label{sec-4-7}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class TractorRoomComponent : Entity, IAwake {
     private TractorInteractionComponent interaction; // 嵌套组件：互动组件
     private Text multiples;
@@ -1226,7 +1358,7 @@ public class TractorRoomComponent : Entity, IAwake {
 \begin{itemize}
 \item 上下这一两个组件里，除了 ProtoBuf 消息里传递的类找不到，没有其它错误
 \item 【嵌套】：是这里的难点。其它都可以一个触发一个地由事件发布触发订阅者的回调，可是当一个组件内存在嵌套，又是系统化【内部组件生成完成后，外部组件才生成完成】生成，我是要把这两个组件合并成一个吗？还是说，我不得不把它折成粒度更小的UI 上的事件驱动机制，以符合系统框架？要去所源码弄透。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 【互动组件】：一堆的视图控件管理 
 public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：有些暂时是隐藏的
     private Button playButton;
@@ -1255,7 +1387,7 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 \label{sec-5-1}
 \begin{itemize}
 \item 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [EnableClass]
 public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage {
 
@@ -1287,7 +1419,7 @@ public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entit
 \end{itemize}
 \subsection{IMActorHandler: 接口类的定义，同样要改}
 \label{sec-5-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IMActorHandler {
     // ETTask Handle(Entity entity, int fromProcess, object actorMessage);
     void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的
@@ -1303,7 +1435,7 @@ public interface IMActorHandler {
 \label{sec-6-1}
 \begin{itemize}
 \item 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 enum Identity { // 身份
     IdentityNone = 0;
     Farmer = 1;     // 平民
@@ -1341,7 +1473,7 @@ message Card {
 \end{itemize}
 \subsection{【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见}
 \label{sec-6-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 namespace ETModel {
 #region Enums
     public enum Suits {
@@ -1382,7 +1514,7 @@ namespace ETModel {
 \item 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
 \item 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】
 \end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 message SearchRequest {
     string query = 1;
     int32 page_number = 2;
@@ -1405,7 +1537,7 @@ message SearchRequest {
 \label{sec-6-4}
 \begin{itemize}
 \item 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 unsafe class ETModel_Card_Binding {
     public static void Register(ILRuntime.Runtime.Enviorment.AppDomain app) {
         BindingFlags flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
@@ -1438,12 +1570,12 @@ unsafe class ETModel_Card_Binding {
 \end{itemize}
 \subsection{IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧}
 \label{sec-7-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IDBCollection {}
 \end{minted}
 \subsection{DBComponent: 带生成系。可以查表，查询数据}
 \label{sec-7-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
 public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
     public const int TaskCount = 32;
@@ -1453,7 +1585,7 @@ public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
 \end{minted}
 \subsection{DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？}
 \label{sec-7-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class DBManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static DBManagerComponent Instance;
@@ -1462,7 +1594,7 @@ public class DBManagerComponent: Entity, IAwake, IDestroy {
 \end{minted}
 \subsection{DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里}
 \label{sec-7-4}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(DBManagerComponent))]
 public static class DBManagerComponentSystem {
     [ObjectSystem]
@@ -1492,12 +1624,13 @@ public static class DBManagerComponentSystem {
 \end{minted}
 \subsection{DBProxyComponent: 【参考项目】里的。有生成系。}
 \label{sec-7-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 用来与数据库操作代理
 public class DBProxyComponent: Component {
     public IPEndPoint dbAddress;
 }
 \end{minted}
+
 
 \section{StartConfigComponent: 找【各种服】的起始初始化地址}
 \label{sec-8}
@@ -1506,7 +1639,7 @@ public class DBProxyComponent: Component {
 \end{itemize}
 \subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
 \label{sec-8-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
     [StaticField]
     private static T instance;
@@ -1538,7 +1671,7 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
 \begin{itemize}
 \item 当数据库集群成区服的形式，这里各服务器的配置，成了 ProtoBuf 里进程间可传的消息模式？。。。
 \item 这里配置是从哪里来的呢？仍然是从各种配置文件里
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ProtoContract]
 [Config]
 public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
@@ -1594,7 +1727,7 @@ public partial class StartProcessConfig: ProtoObject, IConfig {
 \end{itemize}
 \subsection{SceneFactory 里可以给【匹配服】添加组件}
 \label{sec-8-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
         await ETTask.CompletedTask;
@@ -1633,7 +1766,7 @@ public static class SceneFactory {
 \end{minted}
 \subsection{RouterAddressComponent: 路由器组件}
 \label{sec-8-4}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ComponentOf(typeof(Scene))]
 public class RouterAddressComponent: Entity, IAwake<string, int> {
     public IPAddress RouterManagerIPAddress { get; set; }
@@ -1645,7 +1778,7 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
 \end{minted}
 \subsection{RouterAddressComponentSystem: 路由器的生成系}
 \label{sec-8-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(RouterAddressComponent))]
 public static class RouterAddressComponentSystem {
     public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
@@ -1702,7 +1835,7 @@ public static class RouterAddressComponentSystem {
 
 \subsection{RouterHelper: 路由器帮助类，向路由器注册、申请？}
 \label{sec-8-6}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class RouterHelper {
     // 注册router
     public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
@@ -1777,7 +1910,7 @@ public static class RouterHelper {
 \end{minted}
 \subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例}
 \label{sec-8-7}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
         try {
@@ -1811,7 +1944,7 @@ public static class LoginHelper {
 \end{minted}
 \subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
 \label{sec-8-8}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [Message(OuterMessage.HttpGetRouterResponse)]
 [ProtoContract]
 public partial class HttpGetRouterResponse: ProtoObject {
@@ -1822,11 +1955,12 @@ public partial class HttpGetRouterResponse: ProtoObject {
 }
 \end{minted}
 
+
 \section{组件定义，再澄明，与去重}
 \label{sec-9}
 \subsection{OnlineComponent: 参考项目里的，现框架里查找一下}
 \label{sec-9-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 在线组件，用于记录在线玩家
 public class OnlineComponent : Entity {
     private readonly Dictionary<long, int> dictionary = new Dictionary<long, int>();
@@ -1848,7 +1982,7 @@ public class OnlineComponent : Entity {
 \end{minted}
 \subsection{框架Game 类：是单例的管理类，与服务端或是客户端的总、根场景无关}
 \label{sec-9-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class Game { // 框架的Game 类
     [StaticField]
     private static readonly Dictionary<Type, ISingleton> singletonTypes = new Dictionary<Type, ISingleton>();
@@ -1943,7 +2077,7 @@ public static class Game { // 框架的Game 类
 \begin{itemize}
 \item 工厂的逻辑，重构以后，全部放进了AUIEvent 的实例继承类里。全部移除掉
 \item 有个 Factory 的文件夹，是会全部移除掉的
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class GamerFactory {
     // 创建玩家对象
     public static Gamer Create(long playerId, long userId, long? id = null) {
@@ -1954,6 +2088,7 @@ public static class GamerFactory {
 }
 \end{minted}
 \end{itemize}
+
 
 \section{写在最后：反而是自己每天查看一再更新的}
 \label{sec-10}
@@ -1966,12 +2101,15 @@ public static class GamerFactory {
 \item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
 \end{itemize}
 
+
 \section{现在的修改内容，记忆}
 \label{sec-11}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \end{itemize}
+
+
 \section{{\bfseries\sffamily TODO} }
 \label{sec-12}
 \begin{itemize}
@@ -1989,6 +2127,7 @@ public static class GamerFactory {
 \item 把参考游戏里，打牌相关的逻辑与模块好好看下，方便自己熟悉自己重构项目的源码后，画葫芦画飘地重构
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
+
 \section{拖拉机游戏：【重构OOP/OOD 设计思路】}
 \label{sec-13}
 \begin{itemize}

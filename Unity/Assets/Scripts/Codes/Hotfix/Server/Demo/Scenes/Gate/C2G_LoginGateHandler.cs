@@ -11,7 +11,7 @@ namespace ET.Server {
                 response.Error = ErrorCore.ERR_ConnectGateKeyError;
                 response.Message = "Gate key验证失败!";
                 return;
-            }
+            } 
             
             session.RemoveComponent<SessionAcceptTimeoutComponent>();
             PlayerComponent playerComponent = scene.GetComponent<PlayerComponent>();
