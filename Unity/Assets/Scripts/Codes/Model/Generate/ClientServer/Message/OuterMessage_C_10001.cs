@@ -68,6 +68,9 @@ namespace ET
 		[ProtoMember(2)]
 		public List<string> Routers { get; set; }
 
+		[ProtoMember(3)] // 自己手动添加了一下，只添加一个双端模式下的，另服务端的没处理
+		public List<string> Matchs { get; set; }
+
 	}
 
 	[Message(OuterMessage.RouterSync)]

@@ -2,12 +2,13 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 namespace ET.Client {
-    public static class LoginHelper {
+    public static class LoginHelper { // 程序域：热更新域在。调用自热更新视图层
 
         public static async ETTask Login(Scene clientScene, string account, string password) {
             try {
                 // 创建一个ETModel层的Session. 【没看懂】：如何区分不同层，为什么先移去，又添加？
-                clientScene.RemoveComponent<RouterAddressComponent>();
+// 这个组件：热更新域与常规域有不同吗? 尽管可能会没有不同，但它是实时的，就是过程中可能会有服务器掉线？所以取最新的？
+                clientScene.RemoveComponent<RouterAddressComponent>(); 
                 // 获取路由跟realmDispatcher地址
                 RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>();
                 if (routerAddressComponent == null) {

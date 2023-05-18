@@ -34,8 +34,8 @@ namespace ET {
                         case SceneType.Realm:
                             this.Realms.Add(startSceneConfig);
                             break;
-                        case SceneType.Match: // 对【匹配服】的管理
-                            this.Matchs.Add(startSceneConfig.Zone, startSceneConfig);
+                        case SceneType.Match: // 对【匹配服】的管理, 参照登录服来的
+                            this.Matchs.Add(startSceneConfig);
                             break;
                         case SceneType.Gate:
                             this.Gates.Add(startSceneConfig.Zone, startSceneConfig);

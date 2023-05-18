@@ -1,34 +1,78 @@
-#+latex_class: cn-article
-#+title: ET 框架学习笔记（二）－－网络交互相关
-#+author: deepwaterooo 
+% Created 2023-05-17 Wed 16:57
+% Intended LaTeX compiler: pdflatex
+\documentclass[9pt, b5paper]{article}
+\usepackage{xeCJK}
+\usepackage[T1]{fontenc}
+\usepackage{bera}
+\usepackage[scaled]{beraserif}
+\usepackage[scaled]{berasans}
+\usepackage[scaled]{beramono}
+\usepackage[cache=false]{minted}
+\usepackage{xltxtra}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{textcomp}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{latexsym}
+\usepackage{natbib}
+\usepackage{geometry}
+\geometry{left=1.2cm,right=1.2cm,top=1.5cm,bottom=1.2cm}
+\usepackage[xetex,colorlinks=true,CJKbookmarks=true,linkcolor=blue,urlcolor=blue,menucolor=blue]{hyperref}
+\newminted{common-lisp}{fontsize=\footnotesize} 
+\author{deepwaterooo}
+\date{\today}
+\title{ET 框架学习笔记（二）－－网络交互相关}
+\hypersetup{
+ pdfauthor={deepwaterooo},
+ pdftitle={ET 框架学习笔记（二）－－网络交互相关},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 28.2 (Org mode 9.5.5)}, 
+ pdflang={English}}
+\begin{document}
 
-* ET7 数据库相关【服务端】
-- 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
-- 这里不急着整理。现框架 *DB 放在服务端的Model* 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
-- 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
-** IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧
-#+BEGIN_SRC csharp
+\maketitle
+\tableofcontents
+
+
+\section{ET7 数据库相关【服务端】}
+\label{sec:org6ca4215}
+\begin{itemize}
+\item 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
+\item 这里不急着整理。现框架 \textbf{DB 放在服务端的Model} 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
+\item 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
+\end{itemize}
+\subsection{IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧}
+\label{sec:orgf0b560b}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IDBCollection {}
-#+END_SRC
-** DBComponent: 带生成系。可以查表，查询数据
-#+BEGIN_SRC java
+\end{minted}
+\subsection{DBComponent: 带生成系。可以查表，查询数据}
+\label{sec:orga03cdc7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
 public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
     public const int TaskCount = 32;
     public MongoClient mongoClient;
     public IMongoDatabase database;
 }
-#+END_SRC
-** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？
-#+BEGIN_SRC java
+\end{minted}
+\subsection{DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？}
+\label{sec:orge4c9bf9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class DBManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static DBManagerComponent Instance;
     public DBComponent[] DBComponents = new DBComponent[IdGenerater.MaxZone]; // 没事吃饱了撑得，占一大堆空地
 }
-#+END_SRC
-** DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里
-#+BEGIN_SRC java
+\end{minted}
+\subsection{DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里}
+\label{sec:org8902fbe}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(DBManagerComponent))]
 public static class DBManagerComponentSystem {
     [ObjectSystem]
@@ -55,22 +99,27 @@ public static class DBManagerComponentSystem {
         return dbComponent;
     }
 }
-#+END_SRC
-** DBProxyComponent: 【参考项目】里的。有生成系。
-#+BEGIN_SRC java
+\end{minted}
+\subsection{DBProxyComponent: 【参考项目】里的。有生成系。}
+\label{sec:orgdf9f6f2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 用来与数据库操作代理
 public class DBProxyComponent: Component {
     public IPEndPoint dbAddress;
 }
-#+END_SRC
+\end{minted}
 
-* StartConfigComponent: 找【各种服】的起始初始化地址
-- 这些组群服务器的起始被全部重构了，重构成配置单例了
-- 这里是，昨天之前理这部分的时候，理得不够透彻。去重构一个服的初始化与配置，就需要理清、找到这个服所关联的所有的起始配置相关。昨天之前做得还不够好。
-- 昨天晚上稍微理解得再深一点儿。应该也是，总结自己理一个相对大型框架的方法总结吧。
-- 今天早上的脑袋还是相对比较清醒，就把这块儿对自己来说相对不够熟悉相对难点儿的，再看一遍，希望有更多的收获！
-** ConfigSingleton<T>: ProtoObject, ISingleton
-#+BEGIN_SRC java
+\section{StartConfigComponent: 找【各种服】的起始初始化地址}
+\label{sec:org529da8f}
+\begin{itemize}
+\item 这些组群服务器的起始被全部重构了，重构成配置单例了
+\item 这里是，昨天之前理这部分的时候，理得不够透彻。去重构一个服的初始化与配置，就需要理清、找到这个服所关联的所有的起始配置相关。昨天之前做得还不够好。
+\item 昨天晚上稍微理解得再深一点儿。应该也是，总结自己理一个相对大型框架的方法总结吧。
+\item 今天早上的脑袋还是相对比较清醒，就把这块儿对自己来说相对不够熟悉相对难点儿的，再看一遍，希望有更多的收获！
+\end{itemize}
+\subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
+\label{sec:org1cdd8fe}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
         [StaticField]
         private static T instance;
@@ -96,9 +145,10 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
         public override void AfterEndInit() { }
         public virtual void Dispose() { }
     }
-#+END_SRC
-** SceneFactory 里可以给【匹配服】添加组件
-#+BEGIN_SRC java
+\end{minted}
+\subsection{SceneFactory 里可以给【匹配服】添加组件}
+\label{sec:orge8ea462}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
         await ETTask.CompletedTask;
@@ -134,9 +184,10 @@ public static class SceneFactory {
         return scene;
     }
 }
-#+END_SRC
-** RouterAddressComponent: 路由器组件
-#+BEGIN_SRC java
+\end{minted}
+\subsection{RouterAddressComponent: 路由器组件}
+\label{sec:org1b0523a}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ComponentOf(typeof(Scene))]
 public class RouterAddressComponent: Entity, IAwake<string, int> {
     public IPAddress RouterManagerIPAddress { get; set; }
@@ -145,9 +196,10 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
     public HttpGetRouterResponse Info;
     public int RouterIndex;
 }
-#+END_SRC
-** RouterAddressComponentSystem: 路由器的生成系
-#+BEGIN_SRC java
+\end{minted}
+\subsection{RouterAddressComponentSystem: 路由器的生成系}
+\label{sec:orgc2d657d}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(RouterAddressComponent))]
 public static class RouterAddressComponentSystem {
     public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
@@ -200,10 +252,11 @@ public static class RouterAddressComponentSystem {
         return new IPEndPoint(ipAddress, int.Parse(ss[1]));
     }
 }
-#+END_SRC
+\end{minted}
 
-** RouterHelper: 路由器帮助类，向路由器注册、申请？
-#+BEGIN_SRC java
+\subsection{RouterHelper: 路由器帮助类，向路由器注册、申请？}
+\label{sec:org4dc0e8c}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class RouterHelper {
     // 注册router
     public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
@@ -275,10 +328,11 @@ public static class RouterHelper {
         }
     }
 }
-#+END_SRC
+\end{minted}
 
-** StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
-  #+BEGIN_SRC java
+\subsection{StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】}
+\label{sec:org8af9e88}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ProtoContract]
 [Config]
 public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
@@ -330,9 +384,10 @@ public partial class StartProcessConfig: ProtoObject, IConfig {
     [ProtoMember(3)]
     public int InnerPort { get; set; }
 }
-  #+END_SRC
-** StartSceneConfig: ISupportInitialize 【各种服－配置，场景配置】
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{StartSceneConfig: ISupportInitialize 【各种服－配置，场景配置】}
+\label{sec:org3be4504}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public partial class StartSceneConfig: ISupportInitialize {
     public long InstanceId;
     public SceneType Type; // 场景类型
@@ -373,13 +428,16 @@ public partial class StartSceneConfig: ISupportInitialize {
         this.InstanceId = instanceIdStruct.ToLong();
     }
 }
-#+END_SRC
-** StartSceneConfigCategory : 【Matchs!】ConfigSingleton<StartSceneConfigCategory>, IMerge
-- 读里面的登录服，会知道它是如何管理登录服的（就是后面的例子，当它要拿登录服的地址的时候），它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
-- 那么这个配置管理里，因为我要用匹配服与地图服，也要对至少是匹配服进行管理。那么，我在申请匹配的时候，网关服才能拿到匹配服的地址。
-- 只在【服务端】存在。但是在双端模式、与服务端模式下，每种端有两个文件来定义这个类。。一个在【ProtoContract】里，可能可以进程间消息传递？一个在 ConfigPartial 文件夹里
-- 上面的文件重复，还不是很懂。【重构】：因为我现在还比较喜欢使用Unity 下自带的双端模式，可是暂时只改【双端模式 ClientServer】下的文件，另一个专职服务端可能晚点儿再补上去。不用昨天晚上一样每个文件都改。
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{StartSceneConfigCategory : 【Matchs!】ConfigSingleton<StartSceneConfigCategory>, IMerge}
+\label{sec:orgdedf08b}
+\begin{itemize}
+\item 读里面的登录服，会知道它是如何管理登录服的（就是后面的例子，当它要拿登录服的地址的时候），它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
+\item 那么这个配置管理里，因为我要用匹配服与地图服，也要对至少是匹配服进行管理。那么，我在申请匹配的时候，网关服才能拿到匹配服的地址。
+\item 只在【服务端】存在。但是在双端模式、与服务端模式下，每种端有两个文件来定义这个类。。一个在【ProtoContract】里，可能可以进程间消息传递？一个在 ConfigPartial 文件夹里
+\item 上面的文件重复，还不是很懂。【重构】：因为我现在还比较喜欢使用Unity 下自带的双端模式，可是暂时只改【双端模式 ClientServer】下的文件，另一个专职服务端可能晚点儿再补上去。不用昨天晚上一样每个文件都改。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 配置文件处理，或是服务器启动相关类，以前都没仔细读过
 public partial class StartSceneConfigCategory {
     public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
@@ -433,11 +491,14 @@ public partial class StartSceneConfigCategory {
         }
     }
 }
-#+END_SRC
-** HttpGetRouterResponse: 这个 ProtoBuf 的消息类型
-- 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
-- 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
-#+BEGIN_SRC java
+\end{minted}
+\subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
+\label{sec:orga96f7cd}
+\begin{itemize}
+\item 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
+\item 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [Message(OuterMessage.HttpGetRouterResponse)]
 [ProtoContract]
 public partial class HttpGetRouterResponse: ProtoObject {
@@ -451,12 +512,14 @@ message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
 	repeated string Routers = 2;
 	repeated string Matchs = 3;// 这行是我需要添加，和生成消息的
 }
-#+END_SRC
-** HttpGetRouterHandler : IHttpHandler: 获取各路由器的地址
-- 【匹配服】：因为我想拿这个服的地址，也需要这个帮助类里作相应的修改
-- StartSceneConfigCategory.Instance: 不明白这个实例是存放在哪里，因为可以 proto 消息进程间传递，那么可以试找，哪里调用这个帮助类拿东西？
-- 这个模块：现在还是理解不透。需要某个上午，把所有 RouterComponent 组件及其相关，再理一遍。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{HttpGetRouterHandler : IHttpHandler: 获取各路由器的地址}
+\label{sec:org1067867}
+\begin{itemize}
+\item 【匹配服】：因为我想拿这个服的地址，也需要这个帮助类里作相应的修改
+\item StartSceneConfigCategory.Instance: 不明白这个实例是存放在哪里，因为可以 proto 消息进程间传递，那么可以试找，哪里调用这个帮助类拿东西？
+\item 这个模块：现在还是理解不透。需要某个上午，把所有 RouterComponent 组件及其相关，再理一遍。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [HttpHandler(SceneType.RouterManager, "/get_router")]
 public class HttpGetRouterHandler : IHttpHandler {
     public async ETTask Handle(Entity domain, HttpListenerContext context) {
@@ -478,9 +541,11 @@ public class HttpGetRouterHandler : IHttpHandler {
         await ETTask.CompletedTask;
     }
 }
-   #+END_SRC
-** HttpHandler 标签系：标签自带场景类型
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{HttpHandler 标签系：标签自带场景类型}
+\label{sec:org7090ba6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class HttpHandlerAttribute: BaseAttribute {
     public SceneType SceneType { get; }
     public string Path { get; }
@@ -489,11 +554,14 @@ public class HttpHandlerAttribute: BaseAttribute {
         this.Path = path;
     }
 }
-   #+END_SRC
-** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例
-- 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿
-- 这个地方，有点儿奇怪的是：RouterAddressComponent 这个组件，找不到添加的地方。它可能有点儿特殊，就是它不走常规 AddComponent<>() 的方法添加，所以找不到添加，而只有获取。
-#+BEGIN_SRC java
+\end{minted}
+\subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例}
+\label{sec:orgdb3c067}
+\begin{itemize}
+\item 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿
+\item 这个地方，有点儿奇怪的是：RouterAddressComponent 这个组件，找不到添加的地方。它可能有点儿特殊，就是它不走常规 AddComponent<>() 的方法添加，所以找不到添加，而只有获取。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
         try {
@@ -524,76 +592,93 @@ public static class LoginHelper {
         }
     } 
 }
-#+END_SRC
+\end{minted}
 **
 
-* 服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）
-- Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。
-- Realm：对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址。内网组件NetInnerComponent，外网组件NetOuterComponent，Gate服务器随机分发组件。客户端登录时连接的第一个服务器，也可称为登录服务器。
-- Gate：对玩家进行管理，对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址，对Actor消息进程进行管理，对玩家ID登录后的Key进行管理。加载有玩家管理组件PlayerComponent，管理登陆时联网的Key组件GateSessionKeyComponent。
-- Location：连接内网，服务器进程状态集中管理（Actor消息IP管理服务器）。加载有内网组件NetInnerComponent，服务器消息处理状态存储组件LocationComponent。对客户端的登录信息进行验证和客户端登录后连接的服务器，登录后通过此服务器进行消息互动，也可称为验证服务器。
-- Map：连接内网，对ActorMessage消息进行管理（添加、移除、分发等），对场景内现在活动物体存储管理，对内网服务器进程进行操作，对Actor消息进程进行管理，对Actor消息进行管理（添加、移除、分发等），服务器帧率管理。服务器帧率管理组件ServerFrameComponent。
-- AllServer：将以上服务器功能集中合并成一个服务器。另外增加DB连接组件DBComponent
-- Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
+\section{服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）}
+\label{sec:org51a5ec1}
+\begin{itemize}
+\item Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。
+\item Realm：对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址。内网组件NetInnerComponent，外网组件NetOuterComponent，Gate服务器随机分发组件。客户端登录时连接的第一个服务器，也可称为登录服务器。
+\item Gate：对玩家进行管理，对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址，对Actor消息进程进行管理，对玩家ID登录后的Key进行管理。加载有玩家管理组件PlayerComponent，管理登陆时联网的Key组件GateSessionKeyComponent。
+\item Location：连接内网，服务器进程状态集中管理（Actor消息IP管理服务器）。加载有内网组件NetInnerComponent，服务器消息处理状态存储组件LocationComponent。对客户端的登录信息进行验证和客户端登录后连接的服务器，登录后通过此服务器进行消息互动，也可称为验证服务器。
+\item Map：连接内网，对ActorMessage消息进行管理（添加、移除、分发等），对场景内现在活动物体存储管理，对内网服务器进程进行操作，对Actor消息进程进行管理，对Actor消息进行管理（添加、移除、分发等），服务器帧率管理。服务器帧率管理组件ServerFrameComponent。
+\item AllServer：将以上服务器功能集中合并成一个服务器。另外增加DB连接组件DBComponent
+\item Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
+\end{itemize}
 
-* Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】
-- 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
-- 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
-- 【三、】查找 protoc 命令下，如何C# 索引 Unity 第三方库。  
-- 【Windows 下的 Protobuf 编译环境】：配置好，只是作为与ET 框架的Proto2CS.cs 所指挥的编译结果，作一个对比，两者应该效果是一样的，或是基本一样的，除了自定义里没有处理 enum.
-- Windows 下的命令行，就是用 protoc 来编译，可以参考如下. （这是 .cs 源码下的）
-    #+BEGIN_SRC csharp
+\section{Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】}
+\label{sec:org99e151e}
+\begin{itemize}
+\item 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
+\item 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
+\item 【三、】查找 protoc 命令下，如何C\# 索引 Unity 第三方库。
+\item 【Windows 下的 Protobuf 编译环境】：配置好，只是作为与ET 框架的Proto2CS.cs 所指挥的编译结果，作一个对比，两者应该效果是一样的，或是基本一样的，除了自定义里没有处理 enum.
+\item Windows 下的命令行，就是用 protoc 来编译，可以参考如下. （这是 .cs 源码下的）
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{protoPath}\" {protoName}");
-    #+END_SRC
-- 现在的问题是， *Protobuf消息里面居然是有 unity 第三方库的索引* 。
-- 直接把 enum 生成的那三个 .cs 类分别复制进双端，服务器端与客户端。包括Card 类。那些编译错误会去天边。哈哈哈，除了一个Card 的两个变量之外（CardSuits, CardWeight）。
-- 【热更新库】：现在剩下的问题，就成为，判定是用了哪个热更新的库，ILRuntime, 还是 HybridCLR, 如果帮它连那两个变量。好像接的是 HybridCLR. 这个库是我之前还不曾真正用过的。
-  - 相比于ET6，彻底剔除了ILRuntime，使得代码简洁了不少，并且比较稳定
+\end{minted}
+\item 现在的问题是， \textbf{Protobuf消息里面居然是有 unity 第三方库的索引} 。
+\item 直接把 enum 生成的那三个 .cs 类分别复制进双端，服务器端与客户端。包括Card 类。那些编译错误会去天边。哈哈哈，除了一个Card 的两个变量之外（CardSuits, CardWeight）。
+\item 【热更新库】：现在剩下的问题，就成为，判定是用了哪个热更新的库，ILRuntime, 还是 HybridCLR, 如果帮它连那两个变量。好像接的是 HybridCLR. 这个库是我之前还不曾真正用过的。
+\begin{itemize}
+\item 相比于ET6，彻底剔除了ILRuntime，使得代码简洁了不少，并且比较稳定
+\end{itemize}
+\end{itemize}
 
-* 写在最后：反而是自己每天查看一再更新的
-- 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
-- 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
-- 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
-- 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
-- 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
-- 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
-* 现在的修改内容：
-- *【Windows 下 proto2cs 消息转化】* ：上面拿匹配服地址，一个路由器相关消息加了参数，要重新生成一下。这个 mac 系统下不难，改天有时间也可以把 mac 下的运行环境配置好，这个功能模块就不用一定要切换电脑了。【手动做了一下】
-- *【UILobbyComponent 可以测试】* ：这个大厅组件，Unity 里预设简单，可以试运行一下，看是否完全消除这个UI 组件的报错，这个屏的控件能否显示出来？还是错出得早，这个屏就出不来已经报错了？
-  - 【客户端】的逻辑是处理好了，编译全过后可以测试
-  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理：C2G_StartMatch_ReqHandler. 必须记笔记。不记会忘。
-    #+BEGIN_SRC csharp
-    #+END_SRC
+\section{写在最后：反而是自己每天查看一再更新的}
+\label{sec:orgf0cbd66}
+\begin{itemize}
+\item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
+\item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
+\item 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
+\item 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
+\item 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
+\item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
+\end{itemize}
+\section{现在的修改内容：}
+\label{sec:org24784ef}
+\begin{itemize}
+\item \textbf{【Windows 下 proto2cs 消息转化】} ：上面拿匹配服地址，一个路由器相关消息加了参数，要重新生成一下。这个 mac 系统下不难，改天有时间也可以把 mac 下的运行环境配置好，这个功能模块就不用一定要切换电脑了。【手动做了一下】
+\item \textbf{【UILobbyComponent 可以测试】} ：这个大厅组件，Unity 里预设简单，可以试运行一下，看是否完全消除这个UI 组件的报错，这个屏的控件能否显示出来？还是错出得早，这个屏就出不来已经报错了？
+\begin{itemize}
+\item 【客户端】的逻辑是处理好了，编译全过后可以测试
+\item 【服务端】：处理用户请求匹配房间的逻辑，仍在处理：C2G\_StartMatch\_ReqHandler. 必须记笔记。不记会忘。
+\end{itemize}
 
-- *【TractorRoomComponent】* ：因为是多组件嵌套，可以合并多组件为同一个组件；另早上看得一知半解的一个【ChildOf】标签，可以帮助组件套用吗？再找找理解消化一下
-- 【房间组件】：几个现存的 working-on 的问题：
-  - 多组件嵌套：手工合并为一个组件。彻底理解确认后，会合并
-  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理
-    - 【数据库模块的整合】：网关服在转发请求匹配时，验证会话框有效后，验证用户身份时，需要去【用户数据库】拿用户数据。ET7 留了个DBManagerComponent, 还没能整合出这个模块
-    - 【匹配服地址】网关服的处理逻辑里，验证完用户合格后，为代为转发消息到匹配服，但需要拿匹配服的地址。ET7 重构里，还没能改出这部分。服务器系统配置初始化时，可以链表管理各小构匹配服，再去拿相关匹配服的地址。ET7 框架里的路由器系统，自己还没有弄懂。
-- 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-* TODO 其它的：部分完成，或是待完成的大的功能版块，列举
-- emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
-  - Windows 10 平台下，C-; 是绑定到了 ISpell 下的某个功能，可是现在这个破 emacs 老报错，连查是绑定给哪个功能，过程报错都被阻止了。。。
-- *【IStartSystem:】* 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 *【晚点儿再检查一遍】*
-- 如果这个一时半会儿解决不好，就把重构的设计思路再理一理。同时尽量去改重构的ET 框架里的编译错误。
-- 【Tractor】原 windows-form 项目，源码需要读懂，理解透彻，方便重构。  
-- 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
-- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-* 拖拉机游戏：【重构OOP/OOD 设计思路】
-- 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
-- ET7 重构里，各组件都该是自己设计重构原项目的类的设计的必要起点。可以根据这些来系统设计重构。【活宝妹就是一定要嫁给亲爱的表哥！！！】
-- 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
-- 【Gamer】：每一个玩家
-- 【拖拉机游戏房间】：
-- 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
-
-
-
-
-
-
-
-
-
-
+\item \textbf{【TractorRoomComponent】} ：因为是多组件嵌套，可以合并多组件为同一个组件；另早上看得一知半解的一个【ChildOf】标签，可以帮助组件套用吗？再找找理解消化一下
+\item 【房间组件】：几个现存的 working-on 的问题：
+\begin{itemize}
+\item 多组件嵌套：手工合并为一个组件。彻底理解确认后，会合并
+\item 【服务端】：处理用户请求匹配房间的逻辑，仍在处理
+\begin{itemize}
+\item 【数据库模块的整合】：网关服在转发请求匹配时，验证会话框有效后，验证用户身份时，需要去【用户数据库】拿用户数据。ET7 留了个DBManagerComponent, 还没能整合出这个模块
+\item 【匹配服地址】网关服的处理逻辑里，验证完用户合格后，为代为转发消息到匹配服，但需要拿匹配服的地址。ET7 重构里，还没能改出这部分。服务器系统配置初始化时，可以链表管理各小构匹配服，再去拿相关匹配服的地址。ET7 框架里的路由器系统，自己还没有弄懂。
+\end{itemize}
+\end{itemize}
+\item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\end{itemize}
+\section{{\bfseries\sffamily TODO} 其它的：部分完成，或是待完成的大的功能版块，列举}
+\label{sec:orgb369890}
+\begin{itemize}
+\item emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
+\begin{itemize}
+\item Windows 10 平台下，C-; 是绑定到了 ISpell 下的某个功能，可是现在这个破 emacs 老报错，连查是绑定给哪个功能，过程报错都被阻止了。。。
+\end{itemize}
+\item \textbf{【IStartSystem:】} 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 \textbf{【晚点儿再检查一遍】}
+\item 如果这个一时半会儿解决不好，就把重构的设计思路再理一理。同时尽量去改重构的ET 框架里的编译错误。
+\item 【Tractor】原 windows-form 项目，源码需要读懂，理解透彻，方便重构。
+\item 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
+\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+\section{拖拉机游戏：【重构OOP/OOD 设计思路】}
+\label{sec:orge09c633}
+\begin{itemize}
+\item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
+\item ET7 重构里，各组件都该是自己设计重构原项目的类的设计的必要起点。可以根据这些来系统设计重构。【活宝妹就是一定要嫁给亲爱的表哥！！！】
+\item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
+\item 【Gamer】：每一个玩家
+\item 【拖拉机游戏房间】：
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
+\end{itemize}
+\end{document}
