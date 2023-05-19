@@ -1,4 +1,4 @@
-syntax = "proto3";
+Actor_GamerPlayCard_Reqsyntax = "proto3";
 package ET;
 
 //ResponseType ObjectQueryResponse
@@ -186,14 +186,6 @@ message Actor_PlayerEnterRoom_Ack // IActorResponse
     long GamerID = 1;
 }
 
-message Actor_AuthorityPlayCard_Ntt // IActorMessage
-{
-	int32 RpcId = 90;
-	int64 ActorId = 94;
-    int64 UserID = 1;
-    bool IsFirst = 2;
-}
-
 message Actor_SetMultiples_Ntt // IActorMessage
 {
 	int32 RpcId = 90;
@@ -280,22 +272,6 @@ message R2G_PlayerKickOut_Req // IRequest
 }
 
 message G2R_PlayerKickOut_Ack // IResponse
-{
-    int32 RpcId = 90;
-    int32 Error = 91;
-    string Message = 92;
-
-}
-
-message G2M_PlayerEnterMatch_Req // IRequest
-{
-    int32 RpcId = 90;
-    long PlayerID = 1;
-    long UserID = 2;
-    long SessionID = 3;
-}
-
-message M2G_PlayerEnterMatch_Ack // IResponse
 {
     int32 RpcId = 90;
     int32 Error = 91;

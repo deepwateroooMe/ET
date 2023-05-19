@@ -6,7 +6,7 @@ namespace ET.Server {
     [MessageHandler(SceneType.Realm)]
     public class C2R_LoginHandler : AMRpcHandler<C2R_Login, R2C_Login> {
 
-        protected override async ETTask Run(Session session, C2R_Login request, R2C_Login response) {
+        protected override async void Run(Session session, C2R_Login request, R2C_Login response) {
             // 随机分配一个Gate
             StartSceneConfig config = RealmGateAddressHelper.GetGate(session.DomainZone());
             Log.Debug($"gate address: {MongoHelper.ToJson(config)}");

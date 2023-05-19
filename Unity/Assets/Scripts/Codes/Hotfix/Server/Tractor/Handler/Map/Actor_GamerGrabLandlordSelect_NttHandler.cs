@@ -6,7 +6,7 @@ namespace ET.Server {
     [ActorMessageHandler(SceneType.Map)]
     public class Actor_GamerGrabLandlordSelect_NttHandler : AMActorHandler<Gamer, Actor_GamerGrabLandlordSelect_Ntt> {
         protected override void Run(Gamer gamer, Actor_GamerGrabLandlordSelect_Ntt message) {
-            Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
             OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
             GameControllerComponent gameController = room.GetComponent<GameControllerComponent>();
             if (orderController.CurrentAuthority == gamer.UserID) {

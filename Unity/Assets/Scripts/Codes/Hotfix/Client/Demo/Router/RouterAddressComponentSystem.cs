@@ -2,8 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using ET.Client;
-namespace ET {
+namespace ET.Client {
     [FriendOf(typeof(RouterAddressComponent))]
     public static class RouterAddressComponentSystem {
         public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {

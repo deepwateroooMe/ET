@@ -359,140 +359,6 @@ namespace ET
 
 	}
 
-	[Message(InnerMessage.Actor_PlayerEnterRoom_Req)]
-	[ProtoContract]
-	public partial class Actor_PlayerEnterRoom_Req: ProtoObject, IActorRequest
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long PlayerID { get; set; }
-
-		[ProtoMember(2)]
-		public long UserID { get; set; }
-
-		[ProtoMember(3)]
-		public long SessionID { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_PlayerEnterRoom_Ack)]
-	[ProtoContract]
-	public partial class Actor_PlayerEnterRoom_Ack: ProtoObject, IActorResponse
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public int Error { get; set; }
-
-		[ProtoMember(92)]
-		public string Message { get; set; }
-
-		[ProtoMember(1)]
-		public long GamerID { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_AuthorityPlayCard_Ntt)]
-	[ProtoContract]
-	public partial class Actor_AuthorityPlayCard_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-		[ProtoMember(2)]
-		public bool IsFirst { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_SetMultiples_Ntt)]
-	[ProtoContract]
-	public partial class Actor_SetMultiples_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public int Multiples { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_SetLandlord_Ntt)]
-	[ProtoContract]
-	public partial class Actor_SetLandlord_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-	}
-
-	[Message(InnerMessage.GamerScore)]
-	[ProtoContract]
-	public partial class GamerScore: ProtoObject
-	{
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-		[ProtoMember(2)]
-		public long Score { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_Gameover_Ntt)]
-	[ProtoContract]
-	public partial class Actor_Gameover_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(2)]
-		public long BasePointPerMatch { get; set; }
-
-		[ProtoMember(3)]
-		public int Multiples { get; set; }
-
-		[ProtoMember(4)]
-		public List<GamerScore> GamersScore { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_GamerMoneyLess_Ntt)]
-	[ProtoContract]
-	public partial class Actor_GamerMoneyLess_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-	}
 
 	[Message(InnerMessage.G2R_PlayerOnline_Req)]
 	[ProtoContract]
@@ -596,39 +462,6 @@ namespace ET
 	[Message(InnerMessage.G2R_PlayerKickOut_Ack)]
 	[ProtoContract]
 	public partial class G2R_PlayerKickOut_Ack: ProtoObject, IResponse
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public int Error { get; set; }
-
-		[ProtoMember(92)]
-		public string Message { get; set; }
-
-	}
-
-	[Message(InnerMessage.G2M_PlayerEnterMatch_Req)]
-	[ProtoContract]
-	public partial class G2M_PlayerEnterMatch_Req: ProtoObject, IRequest
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(1)]
-		public long PlayerID { get; set; }
-
-		[ProtoMember(2)]
-		public long UserID { get; set; }
-
-		[ProtoMember(3)]
-		public long SessionID { get; set; }
-
-	}
-
-	[Message(InnerMessage.M2G_PlayerEnterMatch_Ack)]
-	[ProtoContract]
-	public partial class M2G_PlayerEnterMatch_Ack: ProtoObject, IResponse
 	{
 		[ProtoMember(90)]
 		public int RpcId { get; set; }
@@ -1253,7 +1086,7 @@ namespace ET
 		 public const ushort G2R_GetLoginKey_Ack = 20038;
 		 public const ushort R2G_PlayerKickOut_Req = 20039;
 		 public const ushort G2R_PlayerKickOut_Ack = 20040;
-		 public const ushort G2M_PlayerEnterMatch_Req = 20041;
+		 // public const ushort G2M_PlayerEnterMatch_Req = 20041; // 因为我添加重复了，只是手动删除它
 		 public const ushort M2G_PlayerEnterMatch_Ack = 20042;
 		 public const ushort G2M_PlayerExitMatch_Req = 20043;
 		 public const ushort M2G_PlayerExitMatch_Ack = 20044;

@@ -7,7 +7,7 @@ namespace ET.Server {
     public class Actor_GamerDontPlay_NttHandler : AMActorHandler<Gamer, Actor_GamerDontPlay_Ntt> {
 
         protected override void Run(Gamer gamer, Actor_GamerDontPlay_Ntt message) {
-            Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
             OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
             if (orderController.CurrentAuthority == gamer.UserID) {
                 // 转发玩家不出牌消息

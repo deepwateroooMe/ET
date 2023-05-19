@@ -1,4 +1,4 @@
-% Created 2023-05-18 Thu 10:03
+% Created 2023-05-18 Thu 22:33
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -38,6 +38,7 @@
 \section{Net 网络交互相关：【服务端+客户端】只是稍微改装成事件系统而已}
 \label{sec-1}
 \begin{itemize}
+\item 当网络模块也改成是事件机制，可能是我先前对网络模块理解得还是不够透彻，怎么感觉 ET7 之后不知道会话框是怎么管理的？
 \item 这次重构里，以前是Model 里，生成系为非静态，这次全搬进热更新域里，生成系与方法全是静态的。
 \item 因为生成系全变成了静态，那么调用方法就成为比如：直接使用生成系的类名，与静态方法调用。
 \end{itemize}
@@ -355,6 +356,34 @@ public static class MessageDispatcherComponentHelper { // Awake() etc...
             }
         }
     }
+}
+\end{minted}
+
+\subsection{NetInnerComponent:}
+\label{sec-1-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 【服务器】：对不同进程的一些处理
+public struct ProcessActorId {
+    public int Process;
+    public long ActorId;
+    public ProcessActorId(long actorId) {
+        InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
+        this.Process = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        this.ActorId = instanceIdStruct.ToLong();
+    }
+}
+public struct NetInnerComponentOnRead {
+    public long ActorId;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
+    public int ServiceId;
+
+    public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
+    [StaticField]
+    public static NetInnerComponent Instance;
 }
 \end{minted}
 
@@ -821,264 +850,10 @@ public struct MeasureState<T> : IDisposable {
 \end{minted}
 
 
-\section{ActorMessage 相关：【早上】看下}
-\label{sec-3}
-\subsection{MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理}
-\label{sec-3-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-// 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
-[ComponentOf]
-public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
-    // Mailbox的类型
-    public MailboxType MailboxType { get; set; }
-}
-\end{minted}
-\subsection{MailboxType}
-\label{sec-3-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public enum MailboxType {
-    MessageDispatcher, // 消息分发器
-    UnOrderMessageDispatcher,// 无序分发
-    GateSession,// 网关？
-}
-\end{minted}
-\subsection{ActorMessageSenderComponent: 管理类组件}
-\label{sec-3-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[ComponentOf(typeof(Scene))]
-public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
-    public const long TIMEOUT_TIME = 40 * 1000;
-    public static ActorMessageSenderComponent Instance { get; set; }
-    public int RpcId;
-    public readonly SortedDictionary<int, ActorMessageSender> requestCallback = new SortedDictionary<int, ActorMessageSender>();
-    public long TimeoutCheckTimer;
-    public List<int> TimeoutActorMessageSenders = new List<int>();
-}
-\end{minted}
-\subsection{ActorMessageSenderComponentSystem: 多带个Timer}
-\label{sec-3-4}
-\begin{itemize}
-\item 这个类我好像认真读过，大概是小伙伴搬家超时，什么之类的，改天再读一遍
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[FriendOf(typeof(ActorMessageSenderComponent))]
-public static class ActorMessageSenderComponentSystem {
-    [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系
-    public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
-        protected override void Run(ActorMessageSenderComponent self) {
-            try {
-                self.Check();
-            }
-            catch (Exception e) {
-                Log.Error($"move timer error: {self.Id}\n{e}");
-            }
-        }
-    }
-    [ObjectSystem]
-    public class ActorMessageSenderComponentAwakeSystem: AwakeSystem<ActorMessageSenderComponent> {
-        protected override void Awake(ActorMessageSenderComponent self) { // ...
-        }
-    }
-    [ObjectSystem]
-    public class ActorMessageSenderComponentDestroySystem: DestroySystem<ActorMessageSenderComponent> {
-        protected override void Destroy(ActorMessageSenderComponent self) { // ...
-        }
-    }
-    private static void Run(ActorMessageSender self, IActorResponse response) {
-        if (response.Error == ErrorCore.ERR_ActorTimeout) {
-            self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
-            return;
-        }
-        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) {
-            self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
-            return;
-        }
-        self.Tcs.SetResult(response);
-    }
-    private static void Check(this ActorMessageSenderComponent self) {
-        long timeNow = TimeHelper.ServerNow();
-        foreach ((int key, ActorMessageSender value) in self.requestCallback) {
-            // 因为是顺序发送的，所以，检测到第一个不超时的就退出
-            if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
-                break;
-            self.TimeoutActorMessageSenders.Add(key);
-        }
-        foreach (int rpcId in self.TimeoutActorMessageSenders) {
-            ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
-            self.requestCallback.Remove(rpcId);
-            try {
-                IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
-                Run(actorMessageSender, response);
-            }
-            catch (Exception e) {
-                Log.Error(e.ToString());
-            }
-        }
-        self.TimeoutActorMessageSenders.Clear();
-    }
-    public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) {
-        if (actorId == 0) 
-            throw new Exception($"actor id is 0: {message}");
-        ProcessActorId processActorId = new(actorId);
-        // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
-        if (processActorId.Process == Options.Instance.Process) {
-            NetInnerComponent.Instance.HandleMessage(actorId, message);
-            return;
-        }
-        Session session = NetInnerComponent.Instance.Get(processActorId.Process);
-        session.Send(processActorId.ActorId, message);
-    }
-    public static int GetRpcId(this ActorMessageSenderComponent self) {
-        return ++self.RpcId;
-    }
-    public static async ETTask<IActorResponse> Call(
-        this ActorMessageSenderComponent self,
-        long actorId,
-        IActorRequest request,
-        bool needException = true
-        ) {
-        request.RpcId = self.GetRpcId();
-        if (actorId == 0) 
-            throw new Exception($"actor id is 0: {request}");
-        return await self.Call(actorId, request.RpcId, request, needException);
-    }
-    public static async ETTask<IActorResponse> Call(
-        this ActorMessageSenderComponent self,
-        long actorId,
-        int rpcId,
-        IActorRequest iActorRequest,
-        bool needException = true
-        ) {
-        if (actorId == 0) 
-            throw new Exception($"actor id is 0: {iActorRequest}");
-        var tcs = ETTask<IActorResponse>.Create(true);
-        self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException));
-        self.Send(actorId, iActorRequest);
-        long beginTime = TimeHelper.ServerFrameTime();
-        IActorResponse response = await tcs;
-        long endTime = TimeHelper.ServerFrameTime();
-        long costTime = endTime - beginTime;
-        if (costTime > 200) 
-            Log.Warning($"actor rpc time > 200: {costTime} {iActorRequest}");
-        return response;
-    }
-    public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
-        ActorMessageSender actorMessageSender;
-        if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) 
-            return;
-        self.requestCallback.Remove(response.RpcId);
-        Run(actorMessageSender, response);
-    }
-}
-\end{minted}
-\end{itemize}
-
-\subsection{ActorHandleHelper 帮助类}
-\label{sec-3-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public static class ActorHandleHelper {
-    public static void Reply(int fromProcess, IActorResponse response) {
-        if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程
-            // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
-            ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
-            return;
-        }
-        Session replySession = NetInnerComponent.Instance.Get(fromProcess);
-        replySession.Send(response);
-    }
-    public static void HandleIActorResponse(IActorResponse response) {
-        ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
-    }
-    // 分发actor消息
-    [EnableAccessEntiyChild]
-    public static async ETTask HandleIActorRequest(long actorId, IActorRequest iActorRequest) {
-        InstanceIdStruct instanceIdStruct = new(actorId);
-        int fromProcess = instanceIdStruct.Process;
-        instanceIdStruct.Process = Options.Instance.Process;
-        long realActorId = instanceIdStruct.ToLong();
-        Entity entity = Root.Instance.Get(realActorId);
-        if (entity == null) {
-            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-            Reply(fromProcess, response);
-            return;
-        }
-        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
-        if (mailBoxComponent == null) {
-            Log.Warning($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorRequest}");
-            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-            Reply(fromProcess, response);
-            return;
-        }
-        switch (mailBoxComponent.MailboxType) {
-            case MailboxType.MessageDispatcher: {
-                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                    if (entity.InstanceId != realActorId) {
-                        IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-                        Reply(fromProcess, response);
-                        break;
-                    }
-                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
-                }
-                break;
-            }
-            case MailboxType.UnOrderMessageDispatcher: {
-                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
-                break;
-            }
-            case MailboxType.GateSession:
-            default:
-                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorRequest}");
-        }
-    }
-    // 分发actor消息
-    [EnableAccessEntiyChild]
-    public static async ETTask HandleIActorMessage(long actorId, IActorMessage iActorMessage) {
-        InstanceIdStruct instanceIdStruct = new(actorId);
-        int fromProcess = instanceIdStruct.Process;
-        instanceIdStruct.Process = Options.Instance.Process;
-        long realActorId = instanceIdStruct.ToLong();
-        Entity entity = Root.Instance.Get(realActorId);
-        if (entity == null) {
-            Log.Error($"not found actor: {realActorId} {iActorMessage}");
-            return;
-        }
-        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
-        if (mailBoxComponent == null) {
-            Log.Error($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorMessage}");
-            return;
-        }
-        switch (mailBoxComponent.MailboxType) {
-        case MailboxType.MessageDispatcher: {
-            using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                if (entity.InstanceId != realActorId) {
-                    break;
-                }
-                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
-            }
-            break;
-        }
-        case MailboxType.UnOrderMessageDispatcher: {
-            await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
-            break;
-        }
-        case MailboxType.GateSession: {
-            if (entity is Session gateSession) {
-                // 发送给客户端
-                gateSession.Send(iActorMessage);
-            }
-            break;
-        }
-        default:
-            throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
-        }
-    }
-}
-\end{minted}
-
-
 \section{【拖拉机游戏房间】组件: 分析}
-\label{sec-4}
+\label{sec-3}
 \subsection{TractorRoomEvent: 拖拉机房间，【待修改完成】}
-\label{sec-4-1}
+\label{sec-3-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // UI 系统的事件机制：定义，如何创建拖拉机游戏房间【TODO:】UNITY 里是需要制作相应预设的
 [UIEvent(UIType.TractorRoom)]
@@ -1101,7 +876,7 @@ public class TractorRoomEvent: AUIEvent {
 }
 \end{minted}
 \subsection{GamerComponent: 玩家【管理类组件】，是对房间里四个玩家的管理。}
-\label{sec-4-2}
+\label{sec-3-2}
 \begin{itemize}
 \item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1160,7 +935,7 @@ public class GamerComponent : Entity, IAwake { // 它也有【生成系】
 \end{minted}
 \end{itemize}
 \subsection{Gamer: 【服务端】一个玩家个例。对应这个玩家的相关信息}
-\label{sec-4-3}
+\label{sec-3-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 房间玩家对象
 public sealed class Gamer : Entity, IAwake<long> {
@@ -1189,7 +964,7 @@ public sealed class Gamer : Entity, IAwake<long> {
 }
 \end{minted}
 \subsection{Gamer: 【客户端】一个玩家个例。它说只要一点儿信息就行}
-\label{sec-4-4}
+\label{sec-3-4}
 \begin{itemize}
 \item 传进程间消息的时候，也只传这两个关键参数。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1208,7 +983,7 @@ public sealed class Gamer : Entity { // 玩家对象
 \end{minted}
 \end{itemize}
 \subsection{GamerUIComponent: 【客户端】玩家UI 组件：每个玩家背个小面板，来显示必要信息（钱，抢不抢庄，反过的主等）}
-\label{sec-4-5}
+\label{sec-3-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class GamerUIComponent : Entity, IStart { // 玩家UI组件
     public GameObject Panel { get; private set; } // UI面板
@@ -1305,7 +1080,7 @@ public class GamerUIComponent : Entity, IStart { // 玩家UI组件
 }
 \end{minted}
 \subsection{Protobuf 里面的消息与参考}
-\label{sec-4-6}
+\label{sec-3-6}
 \begin{itemize}
 \item 这里把 Protobuf 里面可以传的游戏相关也整理一下。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1335,7 +1110,7 @@ message Actor_GamerGrabLandlordSelect_Ntt { // IActorMessage 参考去想：抢�
 \end{minted}
 \end{itemize}
 \subsection{TractorRoomComponent: 游戏房间，自带其它组件，当有嵌套时，如何才能系统化地、工厂化地、UI 上的事件驱动地，生成这个组件呢？}
-\label{sec-4-7}
+\label{sec-3-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class TractorRoomComponent : Entity, IAwake {
     private TractorInteractionComponent interaction; // 嵌套组件：互动组件
@@ -1354,7 +1129,7 @@ public class TractorRoomComponent : Entity, IAwake {
     }
 \end{minted}
 \subsection{TractorInteractionComponent: 感觉是视图UI 上的一堆调控，逻辑控制}
-\label{sec-4-8}
+\label{sec-3-8}
 \begin{itemize}
 \item 上下这一两个组件里，除了 ProtoBuf 消息里传递的类找不到，没有其它错误
 \item 【嵌套】：是这里的难点。其它都可以一个触发一个地由事件发布触发订阅者的回调，可是当一个组件内存在嵌套，又是系统化【内部组件生成完成后，外部组件才生成完成】生成，我是要把这两个组件合并成一个吗？还是说，我不得不把它折成粒度更小的UI 上的事件驱动机制，以符合系统框架？要去所源码弄透。
@@ -1382,9 +1157,9 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 
 
 \section{消息处理器： AMActorHandler<E, Message> 继承类的返回类型，全改成了 void}
-\label{sec-5}
+\label{sec-4}
 \subsection{AMActorHandler<E, Message>: 基类的抽象方法 Run 的返回类型被固定死了，报了狠多错}
-\label{sec-5-1}
+\label{sec-4-1}
 \begin{itemize}
 \item 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1418,7 +1193,7 @@ public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entit
 \end{minted}
 \end{itemize}
 \subsection{IMActorHandler: 接口类的定义，同样要改}
-\label{sec-5-2}
+\label{sec-4-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IMActorHandler {
     // ETTask Handle(Entity entity, int fromProcess, object actorMessage);
@@ -1430,9 +1205,9 @@ public interface IMActorHandler {
 
 
 \section{Protobuf 里的 enum: 【Identity】【Suits】【Weight】}
-\label{sec-6}
+\label{sec-5}
 \subsection{OuterMessage\_C\_10001.proto 里三四个类的定义}
-\label{sec-6-1}
+\label{sec-5-1}
 \begin{itemize}
 \item 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1472,7 +1247,7 @@ message Card {
 \end{minted}
 \end{itemize}
 \subsection{【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见}
-\label{sec-6-2}
+\label{sec-5-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 namespace ETModel {
 #region Enums
@@ -1509,7 +1284,7 @@ namespace ETModel {
 #region Messages
 \end{minted}
 \subsection{ET7 框架里， enum 完全找不到}
-\label{sec-6-3}
+\label{sec-5-3}
 \begin{itemize}
 \item 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
 \item 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】
@@ -1534,7 +1309,7 @@ message SearchRequest {
 \item 觉得这个，是目前最主要的 compile-error 的来源，但不是自己重构项目的重点，还是去看其它的。看如何重构现项目。这个晚上再弄。
 \end{itemize}
 \subsection{ETModel\_Card\_Binding: 奇异点，ILRuntime 热更新里，似乎对 Card 类的两个成员变量作了辅助链接}
-\label{sec-6-4}
+\label{sec-5-4}
 \begin{itemize}
 \item 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1562,19 +1337,19 @@ unsafe class ETModel_Card_Binding {
 
 
 \section{ET7 数据库相关【服务端】}
-\label{sec-7}
+\label{sec-6}
 \begin{itemize}
 \item 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
 \item 这里不急着整理。现框架 \textbf{DB 放在服务端的Model} 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
 \item 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
 \end{itemize}
 \subsection{IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧}
-\label{sec-7-1}
+\label{sec-6-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IDBCollection {}
 \end{minted}
 \subsection{DBComponent: 带生成系。可以查表，查询数据}
-\label{sec-7-2}
+\label{sec-6-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
 public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
@@ -1584,7 +1359,7 @@ public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
 }
 \end{minted}
 \subsection{DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？}
-\label{sec-7-3}
+\label{sec-6-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class DBManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
@@ -1593,7 +1368,7 @@ public class DBManagerComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里}
-\label{sec-7-4}
+\label{sec-6-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(DBManagerComponent))]
 public static class DBManagerComponentSystem {
@@ -1623,7 +1398,7 @@ public static class DBManagerComponentSystem {
 }
 \end{minted}
 \subsection{DBProxyComponent: 【参考项目】里的。有生成系。}
-\label{sec-7-5}
+\label{sec-6-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 用来与数据库操作代理
 public class DBProxyComponent: Component {
@@ -1633,12 +1408,12 @@ public class DBProxyComponent: Component {
 
 
 \section{StartConfigComponent: 找【各种服】的起始初始化地址}
-\label{sec-8}
+\label{sec-7}
 \begin{itemize}
 \item 这些组群服务器的起始被全部重构了，重构成配置单例了
 \end{itemize}
 \subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
-\label{sec-8-1}
+\label{sec-7-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
     [StaticField]
@@ -1667,7 +1442,7 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
 }
 \end{minted}
 \subsection{StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 吃饱了撑得吗？}
-\label{sec-8-2}
+\label{sec-7-2}
 \begin{itemize}
 \item 当数据库集群成区服的形式，这里各服务器的配置，成了 ProtoBuf 里进程间可传的消息模式？。。。
 \item 这里配置是从哪里来的呢？仍然是从各种配置文件里
@@ -1726,7 +1501,7 @@ public partial class StartProcessConfig: ProtoObject, IConfig {
 \end{minted}
 \end{itemize}
 \subsection{SceneFactory 里可以给【匹配服】添加组件}
-\label{sec-8-3}
+\label{sec-7-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -1765,7 +1540,7 @@ public static class SceneFactory {
 }
 \end{minted}
 \subsection{RouterAddressComponent: 路由器组件}
-\label{sec-8-4}
+\label{sec-7-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ComponentOf(typeof(Scene))]
 public class RouterAddressComponent: Entity, IAwake<string, int> {
@@ -1777,7 +1552,7 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
 }
 \end{minted}
 \subsection{RouterAddressComponentSystem: 路由器的生成系}
-\label{sec-8-5}
+\label{sec-7-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(RouterAddressComponent))]
 public static class RouterAddressComponentSystem {
@@ -1834,7 +1609,7 @@ public static class RouterAddressComponentSystem {
 \end{minted}
 
 \subsection{RouterHelper: 路由器帮助类，向路由器注册、申请？}
-\label{sec-8-6}
+\label{sec-7-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class RouterHelper {
     // 注册router
@@ -1909,7 +1684,7 @@ public static class RouterHelper {
 }
 \end{minted}
 \subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例}
-\label{sec-8-7}
+\label{sec-7-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -1943,7 +1718,7 @@ public static class LoginHelper {
 }
 \end{minted}
 \subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
-\label{sec-8-8}
+\label{sec-7-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [Message(OuterMessage.HttpGetRouterResponse)]
 [ProtoContract]
@@ -1957,9 +1732,9 @@ public partial class HttpGetRouterResponse: ProtoObject {
 
 
 \section{组件定义，再澄明，与去重}
-\label{sec-9}
+\label{sec-8}
 \subsection{OnlineComponent: 参考项目里的，现框架里查找一下}
-\label{sec-9-1}
+\label{sec-8-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 在线组件，用于记录在线玩家
 public class OnlineComponent : Entity {
@@ -1981,7 +1756,7 @@ public class OnlineComponent : Entity {
 }
 \end{minted}
 \subsection{框架Game 类：是单例的管理类，与服务端或是客户端的总、根场景无关}
-\label{sec-9-2}
+\label{sec-8-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class Game { // 框架的Game 类
     [StaticField]
@@ -2068,12 +1843,12 @@ public static class Game { // 框架的Game 类
 }
 \end{minted}
 \subsection{ET7 的重构，将数据库相关全部去掉了？找不到数据库的踪影？}
-\label{sec-9-3}
+\label{sec-8-3}
 \begin{itemize}
 \item 扔进什么狗屁的 AI 相关里去了。不用管，可以添加自己需要用到的
 \end{itemize}
 \subsection{GamerFactory: 【加工厂】全部移除掉}
-\label{sec-9-4}
+\label{sec-8-4}
 \begin{itemize}
 \item 工厂的逻辑，重构以后，全部放进了AUIEvent 的实例继承类里。全部移除掉
 \item 有个 Factory 的文件夹，是会全部移除掉的
@@ -2091,7 +1866,7 @@ public static class GamerFactory {
 
 
 \section{写在最后：反而是自己每天查看一再更新的}
-\label{sec-10}
+\label{sec-9}
 \begin{itemize}
 \item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 \item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
@@ -2103,7 +1878,7 @@ public static class GamerFactory {
 
 
 \section{现在的修改内容，记忆}
-\label{sec-11}
+\label{sec-10}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
@@ -2111,7 +1886,7 @@ public static class GamerFactory {
 
 
 \section{{\bfseries\sffamily TODO} }
-\label{sec-12}
+\label{sec-11}
 \begin{itemize}
 \item \textbf{Windows 下 org-mode 有几个【BUG：】} 1.org-mode 不能自动识别模式，除第一次加载可以正确，其它再加载不识别 org-mode; 2.org-export-to-pdf 在我换成为 msys64 里的 emacs 后就坏掉了。因为要花时间修，暂时还放着
 \item \textbf{【IStartSystem:】} 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 \textbf{【晚点儿再检查一遍】}
@@ -2128,8 +1903,9 @@ public static class GamerFactory {
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 
+
 \section{拖拉机游戏：【重构OOP/OOD 设计思路】}
-\label{sec-13}
+\label{sec-12}
 \begin{itemize}
 \item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 \item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。

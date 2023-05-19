@@ -2,67 +2,545 @@
 #+title: ET 框架学习笔记（二）－－网络交互相关
 #+author: deepwaterooo 
 
-* ET7 数据库相关【服务端】
-- 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
-- 这里不急着整理。现框架 *DB 放在服务端的Model* 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
-- 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
-** IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧
-#+BEGIN_SRC csharp
-public interface IDBCollection {}
-#+END_SRC
-** DBComponent: 带生成系。可以查表，查询数据
-#+BEGIN_SRC java
-[ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
-public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
-    public const int TaskCount = 32;
-    public MongoClient mongoClient;
-    public IMongoDatabase database;
+* Actor 消息相关
+** ActorMessageSender: 知道对方的instanceId，使用这个类发actor消息
+   #+BEGIN_SRC csharp
+public readonly struct ActorMessageSender {
+    public long ActorId { get; }
+    public long CreateTime { get; } // 最近接收或者发送消息的时间
+    public IActorRequest Request { get; }
+    public bool NeedException { get; }
+    public ETTask<IActorResponse> Tcs { get; }
+    public ActorMessageSender(long actorId, IActorRequest iActorRequest, ETTask<IActorResponse> tcs, bool needException) { // tv ... 
+    }
 }
-#+END_SRC
-** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？
-#+BEGIN_SRC java
-public class DBManagerComponent: Entity, IAwake, IDestroy {
+   #+END_SRC
+** ActorMessageSenderComponent: 
+   #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
+    public const long TIMEOUT_TIME = 40 * 1000;
+    public static ActorMessageSenderComponent Instance { get; set; }
+    public int RpcId;
+    public readonly SortedDictionary<int, ActorMessageSender> requestCallback = new SortedDictionary<int, ActorMessageSender>();
+    public long TimeoutCheckTimer;
+    public List<int> TimeoutActorMessageSenders = new List<int>();
+}
+   #+END_SRC
+** ActorMessageSenderComponentSystem: 这个类，今天晚上没有看懂，明天上午再看一下
+   #+BEGIN_SRC csharp
+[FriendOf(typeof(ActorMessageSenderComponent))]
+public static class ActorMessageSenderComponentSystem {
+    [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系
+    public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
+        protected override void Run(ActorMessageSenderComponent self) {
+            try {
+                self.Check();
+            }
+            catch (Exception e) {
+                Log.Error($"move timer error: {self.Id}\n{e}");
+            }
+        }
+    }
+    // [ObjectSystem] // Awake() etc
+    private static void Run(ActorMessageSender self, IActorResponse response) {
+        if (response.Error == ErrorCore.ERR_ActorTimeout) {
+            self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
+            return;
+        }
+        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) {
+            self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
+            return;
+        }
+        self.Tcs.SetResult(response);
+    }
+    private static void Check(this ActorMessageSenderComponent self) {
+        long timeNow = TimeHelper.ServerNow();
+        foreach ((int key, ActorMessageSender value) in self.requestCallback) {
+            // 因为是顺序发送的，所以，检测到第一个不超时的就退出
+            if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
+                break;
+            self.TimeoutActorMessageSenders.Add(key);
+        }
+        foreach (int rpcId in self.TimeoutActorMessageSenders) {
+            ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
+            self.requestCallback.Remove(rpcId);
+            try {
+                IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
+                Run(actorMessageSender, response);
+            }
+            catch (Exception e) {
+                Log.Error(e.ToString());
+            }
+        }
+        self.TimeoutActorMessageSenders.Clear();
+    }
+    public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) {
+        if (actorId == 0) {
+            throw new Exception($"actor id is 0: {message}");
+        }
+        ProcessActorId processActorId = new(actorId);
+        // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
+        if (processActorId.Process == Options.Instance.Process) {
+            NetInnerComponent.Instance.HandleMessage(actorId, message);
+            return;
+        }
+        Session session = NetInnerComponent.Instance.Get(processActorId.Process);
+        session.Send(processActorId.ActorId, message);
+    }
+    public static int GetRpcId(this ActorMessageSenderComponent self) {
+        return ++self.RpcId;
+    }
+    public static async ETTask<IActorResponse> Call(
+        this ActorMessageSenderComponent self,
+        long actorId,
+        IActorRequest request,
+        bool needException = true
+        ) {
+        request.RpcId = self.GetRpcId();
+        if (actorId == 0) {
+            throw new Exception($"actor id is 0: {request}");
+        }
+        return await self.Call(actorId, request.RpcId, request, needException);
+    }
+    public static async ETTask<IActorResponse> Call(
+        this ActorMessageSenderComponent self,
+        long actorId,
+        int rpcId,
+        IActorRequest iActorRequest,
+        bool needException = true
+        ) {
+        if (actorId == 0) {
+            throw new Exception($"actor id is 0: {iActorRequest}");
+        }
+        var tcs = ETTask<IActorResponse>.Create(true);
+        self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException));
+        self.Send(actorId, iActorRequest);
+        long beginTime = TimeHelper.ServerFrameTime();
+        IActorResponse response = await tcs;
+        long endTime = TimeHelper.ServerFrameTime();
+        long costTime = endTime - beginTime;
+        if (costTime > 200) {
+            Log.Warning($"actor rpc time > 200: {costTime} {iActorRequest}");
+        }
+        return response;
+    }
+    public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
+        ActorMessageSender actorMessageSender;
+        if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) {
+            return;
+        }
+        self.requestCallback.Remove(response.RpcId);
+        Run(actorMessageSender, response);
+    }
+}
+   #+END_SRC
+** LocationProxyComponent
+   #+BEGIN_SRC csharp
+[ComponentOf(typeof(Scene))]
+public class LocationProxyComponent: Entity, IAwake, IDestroy {
     [StaticField]
-    public static DBManagerComponent Instance;
-    public DBComponent[] DBComponents = new DBComponent[IdGenerater.MaxZone]; // 没事吃饱了撑得，占一大堆空地
+    public static LocationProxyComponent Instance;
+}
+   #+END_SRC
+** LocationProxyComponentSystem
+#+BEGIN_SRC csharp
+// [ObjectSystem] awake() etc
+public static class LocationProxyComponentSystem {
+    private static long GetLocationSceneId(long key) {
+        return StartSceneConfigCategory.Instance.LocationConfig.InstanceId;
+    }
+    public static async ETTask Add(this LocationProxyComponent self, long key, long instanceId) {
+        await ActorMessageSenderComponent.Instance
+            .Call(GetLocationSceneId(key),
+                  new ObjectAddRequest() { Key = key, InstanceId = instanceId });
+    }
+    public static async ETTask Lock(this LocationProxyComponent self, long key, long instanceId, int time = 60000) {
+        await ActorMessageSenderComponent.Instance
+            .Call(GetLocationSceneId(key),
+                  new ObjectLockRequest() { Key = key, InstanceId = instanceId, Time = time });
+    }
+    public static async ETTask UnLock(this LocationProxyComponent self, long key, long oldInstanceId, long instanceId) {
+        await ActorMessageSenderComponent.Instance
+            .Call(GetLocationSceneId(key),
+                  new ObjectUnLockRequest() { Key = key, OldInstanceId = oldInstanceId, InstanceId = instanceId });
+    }
+    public static async ETTask Remove(this LocationProxyComponent self, long key) {
+        await ActorMessageSenderComponent.Instance
+            .Call(GetLocationSceneId(key),
+                  new ObjectRemoveRequest() { Key = key });
+    }
+    public static async ETTask<long> Get(this LocationProxyComponent self, long key) {
+        if (key == 0) 
+            throw new Exception($"get location key 0");
+        // location server配置到共享区，一个大战区可以配置N多个location server,这里暂时为1
+        ObjectGetResponse response = (ObjectGetResponse) await ActorMessageSenderComponent.Instance
+            .Call(GetLocationSceneId(key),
+                new ObjectGetRequest() { Key = key });
+        return response.InstanceId;
+    }
+    public static async ETTask AddLocation(this Entity self) {
+        await LocationProxyComponent.Instance.Add(self.Id, self.InstanceId);
+    }
+    public static async ETTask RemoveLocation(this Entity self) {
+        await LocationProxyComponent.Instance.Remove(self.Id);
+    }
 }
 #+END_SRC
-** DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里
-#+BEGIN_SRC java
-[FriendOf(typeof(DBManagerComponent))]
-public static class DBManagerComponentSystem {
-    [ObjectSystem]
-    public class DBManagerComponentAwakeSystem: AwakeSystem<DBManagerComponent> {
-        protected override void Awake(DBManagerComponent self) {
-            DBManagerComponent.Instance = self;
+** ActorLocationSender: 知道对方的Id，使用这个类发actor消息
+   #+BEGIN_SRC csharp
+[ChildOf(typeof(ActorLocationSenderComponent))]
+public class ActorLocationSender: Entity, IAwake, IDestroy {
+    public long ActorId;
+    public long LastSendOrRecvTime; // 最近接收或者发送消息的时间
+    public int Error;
+}
+   #+END_SRC
+** ActorLocationSenderComponent: 位置发送组件
+   #+BEGIN_SRC csharp
+    [ComponentOf(typeof(Scene))]
+    public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
+        public const long TIMEOUT_TIME = 60 * 1000;
+        public static ActorLocationSenderComponent Instance { get; set; }
+        public long CheckTimer;
+    }
+   #+END_SRC
+** ActorLocationSenderComponentSystem: 这个类，也要明天上午再看一下
+   #+BEGIN_SRC csharp
+[Invoke(TimerInvokeType.ActorLocationSenderChecker)]
+public class ActorLocationSenderChecker: ATimer<ActorLocationSenderComponent> {
+    protected override void Run(ActorLocationSenderComponent self) {
+        try {
+            self.Check();
+        }
+        catch (Exception e) {
+            Log.Error($"move timer error: {self.Id}\n{e}");
         }
     }
-    [ObjectSystem]
-    public class DBManagerComponentDestroySystem: DestroySystem<DBManagerComponent> {
-        protected override void Destroy(DBManagerComponent self) {
-            DBManagerComponent.Instance = null;
+}
+// [ObjectSystem] // ...
+[FriendOf(typeof(ActorLocationSenderComponent))]
+[FriendOf(typeof(ActorLocationSender))]
+public static class ActorLocationSenderComponentSystem {
+    public static void Check(this ActorLocationSenderComponent self) {
+        using (ListComponent<long> list = ListComponent<long>.Create()) {
+            long timeNow = TimeHelper.ServerNow();
+            foreach ((long key, Entity value) in self.Children) {
+                ActorLocationSender actorLocationMessageSender = (ActorLocationSender) value;
+                if (timeNow > actorLocationMessageSender.LastSendOrRecvTime + ActorLocationSenderComponent.TIMEOUT_TIME) 
+                    list.Add(key);
+            }
+            foreach (long id in list) {
+                self.Remove(id);
+            }
         }
     }
-    public static DBComponent GetZoneDB(this DBManagerComponent self, int zone) {
-        DBComponent dbComponent = self.DBComponents[zone];
-        if (dbComponent != null) 
-            return dbComponent;
-        StartZoneConfig startZoneConfig = StartZoneConfigCategory.Instance.Get(zone);
-        if (startZoneConfig.DBConnection == "") 
-            throw new Exception($"zone: {zone} not found mongo connect string");
-        dbComponent = self.AddChild<DBComponent, string, string, int>(startZoneConfig.DBConnection, startZoneConfig.DBName, zone);
-        self.DBComponents[zone] = dbComponent;
-        return dbComponent;
+    private static ActorLocationSender GetOrCreate(this ActorLocationSenderComponent self, long id) {
+        if (id == 0) 
+            throw new Exception($"actor id is 0");
+        if (self.Children.TryGetValue(id, out Entity actorLocationSender)) {
+            return (ActorLocationSender) actorLocationSender;
+        }
+        actorLocationSender = self.AddChildWithId<ActorLocationSender>(id);
+        return (ActorLocationSender) actorLocationSender;
+    }
+    private static void Remove(this ActorLocationSenderComponent self, long id) {
+        if (!self.Children.TryGetValue(id, out Entity actorMessageSender)) 
+            return;
+        actorMessageSender.Dispose();
+    }
+    public static void Send(this ActorLocationSenderComponent self, long entityId, IActorRequest message) {
+        self.Call(entityId, message).Coroutine();
+    }
+    public static async ETTask<IActorResponse> Call(this ActorLocationSenderComponent self, long entityId, IActorRequest iActorRequest) {
+        ActorLocationSender actorLocationSender = self.GetOrCreate(entityId);
+        // 先序列化好
+        int rpcId = ActorMessageSenderComponent.Instance.GetRpcId();
+        iActorRequest.RpcId = rpcId;
+        long actorLocationSenderInstanceId = actorLocationSender.InstanceId;
+        using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) {
+            if (actorLocationSender.InstanceId != actorLocationSenderInstanceId) 
+                throw new RpcException(ErrorCore.ERR_ActorTimeout, $"{iActorRequest}");
+            // 队列中没处理的消息返回跟上个消息一样的报错
+            if (actorLocationSender.Error == ErrorCore.ERR_NotFoundActor) 
+                return ActorHelper.CreateResponse(iActorRequest, actorLocationSender.Error);
+            try {
+                return await self.CallInner(actorLocationSender, rpcId, iActorRequest);
+            }
+            catch (RpcException) {
+                self.Remove(actorLocationSender.Id);
+                throw;
+            }
+            catch (Exception e) {
+                self.Remove(actorLocationSender.Id);
+                throw new Exception($"{iActorRequest}", e);
+            }
+        }
+    }
+    private static async ETTask<IActorResponse> CallInner(this ActorLocationSenderComponent self, ActorLocationSender actorLocationSender, int rpcId, IActorRequest iActorRequest) {
+        int failTimes = 0;
+        long instanceId = actorLocationSender.InstanceId;
+        actorLocationSender.LastSendOrRecvTime = TimeHelper.ServerNow();
+        while (true) {
+            if (actorLocationSender.ActorId == 0) {
+                actorLocationSender.ActorId = await LocationProxyComponent.Instance.Get(actorLocationSender.Id);
+                if (actorLocationSender.InstanceId != instanceId) 
+                    throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout2, $"{iActorRequest}");
+            }
+            if (actorLocationSender.ActorId == 0) {
+                actorLocationSender.Error = ErrorCore.ERR_NotFoundActor;
+                return ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+            }
+            IActorResponse response = await ActorMessageSenderComponent.Instance.Call(actorLocationSender.ActorId, rpcId, iActorRequest, false);
+            if (actorLocationSender.InstanceId != instanceId) 
+                throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout3, $"{iActorRequest}");
+            switch (response.Error) {
+                case ErrorCore.ERR_NotFoundActor: {
+                    // 如果没找到Actor,重试
+                    ++failTimes;
+                    if (failTimes > 20) {
+                        Log.Debug($"actor send message fail, actorid: {actorLocationSender.Id}");
+                        actorLocationSender.Error = ErrorCore.ERR_NotFoundActor;
+                        // 这里不能删除actor，要让后面等待发送的消息也返回ERR_NotFoundActor，直到超时删除
+                        return response;
+                    }
+                    // 等待0.5s再发送
+                    await TimerComponent.Instance.WaitAsync(500);
+                    if (actorLocationSender.InstanceId != instanceId)
+                        throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout4, $"{iActorRequest}");
+                    actorLocationSender.ActorId = 0;
+                    continue;
+                }
+                case ErrorCore.ERR_ActorTimeout: 
+                    throw new RpcException(response.Error, $"{iActorRequest}");
+            }
+            if (ErrorCore.IsRpcNeedThrowException(response.Error)) {
+                throw new RpcException(response.Error, $"Message: {response.Message} Request: {iActorRequest}");
+            }
+            return response;
+        }
     }
 }
-#+END_SRC
-** DBProxyComponent: 【参考项目】里的。有生成系。
-#+BEGIN_SRC java
-// 用来与数据库操作代理
-public class DBProxyComponent: Component {
-    public IPEndPoint dbAddress;
+   #+END_SRC
+** ActorHelper: 帮助创建IActorResponse 回复消息。狠简单
+   #+BEGIN_SRC csharp
+public static class ActorHelper {
+    public static IActorResponse CreateResponse(IActorRequest iActorRequest, int error) {
+        Type responseType = OpcodeTypeComponent.Instance.GetResponseType(iActorRequest.GetType());
+        IActorResponse response = (IActorResponse)Activator.CreateInstance(responseType);
+        response.Error = error;
+        response.RpcId = iActorRequest.RpcId;
+        return response;
+    }
 }
-#+END_SRC
+   #+END_SRC
+** ActorMessageDispatcherInfo | ActorMessageDispatcherComponent
+   #+BEGIN_SRC csharp
+public class ActorMessageDispatcherInfo {
+    public SceneType SceneType { get; }
+    public IMActorHandler IMActorHandler { get; }
+    public ActorMessageDispatcherInfo(SceneType sceneType, IMActorHandler imActorHandler) {
+        this.SceneType = sceneType;
+        this.IMActorHandler = imActorHandler;
+    }
+}
+[ComponentOf(typeof(Scene))] // Actor消息分发组件
+public class ActorMessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
+    [StaticField]
+    public static ActorMessageDispatcherComponent Instance;
+    public readonly Dictionary<Type, List<ActorMessageDispatcherInfo>> ActorMessageHandlers = new();
+}
+   #+END_SRC
+** ActorMessageDispatcherComponentHelper: 感觉名字不系统化，不知道是不是自己干的
+   #+BEGIN_SRC csharp
+[FriendOf(typeof(ActorMessageDispatcherComponent))] // Actor消息分发组件
+public static class ActorMessageDispatcherComponentHelper {
+    // [ObjectSystem] // awake() etc
+    private static void Awake(this ActorMessageDispatcherComponent self) {
+        self.Load();
+    }
+    private static void Load(this ActorMessageDispatcherComponent self) {
+        self.ActorMessageHandlers.Clear();
+        var types = EventSystem.Instance.GetTypes(typeof (ActorMessageHandlerAttribute));
+        foreach (Type type in types) {
+            object obj = Activator.CreateInstance(type);
+            IMActorHandler imHandler = obj as IMActorHandler;
+            if (imHandler == null) {
+                throw new Exception($"message handler not inherit IMActorHandler abstract class: {obj.GetType().FullName}");
+            }
+
+            object[] attrs = type.GetCustomAttributes(typeof(ActorMessageHandlerAttribute), false);
+            foreach (object attr in attrs) {
+                ActorMessageHandlerAttribute actorMessageHandlerAttribute = attr as ActorMessageHandlerAttribute;
+                Type messageType = imHandler.GetRequestType();
+                Type handleResponseType = imHandler.GetResponseType();
+                if (handleResponseType != null) {
+                    Type responseType = OpcodeTypeComponent.Instance.GetResponseType(messageType);
+                    if (handleResponseType != responseType) {
+                        throw new Exception($"message handler response type error: {messageType.FullName}");
+                    }
+                }
+                ActorMessageDispatcherInfo actorMessageDispatcherInfo = new(actorMessageHandlerAttribute.SceneType, imHandler);
+                self.RegisterHandler(messageType, actorMessageDispatcherInfo);
+            }
+        }
+    }
+    private static void RegisterHandler(this ActorMessageDispatcherComponent self, Type type, ActorMessageDispatcherInfo handler) {
+        if (!self.ActorMessageHandlers.ContainsKey(type)) 
+            self.ActorMessageHandlers.Add(type, new List<ActorMessageDispatcherInfo>());
+        self.ActorMessageHandlers[type].Add(handler);
+    }
+    public static async ETTask Handle(this ActorMessageDispatcherComponent self, Entity entity, int fromProcess, object message) {
+        List<ActorMessageDispatcherInfo> list;
+        if (!self.ActorMessageHandlers.TryGetValue(message.GetType(), out list)) 
+            throw new Exception($"not found message handler: {message}");
+        SceneType sceneType = entity.DomainScene().SceneType;
+        foreach (ActorMessageDispatcherInfo actorMessageDispatcherInfo in list) {
+            if (actorMessageDispatcherInfo.SceneType != sceneType) 
+                continue;
+            await actorMessageDispatcherInfo.IMActorHandler.Handle(entity, fromProcess, message);   
+        }
+    }
+}
+   #+END_SRC
+** ActorMessageHandlerAttribute 标签系: 去找几个典型标签看看
+   #+BEGIN_SRC csharp
+public class ActorMessageHandlerAttribute: BaseAttribute {
+    public SceneType SceneType { get; }
+    public ActorMessageHandlerAttribute(SceneType sceneType) {
+        this.SceneType = sceneType;
+    }
+}
+   #+END_SRC
+** [ActorMessageHandler(SceneType.Gate)] 标签使用举例
+- 是以前框架中或是参考项目中的例子。标签使用申明说，这是【网关服】上的一个Actor 消息处理器定义类。
+   #+BEGIN_SRC csharp
+[ActorMessageHandler(SceneType.Gate)]
+public class Actor_MatchSucess_NttHandler : AMActorHandler<User, Actor_MatchSucess_Ntt> {
+    protected override void Run(User user, Actor_MatchSucess_Ntt message) {
+        user.IsMatching = false;
+        user.ActorID = message.GamerID;
+        Log.Info($"玩家{user.UserID}匹配成功");
+    }
+}
+   #+END_SRC
+** MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
+   #+BEGIN_SRC csharp
+// 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
+[ComponentOf]
+public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
+    // Mailbox的类型
+    public MailboxType MailboxType { get; set; }
+}
+   #+END_SRC
+** MailboxType
+   #+BEGIN_SRC csharp
+public enum MailboxType {
+    MessageDispatcher, // 消息分发器
+    UnOrderMessageDispatcher,// 无序分发
+    GateSession,// 网关？
+}
+   #+END_SRC
+** 【服务端】ActorHandleHelper 帮助类。【需要去深挖一下】
+   #+BEGIN_SRC csharp
+public static class ActorHandleHelper {
+    public static void Reply(int fromProcess, IActorResponse response) {
+        if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程
+            // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
+            ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
+            return;
+        }
+        Session replySession = NetInnerComponent.Instance.Get(fromProcess);
+        replySession.Send(response);
+    }
+    public static void HandleIActorResponse(IActorResponse response) {
+        ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
+    }
+    // 分发actor消息
+    [EnableAccessEntiyChild]
+    public static async ETTask HandleIActorRequest(long actorId, IActorRequest iActorRequest) {
+        InstanceIdStruct instanceIdStruct = new(actorId);
+        int fromProcess = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        long realActorId = instanceIdStruct.ToLong();
+        Entity entity = Root.Instance.Get(realActorId);
+        if (entity == null) {
+            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+            Reply(fromProcess, response);
+            return;
+        }
+        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+        if (mailBoxComponent == null) {
+            Log.Warning($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorRequest}");
+            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+            Reply(fromProcess, response);
+            return;
+        }
+        switch (mailBoxComponent.MailboxType) {
+            case MailboxType.MessageDispatcher: {
+                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
+                    if (entity.InstanceId != realActorId) {
+                        IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+                        Reply(fromProcess, response);
+                        break;
+                    }
+                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
+                }
+                break;
+            }
+            case MailboxType.UnOrderMessageDispatcher: {
+                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
+                break;
+            }
+            case MailboxType.GateSession:
+            default:
+                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorRequest}");
+        }
+    }
+    // 分发actor消息
+    [EnableAccessEntiyChild]
+    public static async ETTask HandleIActorMessage(long actorId, IActorMessage iActorMessage) {
+        InstanceIdStruct instanceIdStruct = new(actorId);
+        int fromProcess = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        long realActorId = instanceIdStruct.ToLong();
+        Entity entity = Root.Instance.Get(realActorId);
+        if (entity == null) {
+            Log.Error($"not found actor: {realActorId} {iActorMessage}");
+            return;
+        }
+        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+        if (mailBoxComponent == null) {
+            Log.Error($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorMessage}");
+            return;
+        }
+        switch (mailBoxComponent.MailboxType) {
+        case MailboxType.MessageDispatcher: {
+            using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
+                if (entity.InstanceId != realActorId) {
+                    break;
+                }
+                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
+            }
+            break;
+        }
+        case MailboxType.UnOrderMessageDispatcher: {
+            await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
+            break;
+        }
+        case MailboxType.GateSession: {
+            if (entity is Session gateSession) {
+                // 发送给客户端
+                gateSession.Send(iActorMessage);
+            }
+            break;
+        }
+        default:
+            throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
+        }
+    }
+}
+   #+END_SRC
 
 * StartConfigComponent: 找【各种服】的起始初始化地址
 - 这些组群服务器的起始被全部重构了，重构成配置单例了
@@ -491,8 +969,7 @@ public class HttpHandlerAttribute: BaseAttribute {
 }
    #+END_SRC
 ** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例
-- 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿
-- 【RouterAddressComponent】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下，没什么奇怪的。
+- 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下，没什么奇怪的。
 #+BEGIN_SRC java
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -533,6 +1010,67 @@ public class GateSessionKeyComponent : Entity, IAwake {
 }
 #+END_SRC
 
+* ET7 数据库相关【服务端】
+- 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
+- 这里不急着整理。现框架 *DB 放在服务端的Model* 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
+- 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
+** IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧
+#+BEGIN_SRC csharp
+public interface IDBCollection {}
+#+END_SRC
+** DBComponent: 带生成系。可以查表，查询数据
+#+BEGIN_SRC csharp
+[ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
+public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
+    public const int TaskCount = 32;
+    public MongoClient mongoClient;
+    public IMongoDatabase database;
+}
+#+END_SRC
+** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？
+#+BEGIN_SRC csharp
+public class DBManagerComponent: Entity, IAwake, IDestroy {
+    [StaticField]
+    public static DBManagerComponent Instance;
+    public DBComponent[] DBComponents = new DBComponent[IdGenerater.MaxZone]; // 没事吃饱了撑得，占一大堆空地
+}
+#+END_SRC
+** DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里
+#+BEGIN_SRC csharp
+[FriendOf(typeof(DBManagerComponent))]
+public static class DBManagerComponentSystem {
+    [ObjectSystem]
+    public class DBManagerComponentAwakeSystem: AwakeSystem<DBManagerComponent> {
+        protected override void Awake(DBManagerComponent self) {
+            DBManagerComponent.Instance = self;
+        }
+    }
+    [ObjectSystem]
+    public class DBManagerComponentDestroySystem: DestroySystem<DBManagerComponent> {
+        protected override void Destroy(DBManagerComponent self) {
+            DBManagerComponent.Instance = null;
+        }
+    }
+    public static DBComponent GetZoneDB(this DBManagerComponent self, int zone) {
+        DBComponent dbComponent = self.DBComponents[zone];
+        if (dbComponent != null) 
+            return dbComponent;
+        StartZoneConfig startZoneConfig = StartZoneConfigCategory.Instance.Get(zone);
+        if (startZoneConfig.DBConnection == "") 
+            throw new Exception($"zone: {zone} not found mongo connect string");
+        dbComponent = self.AddChild<DBComponent, string, string, int>(startZoneConfig.DBConnection, startZoneConfig.DBName, zone);
+        self.DBComponents[zone] = dbComponent;
+        return dbComponent;
+    }
+}
+#+END_SRC
+** DBProxyComponent: 【参考项目】里的。有生成系。
+#+BEGIN_SRC csharp
+// 用来与数据库操作代理
+public class DBProxyComponent: Component {
+    public IPEndPoint dbAddress;
+}
+#+END_SRC
 
 * 网关服：客户端信息发送的直接代理，中转站，组件分析 
 - SceneFactory: 【初始化】时，带如下几个组件
@@ -573,7 +1111,6 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 }
    #+END_SRC
 
-
 * 服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）
 - Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。
 - Realm：对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址。内网组件NetInnerComponent，外网组件NetOuterComponent，Gate服务器随机分发组件。客户端登录时连接的第一个服务器，也可称为登录服务器。
@@ -583,10 +1120,23 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 - AllServer：将以上服务器功能集中合并成一个服务器。另外增加DB连接组件DBComponent
 - Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
 
+* Session 会话框相关
+- 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
+- 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
+
 * Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】
 - 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
 - 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
 - 【三、】查找 protoc 命令下，如何C# 索引 Unity 第三方库。  
+- 【四、】repeated 逻辑没有处理好
+  #+BEGIN_SRC csharp
+message Actor_GamerPlayCard_Req // IActorRequest
+{
+	int32 RpcId = 90;
+	int64 ActorId = 91;
+    repeated ET Card Cards = 1;
+}
+  #+END_SRC
 - 【Windows 下的 Protobuf 编译环境】：配置好，只是作为与ET 框架的Proto2CS.cs 所指挥的编译结果，作一个对比，两者应该效果是一样的，或是基本一样的，除了自定义里没有处理 enum.
 - Windows 下的命令行，就是用 protoc 来编译，可以参考如下. （这是 .cs 源码下的）
     #+BEGIN_SRC csharp
@@ -604,21 +1154,19 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
 - 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
 - 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
+
 * 现在的修改内容：
 - *【Windows 下 proto2cs 消息转化】* ：上面拿匹配服地址，一个路由器相关消息加了参数，要重新生成一下。这个 mac 系统下不难，改天有时间也可以把 mac 下的运行环境配置好，这个功能模块就不用一定要切换电脑了。【手动做了一下】
 - *【UILobbyComponent 可以测试】* ：这个大厅组件，Unity 里预设简单，可以试运行一下，看是否完全消除这个UI 组件的报错，这个屏的控件能否显示出来？还是错出得早，这个屏就出不来已经报错了？
   - 【客户端】的逻辑是处理好了，编译全过后可以测试
-  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理：C2G_StartMatch_ReqHandler. 必须记笔记。不记会忘。
-    #+BEGIN_SRC csharp
-    #+END_SRC
-
+  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理： *C2G_StartMatch_ReqHandler*. 必须记笔记。不记会忘。
 - *【TractorRoomComponent】* ：因为是多组件嵌套，可以合并多组件为同一个组件；另早上看得一知半解的一个【ChildOf】标签，可以帮助组件套用吗？再找找理解消化一下
 - 【房间组件】：几个现存的 working-on 的问题：
   - 多组件嵌套：手工合并为一个组件。彻底理解确认后，会合并
-  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理
+  - 【服务端】：处理用户请求匹配房间的逻辑. 这里的编译错误终于改完。到时就看运行时错误了。
     - 【数据库模块的整合】：网关服在转发请求匹配时，验证会话框有效后，验证用户身份时，需要去【用户数据库】拿用户数据。ET7 留了个DBManagerComponent, 还没能整合出这个模块
-    - 【匹配服地址】网关服的处理逻辑里，验证完用户合格后，为代为转发消息到匹配服，但需要拿匹配服的地址。ET7 重构里，还没能改出这部分。服务器系统配置初始化时，可以链表管理各小构匹配服，再去拿相关匹配服的地址。ET7 框架里的路由器系统，自己还没有弄懂。
-- 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+    -【参考来源 *C2R_LoginHandler* 】：Realm 处理客户端的登录请求的服务端逻辑。这里看见，它随机分配一个网关服。也就是，我（原本本质上也是随机分配）一个匹配服给用。可以依照这里的例子来改写。
+
 * TODO 其它的：部分完成，或是待完成的大的功能版块，列举
 - emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
   - Windows 10 平台下，C-; 是绑定到了 ISpell 下的某个功能，可是现在这个破 emacs 老报错，连查是绑定给哪个功能，过程报错都被阻止了。。。
@@ -627,13 +1175,18 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【Tractor】原 windows-form 项目，源码需要读懂，理解透彻，方便重构。  
 - 去把【拖拉机房间、斗地主房间组件的，玩家什么的一堆组件】弄明白
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+
 * 拖拉机游戏：【重构OOP/OOD 设计思路】
 - 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 - ET7 重构里，各组件都该是自己设计重构原项目的类的设计的必要起点。可以根据这些来系统设计重构。【活宝妹就是一定要嫁给亲爱的表哥！！！】
-- 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
+- 【GamerComponent】玩家组件管理类，管理所有一个房间的玩家：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。今天晚上来弄这一块儿吧。
 - 【Gamer】：每一个玩家
-- 【拖拉机游戏房间】：
+- 【拖拉机游戏房间】：多组件构成
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
+- 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+
+     
+
 
 
 

@@ -49,7 +49,7 @@ namespace ET {
                         case SceneType.Router:
                             this.Routers.Add(startSceneConfig);
                             break;
-                        case SceneType.BenchmarkServer:
+                        case SceneType.BenchmarkServer: //【特殊】：因为它只有一个
                             this.BenchmarkServer = startSceneConfig;
                             break;
                 }

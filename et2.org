@@ -3,6 +3,7 @@
 #+author: deepwaterooo 
 
 * Net 网络交互相关：【服务端+客户端】只是稍微改装成事件系统而已
+- 当网络模块也改成是事件机制，可能是我先前对网络模块理解得还是不够透彻，怎么感觉 ET7 之后不知道会话框是怎么管理的？
 - 这次重构里，以前是Model 里，生成系为非静态，这次全搬进热更新域里，生成系与方法全是静态的。
 - 因为生成系全变成了静态，那么调用方法就成为比如：直接使用生成系的类名，与静态方法调用。
 #+BEGIN_SRC java
@@ -338,7 +339,7 @@ public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
     public static NetInnerComponent Instance;
 }
 #+END_SRC
-** 
+
 * IAwake 接口类系统，IStart 重构丢了
 - 感觉还比较直接，就是帮助搭建热更新域与Unity 常规工程域生命周期回调的桥，搭桥连线，连能就可以了。应该可以扩散出个IStart 接口类
 ** IMessage,IRequest,IResponse: 进程内？消息类
@@ -774,252 +775,6 @@ public struct MeasureState<T> : IDisposable {
     public long Length => throw new NotImplementedException();
 }
     #+END_SRC
-
-
-* ActorMessage 相关：【早上】看下
-** MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
-   #+BEGIN_SRC java
-// 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
-[ComponentOf]
-public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
-    // Mailbox的类型
-    public MailboxType MailboxType { get; set; }
-}
-   #+END_SRC
-** MailboxType
-   #+BEGIN_SRC java
-public enum MailboxType {
-    MessageDispatcher, // 消息分发器
-    UnOrderMessageDispatcher,// 无序分发
-    GateSession,// 网关？
-}
-   #+END_SRC
-** ActorMessageSenderComponent: 管理类组件
-   #+BEGIN_SRC java
-[ComponentOf(typeof(Scene))]
-public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
-    public const long TIMEOUT_TIME = 40 * 1000;
-    public static ActorMessageSenderComponent Instance { get; set; }
-    public int RpcId;
-    public readonly SortedDictionary<int, ActorMessageSender> requestCallback = new SortedDictionary<int, ActorMessageSender>();
-    public long TimeoutCheckTimer;
-    public List<int> TimeoutActorMessageSenders = new List<int>();
-}
-   #+END_SRC
-** ActorMessageSenderComponentSystem: 多带个Timer
-- 这个类我好像认真读过，大概是小伙伴搬家超时，什么之类的，改天再读一遍
-   #+BEGIN_SRC java
-[FriendOf(typeof(ActorMessageSenderComponent))]
-public static class ActorMessageSenderComponentSystem {
-    [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系
-    public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
-        protected override void Run(ActorMessageSenderComponent self) {
-            try {
-                self.Check();
-            }
-            catch (Exception e) {
-                Log.Error($"move timer error: {self.Id}\n{e}");
-            }
-        }
-    }
-    [ObjectSystem]
-    public class ActorMessageSenderComponentAwakeSystem: AwakeSystem<ActorMessageSenderComponent> {
-        protected override void Awake(ActorMessageSenderComponent self) { // ...
-        }
-    }
-    [ObjectSystem]
-    public class ActorMessageSenderComponentDestroySystem: DestroySystem<ActorMessageSenderComponent> {
-        protected override void Destroy(ActorMessageSenderComponent self) { // ...
-        }
-    }
-    private static void Run(ActorMessageSender self, IActorResponse response) {
-        if (response.Error == ErrorCore.ERR_ActorTimeout) {
-            self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
-            return;
-        }
-        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) {
-            self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
-            return;
-        }
-        self.Tcs.SetResult(response);
-    }
-    private static void Check(this ActorMessageSenderComponent self) {
-        long timeNow = TimeHelper.ServerNow();
-        foreach ((int key, ActorMessageSender value) in self.requestCallback) {
-            // 因为是顺序发送的，所以，检测到第一个不超时的就退出
-            if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
-                break;
-            self.TimeoutActorMessageSenders.Add(key);
-        }
-        foreach (int rpcId in self.TimeoutActorMessageSenders) {
-            ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
-            self.requestCallback.Remove(rpcId);
-            try {
-                IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
-                Run(actorMessageSender, response);
-            }
-            catch (Exception e) {
-                Log.Error(e.ToString());
-            }
-        }
-        self.TimeoutActorMessageSenders.Clear();
-    }
-    public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) {
-        if (actorId == 0) 
-            throw new Exception($"actor id is 0: {message}");
-        ProcessActorId processActorId = new(actorId);
-        // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
-        if (processActorId.Process == Options.Instance.Process) {
-            NetInnerComponent.Instance.HandleMessage(actorId, message);
-            return;
-        }
-        Session session = NetInnerComponent.Instance.Get(processActorId.Process);
-        session.Send(processActorId.ActorId, message);
-    }
-    public static int GetRpcId(this ActorMessageSenderComponent self) {
-        return ++self.RpcId;
-    }
-    public static async ETTask<IActorResponse> Call(
-        this ActorMessageSenderComponent self,
-        long actorId,
-        IActorRequest request,
-        bool needException = true
-        ) {
-        request.RpcId = self.GetRpcId();
-        if (actorId == 0) 
-            throw new Exception($"actor id is 0: {request}");
-        return await self.Call(actorId, request.RpcId, request, needException);
-    }
-    public static async ETTask<IActorResponse> Call(
-        this ActorMessageSenderComponent self,
-        long actorId,
-        int rpcId,
-        IActorRequest iActorRequest,
-        bool needException = true
-        ) {
-        if (actorId == 0) 
-            throw new Exception($"actor id is 0: {iActorRequest}");
-        var tcs = ETTask<IActorResponse>.Create(true);
-        self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException));
-        self.Send(actorId, iActorRequest);
-        long beginTime = TimeHelper.ServerFrameTime();
-        IActorResponse response = await tcs;
-        long endTime = TimeHelper.ServerFrameTime();
-        long costTime = endTime - beginTime;
-        if (costTime > 200) 
-            Log.Warning($"actor rpc time > 200: {costTime} {iActorRequest}");
-        return response;
-    }
-    public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
-        ActorMessageSender actorMessageSender;
-        if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) 
-            return;
-        self.requestCallback.Remove(response.RpcId);
-        Run(actorMessageSender, response);
-    }
-}
-   #+END_SRC
-
-** ActorHandleHelper 帮助类
-   #+BEGIN_SRC java
-public static class ActorHandleHelper {
-    public static void Reply(int fromProcess, IActorResponse response) {
-        if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程
-            // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
-            ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
-            return;
-        }
-        Session replySession = NetInnerComponent.Instance.Get(fromProcess);
-        replySession.Send(response);
-    }
-    public static void HandleIActorResponse(IActorResponse response) {
-        ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
-    }
-    // 分发actor消息
-    [EnableAccessEntiyChild]
-    public static async ETTask HandleIActorRequest(long actorId, IActorRequest iActorRequest) {
-        InstanceIdStruct instanceIdStruct = new(actorId);
-        int fromProcess = instanceIdStruct.Process;
-        instanceIdStruct.Process = Options.Instance.Process;
-        long realActorId = instanceIdStruct.ToLong();
-        Entity entity = Root.Instance.Get(realActorId);
-        if (entity == null) {
-            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-            Reply(fromProcess, response);
-            return;
-        }
-        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
-        if (mailBoxComponent == null) {
-            Log.Warning($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorRequest}");
-            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-            Reply(fromProcess, response);
-            return;
-        }
-        switch (mailBoxComponent.MailboxType) {
-            case MailboxType.MessageDispatcher: {
-                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                    if (entity.InstanceId != realActorId) {
-                        IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-                        Reply(fromProcess, response);
-                        break;
-                    }
-                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
-                }
-                break;
-            }
-            case MailboxType.UnOrderMessageDispatcher: {
-                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
-                break;
-            }
-            case MailboxType.GateSession:
-            default:
-                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorRequest}");
-        }
-    }
-    // 分发actor消息
-    [EnableAccessEntiyChild]
-    public static async ETTask HandleIActorMessage(long actorId, IActorMessage iActorMessage) {
-        InstanceIdStruct instanceIdStruct = new(actorId);
-        int fromProcess = instanceIdStruct.Process;
-        instanceIdStruct.Process = Options.Instance.Process;
-        long realActorId = instanceIdStruct.ToLong();
-        Entity entity = Root.Instance.Get(realActorId);
-        if (entity == null) {
-            Log.Error($"not found actor: {realActorId} {iActorMessage}");
-            return;
-        }
-        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
-        if (mailBoxComponent == null) {
-            Log.Error($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorMessage}");
-            return;
-        }
-        switch (mailBoxComponent.MailboxType) {
-        case MailboxType.MessageDispatcher: {
-            using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                if (entity.InstanceId != realActorId) {
-                    break;
-                }
-                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
-            }
-            break;
-        }
-        case MailboxType.UnOrderMessageDispatcher: {
-            await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
-            break;
-        }
-        case MailboxType.GateSession: {
-            if (entity is Session gateSession) {
-                // 发送给客户端
-                gateSession.Send(iActorMessage);
-            }
-            break;
-        }
-        default:
-            throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
-        }
-    }
-}
-   #+END_SRC
 
 
 * 【拖拉机游戏房间】组件: 分析
@@ -1999,9 +1754,16 @@ public static class GamerFactory {
 - 把参考游戏里，打牌相关的逻辑与模块好好看下，方便自己熟悉自己重构项目的源码后，画葫芦画飘地重构
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 
+
 * 拖拉机游戏：【重构OOP/OOD 设计思路】
 - 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 - 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
+
+
+
+
+
+
 
 
