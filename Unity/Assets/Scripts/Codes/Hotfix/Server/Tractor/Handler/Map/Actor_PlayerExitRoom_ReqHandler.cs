@@ -9,7 +9,7 @@ namespace ET.Server {
         protected override async Task Run(Gamer gamer, Actor_PlayerExitRoom_Req message, Action<Actor_PlayerExitRoom_Ack> reply) {
             Actor_PlayerExitRoom_Ack response = new Actor_PlayerExitRoom_Ack();
             try {
-                Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+                Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
                 if (room.State == RoomState.Game) {
                     gamer.isOffline = true;
                     // 玩家断开添加自动出牌组件

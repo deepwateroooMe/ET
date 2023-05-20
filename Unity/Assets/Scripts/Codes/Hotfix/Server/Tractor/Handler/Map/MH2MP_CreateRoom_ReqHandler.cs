@@ -15,7 +15,7 @@ namespace ET.Server {
                 room.AddComponent<OrderControllerComponent>();
                 room.AddComponent<GameControllerComponent, RoomConfig>(RoomHelper.GetConfig(RoomLevel.Lv100));
                 await room.AddComponent<MailBoxComponent>().AddLocation();
-                Game.Scene.GetComponent<RoomComponent>().Add(room);
+                Root.Instance.Scene.GetComponent<RoomComponent>().Add(room);
                 Log.Info($"创建房间{room.InstanceId}");
                 response.RoomID = room.InstanceId;
                 reply(response);

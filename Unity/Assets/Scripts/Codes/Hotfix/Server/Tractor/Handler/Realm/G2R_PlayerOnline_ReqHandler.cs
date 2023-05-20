@@ -7,7 +7,7 @@ namespace ET.Server {
         protected override async void Run(Session session, G2R_PlayerOnline_Req message,Action<R2G_PlayerOnline_Ack> reply) {
             R2G_PlayerOnline_Ack response = new R2G_PlayerOnline_Ack();
             try {
-                OnlineComponent onlineComponent = Game.Scene.GetComponent<OnlineComponent>();
+                OnlineComponent onlineComponent = Root.Instance.Scene.GetComponent<OnlineComponent>();
                 // 将已在线玩家踢下线
                 await RealmHelper.KickOutPlayer(message.UserID);
                 // 玩家上线

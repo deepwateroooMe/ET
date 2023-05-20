@@ -9,7 +9,7 @@ namespace ET.Server {
             R2G_PlayerOffline_Ack response = new R2G_PlayerOffline_Ack();
             try {
                 // 玩家下线
-                Game.Scene.GetComponent<OnlineComponent>().Remove(message.UserID);
+                Root.Instance.Scene.GetComponent<OnlineComponent>().Remove(message.UserID);
                 Log.Info($"玩家{message.UserID}下线");
                 reply(response);
             }

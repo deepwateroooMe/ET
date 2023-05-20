@@ -1,4 +1,4 @@
-namespace ET {
+namespace ET.Server {
 
     // 感觉个类，更多的是【一座桥】：把游戏的这个单位级件，全连接起来
     public class GameControllerComponent : Entity, IAwake<RoomConfig> {

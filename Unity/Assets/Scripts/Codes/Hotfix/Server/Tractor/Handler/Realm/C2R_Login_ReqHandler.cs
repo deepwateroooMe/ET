@@ -2,7 +2,7 @@
 using ET;
 using System.Collections.Generic;
 namespace ET.Server {
-    [MessageHandler(SceneType.Realm)]
+    [MessageHandler(SceneType.Realm)] // 这个类是，后来自己又添加上去的，可能与原 ET7 框架的示例有重合，可以删去
     public class C2R_Login_ReqHandler : AMRpcHandler<C2R_Login_Req, R2C_Login_Ack> {
 
         protected override async void Run(Session session, C2R_Login_Req message, Action<R2C_Login_Ack> reply) {
@@ -23,8 +23,8 @@ namespace ET.Server {
                 // 将已在线玩家踢下线
                 await RealmHelper.KickOutPlayer(account.Id);
                 // 随机分配网关服务器
-                StartConfig gateConfig = Game.Scene.GetComponent<RealmGateAddressComponent>().GetAddress();
-                Session gateSession = Game.Scene.GetComponent<NetInnerComponent>().Get(gateConfig.GetComponent<InnerConfig>().IPEndPoint);
+                StartConfig gateConfig = Root.Instance.Scene.GetComponent<RealmGateAddressComponent>().GetAddress();
+                Session gateSession = Root.Instance.Scene.GetComponent<NetInnerComponent>().Get(gateConfig.GetComponent<InnerConfig>().IPEndPoint);
                 // 请求登录Gate服务器密匙
                 G2R_GetLoginKey_Ack getLoginKey_Ack = await gateSession.Call(new R2G_GetLoginKey_Req() { UserID = account.Id }) as G2R_GetLoginKey_Ack;
                 response.Key = getLoginKey_Ack.Key;

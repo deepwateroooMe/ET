@@ -1,5 +1,5 @@
 ﻿using System;
-namespace ET.Server {
+namespace ET {
     [EnableClass]
     public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage {
 

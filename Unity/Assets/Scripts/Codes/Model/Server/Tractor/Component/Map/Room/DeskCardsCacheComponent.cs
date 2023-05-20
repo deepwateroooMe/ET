@@ -2,7 +2,7 @@ using System.Collections.Generic;
 namespace ET {
 
     // 为什么需要这个组件，没想明白
-    public class DeskCardsCacheComponent : Entity {
+    public class DeskCardsCacheComponent : Entity, IAwake {
 
         // 牌桌上的牌
         public readonly List<Card> library = new List<Card>();

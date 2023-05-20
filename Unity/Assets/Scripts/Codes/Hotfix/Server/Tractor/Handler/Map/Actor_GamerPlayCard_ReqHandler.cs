@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using ET;
 namespace ET.Server {
 
-    [ActorMessageHandler(SceneType.Map)] // 【去弄吃的，下次从这里接着往后看。爱表哥，爱生活！！！】
+    [ActorMessageHandler(SceneType.Map)] 
     public class Actor_GamerPlayCard_ReqHandler : AMActorRpcHandler<Gamer, Actor_GamerPlayCard_Req, Actor_GamerPlayCard_Ack> {
 
         protected override async Task Run(Gamer gamer, Actor_GamerPlayCard_Req message, Action<Actor_GamerPlayCard_Ack> reply) {

@@ -6,9 +6,9 @@ namespace ET.Server {
 
     [ActorMessageHandler(SceneType.Map)]
     public class Actor_Trusteeship_NttHandler : AMActorHandler<Gamer, Actor_Trusteeship_Ntt> {
-
+        
         protected override void Run(Gamer gamer, Actor_Trusteeship_Ntt message) {
-            Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
             // 是否已经托管
             bool isTrusteeship = gamer.GetComponent<TrusteeshipComponent>() != null;
             if (message.IsTrusteeship && !isTrusteeship) {

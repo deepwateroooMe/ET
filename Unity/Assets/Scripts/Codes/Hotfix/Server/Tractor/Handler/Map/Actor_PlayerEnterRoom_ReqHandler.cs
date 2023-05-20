@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ET;
 namespace ET.Server {
-    [ActorMessageHandler(AppType.Map)]
+    [ActorMessageHandler(SceneType.Map)]
     public class Actor_PlayerEnterRoom_ReqHandler : AMActorRpcHandler<Room, Actor_PlayerEnterRoom_Req, Actor_PlayerEnterRoom_Ack> {
 
-        protected override async Task Run(Room room, Actor_PlayerEnterRoom_Req message, Action<Actor_PlayerEnterRoom_Ack> reply) {
+        protected override async void Run(Room room, Actor_PlayerEnterRoom_Req message, Action<Actor_PlayerEnterRoom_Ack> reply) {
             Actor_PlayerEnterRoom_Ack response = new Actor_PlayerEnterRoom_Ack();
             try {
                 Gamer gamer = room.Get(message.UserID);

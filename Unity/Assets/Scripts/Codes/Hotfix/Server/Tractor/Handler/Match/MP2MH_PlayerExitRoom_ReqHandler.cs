@@ -7,11 +7,11 @@ namespace ET.Server {
         protected override void Run(Session session, MP2MH_PlayerExitRoom_Req message, Action<MH2MP_PlayerExitRoom_Ack> reply) {
             MH2MP_PlayerExitRoom_Ack response = new MH2MP_PlayerExitRoom_Ack();
             try {
-                MatchRoomComponent matchRoomComponent = Game.Scene.GetComponent<MatchRoomComponent>();
+                MatchRoomComponent matchRoomComponent = Root.Instance.Scene.GetComponent<MatchRoomComponent>();
                 Room room = matchRoomComponent.Get(message.RoomID);
                 // 移除玩家对象
                 Gamer gamer = room.Remove(message.UserID);
-                Game.Scene.GetComponent<MatchComponent>().Playing.Remove(gamer.UserID);
+                Root.Instance.Scene.GetComponent<MatchComponent>().Playing.Remove(gamer.UserID);
                 gamer.Dispose();
                 Log.Info($"Match：同步玩家{message.UserID}退出房间");
                 if (room.Count == 0) {

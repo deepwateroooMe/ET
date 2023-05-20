@@ -543,10 +543,6 @@ public static class ActorHandleHelper {
    #+END_SRC
 
 * StartConfigComponent: 找【各种服】的起始初始化地址
-- 这些组群服务器的起始被全部重构了，重构成配置单例了
-- 这里是，昨天之前理这部分的时候，理得不够透彻。去重构一个服的初始化与配置，就需要理清、找到这个服所关联的所有的起始配置相关。昨天之前做得还不够好。
-- 昨天晚上稍微理解得再深一点儿。应该也是，总结自己理一个相对大型框架的方法总结吧。
-- 今天早上的脑袋还是相对比较清醒，就把这块儿对自己来说相对不够熟悉相对难点儿的，再看一遍，希望有更多的收获！
 ** ConfigSingleton<T>: ProtoObject, ISingleton
 #+BEGIN_SRC java
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
@@ -1124,6 +1120,82 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 - 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
 - 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
 
+* 不同的消息或是任务处理器类型
+** interface IMActorHandler 接口类
+   #+BEGIN_SRC csharp
+public interface IMActorHandler {
+    // ETTask Handle(Entity entity, int fromProcess, object actorMessage); 
+    void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的：【返回类型
+    Type GetRequestType();
+    Type GetResponseType();
+}
+   #+END_SRC
+** AMActorRpcHandler<E, Request, Response>: IMActorHandler void|ETTask 分不清
+   #+BEGIN_SRC csharp
+[EnableClass]
+public abstract class AMActorRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorRequest where Response : class, IActorResponse {
+    // protected abstract ETTask Run(E unit, Request request, Response response);
+    protected abstract void Run(E unit, Request request, Response response);
+    public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+        try {
+            if (actorMessage is not Request request) {
+                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
+                return;
+            }
+            if (entity is not E ee) {
+                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
+                return;
+            }
+            int rpcId = request.RpcId;
+            Response response = Activator.CreateInstance<Response>();
+            try {
+                // await this.Run(ee, request, response);
+                this.Run(ee, request, response);
+            }
+            catch (Exception exception) {
+                Log.Error(exception);
+                response.Error = ErrorCore.ERR_RpcFail;
+                response.Message = exception.ToString();
+            }
+            response.RpcId = rpcId;
+            ActorHandleHelper.Reply(fromProcess, response);
+        }
+        catch (Exception e) {
+            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
+        }
+    }
+    public Type GetRequestType() {
+        if (typeof (IActorLocationRequest).IsAssignableFrom(typeof (Request)))
+            Log.Error($"message is IActorLocationMessage but handler is AMActorRpcHandler: {typeof (Request)}");
+        return typeof (Request);
+    }
+    public Type GetResponseType() {
+        return typeof (Response);
+    }
+}
+   #+END_SRC
+** 
+   #+BEGIN_SRC csharp
+   #+END_SRC
+* Unit: 不明白它是什么，不太懂
+** UnitGateComponent: 
+   #+BEGIN_SRC csharp
+[ComponentOf(typeof(Unit))]
+public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
+    public long GateSessionActorId { get; set; }
+}
+   #+END_SRC
+** UnitGateComponentSystem
+#+BEGIN_SRC csharp
+public static class UnitGateComponentSystem {
+    public class UnitGateComponentAwakeSystem : AwakeSystem<UnitGateComponent, long> {
+        protected override void Awake(UnitGateComponent self, long a) {
+            self.GateSessionActorId = a;
+        }
+    }
+}
+#+END_SRC
+
 * Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】
 - 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
 - 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
@@ -1154,19 +1226,21 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
 - 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
 - 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
-
 * 现在的修改内容：
-- *【Windows 下 proto2cs 消息转化】* ：上面拿匹配服地址，一个路由器相关消息加了参数，要重新生成一下。这个 mac 系统下不难，改天有时间也可以把 mac 下的运行环境配置好，这个功能模块就不用一定要切换电脑了。【手动做了一下】
+- *【ET7 框架】* 没有处理的逻辑是： *【ET7 框架里数据库的接入】*
+- *【Windows 下 proto2cs 消息转化】* ： ProtoBuf 这个库里还存在几个问题， enum-repeated 等关键字，因为程序域的问题等，没能连能
 - *【UILobbyComponent 可以测试】* ：这个大厅组件，Unity 里预设简单，可以试运行一下，看是否完全消除这个UI 组件的报错，这个屏的控件能否显示出来？还是错出得早，这个屏就出不来已经报错了？
   - 【客户端】的逻辑是处理好了，编译全过后可以测试
-  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理： *C2G_StartMatch_ReqHandler*. 必须记笔记。不记会忘。
+  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理： *C2G_StartMatch_ReqHandler*. 
 - *【TractorRoomComponent】* ：因为是多组件嵌套，可以合并多组件为同一个组件；另早上看得一知半解的一个【ChildOf】标签，可以帮助组件套用吗？再找找理解消化一下
 - 【房间组件】：几个现存的 working-on 的问题：
   - 多组件嵌套：手工合并为一个组件。彻底理解确认后，会合并
   - 【服务端】：处理用户请求匹配房间的逻辑. 这里的编译错误终于改完。到时就看运行时错误了。
     - 【数据库模块的整合】：网关服在转发请求匹配时，验证会话框有效后，验证用户身份时，需要去【用户数据库】拿用户数据。ET7 留了个DBManagerComponent, 还没能整合出这个模块
     -【参考来源 *C2R_LoginHandler* 】：Realm 处理客户端的登录请求的服务端逻辑。这里看见，它随机分配一个网关服。也就是，我（原本本质上也是随机分配）一个匹配服给用。可以依照这里的例子来改写。
-
+- *【服务端的编译错误】* 基本上扫了一遍。【客户端】因为这些前期的工作，以及拖拉机项目重构设计还没有想透彻，暂停一下。
+- 【接下来的内容】： *【重构拖拉机项目】* 。把ET7 框架里【参考项目】的设计看懂，并借助这个例子，把拖拉机项目设计好。
+- 有时间，会试着尽早解决上面 ProtoBuf 里的几个小问题。但现在需要重构的设计思路，客户端的界面等才能够往下进行。 
 * TODO 其它的：部分完成，或是待完成的大的功能版块，列举
 - emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
   - Windows 10 平台下，C-; 是绑定到了 ISpell 下的某个功能，可是现在这个破 emacs 老报错，连查是绑定给哪个功能，过程报错都被阻止了。。。
@@ -1184,11 +1258,6 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【拖拉机游戏房间】：多组件构成
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-
-     
-
-
-
 
 
 

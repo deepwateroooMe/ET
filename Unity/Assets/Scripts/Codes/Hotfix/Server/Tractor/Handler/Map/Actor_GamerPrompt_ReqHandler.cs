@@ -10,7 +10,7 @@ namespace ET.Server {
         protected override async Task Run(Gamer gamer, Actor_GamerPrompt_Req message, Action<Actor_GamerPrompt_Ack> reply) {
             Actor_GamerPrompt_Ack response = new Actor_GamerPrompt_Ack();
             try {
-                Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+                Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
                 OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
                 DeskCardsCacheComponent deskCardsCache = room.GetComponent<DeskCardsCacheComponent>();
                 List<Card> handCards = new List<Card>(gamer.GetComponent<HandCardsComponent>().GetAll());

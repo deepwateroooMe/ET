@@ -1,5 +1,4 @@
-% Created 2023-05-12 Fri 16:54
-% Intended LaTeX compiler: pdflatex
+% Created 2023-05-19 Fri 16:20
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -27,12 +26,9 @@
 \date{\today}
 \title{ET 框架拖拉机项目试改装}
 \hypersetup{
- pdfauthor={deepwaterooo},
- pdftitle={ET 框架拖拉机项目试改装},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 28.2 (Org mode 9.5.5)}, 
- pdflang={English}}
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
 \begin{document}
 
 \maketitle
@@ -40,7 +36,7 @@
 
 
 \section{双副牌双升108 张卡牌游戏}
-\label{sec:orgf2a7319}
+\label{sec-1}
 \begin{itemize}
 \item 【游戏可试玩程序】：放在Release/Tractor.exe. Windows 用户大家可以下载试玩儿体验一下。
 \item 昨天晚上找见了别人几年前就开发出来的卡五星麻将，所以写麻将游戏的想法就被恶杀在摇篮中。现在再写什么好呢？就只能写【双升拖拉机】了，就是两副牌108 张来打的拖拉机。现已经 ios iPhone 上有的双升游戏，可能搜索一下设计，写安卓版的双升了，看下能否套用ET 框架，写成四人网络【客户端与服务器双热更新的】网络游戏
@@ -53,21 +49,15 @@
 \item 第一手牌与非第一手牌的处理：
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/plan_20230508_223827.png}
-\end{center}
 
 \begin{itemize}
 \item 参考一个很Q 的界面：
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/plan_20230508_222717.png}
-\end{center}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/plan_20230508_221732.png}
-\end{center}
 \begin{itemize}
 \item 亮着牌打的不好玩，一定会把其它三副牌藏起来的
 \item \url{http://www.homygame.com/ngscom/help/shengji.htm}
@@ -95,9 +85,7 @@
 \end{itemize}
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/readme_20230510_160604.png}
-\end{center}
 \begin{center}
 \begin{tabular}{ll}
 \hline
@@ -157,7 +145,7 @@
 \end{itemize}
 
 \section{主要参考项目：}
-\label{sec:org2b53973}
+\label{sec-2}
 \begin{itemize}
 \item 【ET- 斗地主游戏】年代久远，ET 框架的版本古旧。手游风格的界面设计
 \item 【ET- 卡五星游戏】年代久远，ET 框架的版本古旧。主要看牌类相关的房间内的逻辑
@@ -166,11 +154,9 @@
 \item 截几个斗地主游戏里的流程图供自己写时参考：
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/readme_20230511_163501.png}
-\end{center}
 \section{项目主要进展}
-\label{sec:org82a30e5}
+\label{sec-3}
 \begin{itemize}
 \item 因为两个参考项目的版本都狠古旧，现用最新版本的ET 【我觉得这里，最好我还是先去试ET7.2 官方版本可能更好】就以自己能有的相对快速，按照现有的理解，把能重组的重组出来。不理解的，再去看下两个项目分别的实现逻辑。
 \item UILobby 的三个命令按钮狠好创建，但因为接下来的逻辑没能创建连通，程序仍然是运行不通，出报错。接下来应该是一段时间程序都极可能报错。但会试着修改每个界面上的错，把这个游戏的重构任务完成。
@@ -179,8 +165,9 @@
 \item 感觉程序的逻辑现在已经比较简单了：但是仍然需要花点儿时间，来熟悉这个重构过的ET 7 框架。今天下午会熟悉一部分，剩余未完成的明天上午来完成。今天熟悉划重点，与自己游戏的重构相关的重点。比如 \textbf{先前的多服务器系统变成为现在的服务器的路由系统，}, 不同层级的路由？网络调用下的各种Helper 类，比如 LoginHelper, 其它 Helper 等
 \end{itemize}
 \section{残余的几个小 bug}
-\label{sec:orgb03e89a}
+\label{sec-4}
 \begin{itemize}
 \item 当进入UILobby 的时候，要把前面的 UILogin 删除。应该是有逻辑，只是因为我现在的【BUG：】，后面就座地执行的逻辑中断了
 \end{itemize}
+% Emacs 28.2 (Org mode 8.2.7c)
 \end{document}
