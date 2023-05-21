@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 namespace ET.Server {
-
+    //【专用路由器管理场景】：是客户端会发消息过来要拿地址吗？它就把请求消息返回去。我应该去把发请求消息，要拿地址的地方找出来 
     [HttpHandler(SceneType.RouterManager, "/get_router")]
     public class HttpGetRouterHandler : IHttpHandler {
         public async ETTask Handle(Entity domain, HttpListenerContext context) {

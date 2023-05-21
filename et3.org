@@ -1049,11 +1049,12 @@ public static class DBManagerComponentSystem {
     }
     public static DBComponent GetZoneDB(this DBManagerComponent self, int zone) {
         DBComponent dbComponent = self.DBComponents[zone];
-        if (dbComponent != null) 
+        if (dbComponent != null)// 如果已经管理配置好，直接返回  
             return dbComponent;
         StartZoneConfig startZoneConfig = StartZoneConfigCategory.Instance.Get(zone);
-        if (startZoneConfig.DBConnection == "") 
+        if (startZoneConfig.DBConnection == "")// 小区域里如果没有匹配或是出错，抛异常 
             throw new Exception($"zone: {zone} not found mongo connect string");
+// 把这个小区域里的数据库配置好，加入系统管理，并返回 
         dbComponent = self.AddChild<DBComponent, string, string, int>(startZoneConfig.DBConnection, startZoneConfig.DBName, zone);
         self.DBComponents[zone] = dbComponent;
         return dbComponent;
@@ -1067,6 +1068,62 @@ public class DBProxyComponent: Component {
     public IPEndPoint dbAddress;
 }
 #+END_SRC
+
+** StartZoneConfigCategory: 单例区服配置管理类
+- 主要还是要把整个框架系统性的都弄懂了
+   #+BEGIN_SRC csharp
+[ProtoContract]
+[Config]
+public partial class StartZoneConfigCategory : ConfigSingleton<StartZoneConfigCategory>, IMerge {
+    [ProtoIgnore]
+    [BsonIgnore]
+    private Dictionary<int, StartZoneConfig> dict = new Dictionary<int, StartZoneConfig>();
+    [BsonElement]
+    [ProtoMember(1)]
+    private List<StartZoneConfig> list = new List<StartZoneConfig>();
+    public void Merge(object o) {
+        StartZoneConfigCategory s = o as StartZoneConfigCategory;
+        this.list.AddRange(s.list);
+    }
+    [ProtoAfterDeserialization]        
+    public void ProtoEndInit() {
+        foreach (StartZoneConfig config in list) {
+            config.AfterEndInit();
+            this.dict.Add(config.Id, config);
+        }
+        this.list.Clear();
+        this.AfterEndInit();
+    }
+    public StartZoneConfig Get(int id) {
+        this.dict.TryGetValue(id, out StartZoneConfig item);
+        if (item == null) 
+            throw new Exception($"配置找不到，配置表名: {nameof (StartZoneConfig)}，配置id: {id}");
+        return item;
+    }
+    public bool Contain(int id) {
+        return this.dict.ContainsKey(id);
+    }
+    public Dictionary<int, StartZoneConfig> GetAll() {
+        return this.dict;
+    }
+    public StartZoneConfig GetOne() {
+        if (this.dict == null || this.dict.Count <= 0) 
+            return null;
+        return this.dict.Values.GetEnumerator().Current;
+    }
+}
+[ProtoContract]
+public partial class StartZoneConfig: ProtoObject, IConfig {// 小区配置 
+    [ProtoMember(1)]
+    public int Id { get; set; }
+    // 数据库地址
+    [ProtoMember(2)]
+    public string DBConnection { get; set; }
+    // 数据库名
+    [ProtoMember(3)]
+    public string DBName { get; set; }
+}
+   #+END_SRC
 
 * 网关服：客户端信息发送的直接代理，中转站，组件分析 
 - SceneFactory: 【初始化】时，带如下几个组件
@@ -1128,6 +1185,31 @@ public interface IMActorHandler {
     void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的：【返回类型
     Type GetRequestType();
     Type GetResponseType();
+}
+   #+END_SRC
+** AMHandler<Message>: IMHandler
+   #+BEGIN_SRC csharp
+public abstract class AMHandler<Message>: IMHandler where Message : class {
+    // protected abstract ETTask Run(Session session, Message message);
+    protected abstract void Run(Session session, Message message);
+    public void Handle(Session session, object msg) {
+        Message message = msg as Message;
+        if (message == null) {
+            Log.Error($"消息类型转换错误: {msg.GetType().Name} to {typeof (Message).Name}");
+            return;
+        }
+        if (session.IsDisposed) {
+            Log.Error($"session disconnect {msg}");
+            return;
+        }
+        this.Run(session, message).Coroutine();
+    }
+    public Type GetMessageType() {
+        return typeof (Message);
+    }
+    public Type GetResponseType() {
+        return null;
+    }
 }
    #+END_SRC
 ** AMActorRpcHandler<E, Request, Response>: IMActorHandler void|ETTask 分不清
@@ -1258,6 +1340,14 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【拖拉机游戏房间】：多组件构成
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+
+
+
+
+
+
+
+
 
 
 
