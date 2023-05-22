@@ -1,5 +1,6 @@
 using ET;
 using ProtoBuf;
+using pb = Google.ProtoBuf;
 using System.Collections.Generic;
 namespace ET
 {
@@ -58,6 +59,7 @@ namespace ET
         Landlord = 2,
     }
 
+    
 	[Message(OuterMessage.HttpGetRouterResponse)]
 	[ProtoContract]
 	public partial class HttpGetRouterResponse: ProtoObject
@@ -660,36 +662,6 @@ namespace ET
 
 	}
 
-	[Message(OuterMessage.C2R_Register_Req)]
-	[ProtoContract]
-	public partial class C2R_Register_Req: ProtoObject, IRequest
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(1)]
-		public string Account { get; set; }
-
-		[ProtoMember(2)]
-		public string Password { get; set; }
-
-	}
-
-	[Message(OuterMessage.R2C_Register_Ack)]
-	[ProtoContract]
-	public partial class R2C_Register_Ack: ProtoObject, IResponse
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public int Error { get; set; }
-
-		[ProtoMember(92)]
-		public string Message { get; set; }
-
-	}
-
 	[Message(OuterMessage.C2G_ReturnLobby_Ntt)]
 	[ProtoContract]
 	public partial class C2G_ReturnLobby_Ntt: ProtoObject, IMessage
@@ -699,15 +671,15 @@ namespace ET
     public partial class Card : pb::IMessage {
         private static readonly pb::MessageParser<Card> _parser = new pb::MessageParser<Card>(() => (Card)MessagePool.Instance.Fetch(typeof(Card)));
         public static pb::MessageParser<Card> Parser { get { return _parser; } }
-        private global::ETModel.Weight cardWeight_ = 0;
-        public global::ETModel.Weight CardWeight {
+        private global::ET.Weight cardWeight_ = 0;
+        public global::ET.Weight CardWeight {
             get { return cardWeight_; }
             set {
                 cardWeight_ = value;
             }
         }
-        private global::ETModel.Suits cardSuits_ = 0;
-        public global::ETModel.Suits CardSuits {
+        private global::ET.Suits cardSuits_ = 0;
+        public global::ET.Suits CardSuits {
             get { return cardSuits_; }
             set {
                 cardSuits_ = value;
@@ -741,11 +713,11 @@ namespace ET
                     input.SkipLastField();
                     break;
                 case 8: {
-                    cardWeight_ = (global::ETModel.Weight) input.ReadEnum();
+                    cardWeight_ = (global::ET.Weight) input.ReadEnum();
                     break;
                 }
                 case 16: {
-                    cardSuits_ = (global::ETModel.Suits) input.ReadEnum();
+                    cardSuits_ = (global::ET.Suits) input.ReadEnum();
                     break;
                 }
                 }
@@ -803,8 +775,6 @@ namespace ET
 		 public const ushort R2C_Register_Ack = 10041;
 		 public const ushort C2G_LoginGate_Req = 10042;
 		 public const ushort G2C_LoginGate_Ack = 10043;
-		 public const ushort C2R_Register_Req = 10044;
-		 public const ushort R2C_Register_Ack = 10045;
 		 public const ushort C2G_ReturnLobby_Ntt = 10046;
 		 public const ushort Card = 10047;
 	}

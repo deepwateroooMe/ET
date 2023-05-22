@@ -1,12 +1,12 @@
 ﻿namespace ET.Client {
     [ObjectSystem]
     public class UserAwakeSystem : AwakeSystem<User, long> {
-        public override void Awake(User self, long id) {
+        protected override void Awake(User self, long id) {
             self.Awake(id);
         }
     }
     // 玩家对象
-    public sealed class User : Entity {
+    public sealed class User : Entity, IAwake<long> {
         // 用户ID（唯一）
         public long UserID { get; private set; }
         public void Awake(long id) {

@@ -16,7 +16,7 @@ namespace ET.Server {
         }
         private async void TimeoutRemoveKey(long key) {
             // 从游戏逻辑总管 Game 这里获取单例组件，暂时还不是狠理解这里，改天再改。大致组件存在字典里，可能要去字典里取元素
-            await Game.Get(TimerComponent>()).WaitAsync(20000);
+            await Game.Get<TimerComponent>().WaitAsync(20000);
             this.sessionKey.Remove(key);
         }
     }

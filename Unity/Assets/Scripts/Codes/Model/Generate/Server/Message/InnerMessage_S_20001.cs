@@ -3,6 +3,25 @@ using ProtoBuf;
 using System.Collections.Generic;
 namespace ET
 {
+
+    /// <summary>
+    ///抢地主状态
+    /// </summary>
+    public enum GrabLandlordState {
+        /// <summary>
+        ///未抢地主
+        /// </summary>
+        Not = 0,
+        /// <summary>
+        ///抢地主
+        /// </summary>
+        Grab = 1,
+        /// <summary>
+        ///不抢地主
+        /// </summary>
+        UnGrab = 2,
+    }
+    
 	[ResponseType(nameof(ObjectQueryResponse))]
 	[Message(InnerMessage.ObjectQueryRequest)]
 	[ProtoContract]
@@ -398,24 +417,6 @@ namespace ET
 
 	}
 
-	[Message(InnerMessage.Actor_AuthorityPlayCard_Ntt)]
-	[ProtoContract]
-	public partial class Actor_AuthorityPlayCard_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-		[ProtoMember(2)]
-		public bool IsFirst { get; set; }
-
-	}
-
 	[Message(InnerMessage.Actor_SetMultiples_Ntt)]
 	[ProtoContract]
 	public partial class Actor_SetMultiples_Ntt: ProtoObject, IActorMessage
@@ -608,39 +609,6 @@ namespace ET
 
 	}
 
-	[Message(InnerMessage.G2M_PlayerEnterMatch_Req)]
-	[ProtoContract]
-	public partial class G2M_PlayerEnterMatch_Req: ProtoObject, IRequest
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(1)]
-		public long PlayerID { get; set; }
-
-		[ProtoMember(2)]
-		public long UserID { get; set; }
-
-		[ProtoMember(3)]
-		public long SessionID { get; set; }
-
-	}
-
-	[Message(InnerMessage.M2G_PlayerEnterMatch_Ack)]
-	[ProtoContract]
-	public partial class M2G_PlayerEnterMatch_Ack: ProtoObject, IResponse
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public int Error { get; set; }
-
-		[ProtoMember(92)]
-		public string Message { get; set; }
-
-	}
-
 	[Message(InnerMessage.G2M_PlayerExitMatch_Req)]
 	[ProtoContract]
 	public partial class G2M_PlayerExitMatch_Req: ProtoObject, IRequest
@@ -737,45 +705,6 @@ namespace ET
 
 		[ProtoMember(1)]
 		public long RoomID { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_PlayerEnterRoom_Req)]
-	[ProtoContract]
-	public partial class Actor_PlayerEnterRoom_Req: ProtoObject, IActorRequest
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long PlayerID { get; set; }
-
-		[ProtoMember(2)]
-		public long UserID { get; set; }
-
-		[ProtoMember(3)]
-		public long SessionID { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_PlayerEnterRoom_Ack)]
-	[ProtoContract]
-	public partial class Actor_PlayerEnterRoom_Ack: ProtoObject, IActorResponse
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public int Error { get; set; }
-
-		[ProtoMember(92)]
-		public string Message { get; set; }
-
-		[ProtoMember(1)]
-		public long GamerID { get; set; }
 
 	}
 
@@ -1101,84 +1030,6 @@ namespace ET
 
 	}
 
-	[Message(InnerMessage.Actor_SetMultiples_Ntt)]
-	[ProtoContract]
-	public partial class Actor_SetMultiples_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public int Multiples { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_SetLandlord_Ntt)]
-	[ProtoContract]
-	public partial class Actor_SetLandlord_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-	}
-
-	[Message(InnerMessage.GamerScore)]
-	[ProtoContract]
-	public partial class GamerScore: ProtoObject
-	{
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-		[ProtoMember(2)]
-		public long Score { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_Gameover_Ntt)]
-	[ProtoContract]
-	public partial class Actor_Gameover_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(2)]
-		public long BasePointPerMatch { get; set; }
-
-		[ProtoMember(3)]
-		public int Multiples { get; set; }
-
-		[ProtoMember(4)]
-		public List<GamerScore> GamersScore { get; set; }
-
-	}
-
-	[Message(InnerMessage.Actor_GamerMoneyLess_Ntt)]
-	[ProtoContract]
-	public partial class Actor_GamerMoneyLess_Ntt: ProtoObject, IActorMessage
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(94)]
-		public long ActorId { get; set; }
-
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-	}
-
 	[Message(InnerMessage.G2M_PlayerEnterMatch_Req)]
 	[ProtoContract]
 	public partial class G2M_PlayerEnterMatch_Req: ProtoObject, IRequest
@@ -1262,8 +1113,6 @@ namespace ET
 		 public const ushort Actor_MatchSucess_Ntt = 20047;
 		 public const ushort MH2MP_CreateRoom_Req = 20048;
 		 public const ushort MP2MH_CreateRoom_Ack = 20049;
-		 public const ushort Actor_PlayerEnterRoom_Req = 20050;
-		 public const ushort Actor_PlayerEnterRoom_Ack = 20051;
 		 public const ushort MP2MH_PlayerExitRoom_Req = 20052;
 		 public const ushort MH2MP_PlayerExitRoom_Ack = 20053;
 		 public const ushort MP2MH_SyncRoomState_Ntt = 20054;
@@ -1285,13 +1134,5 @@ namespace ET
 		 public const ushort GamerCardNum = 20070;
 		 public const ushort Actor_GameStart_Ntt = 20071;
 		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20072;
-		 public const ushort Actor_AuthorityPlayCard_Ntt = 20073;
-		 public const ushort Actor_SetMultiples_Ntt = 20074;
-		 public const ushort Actor_SetLandlord_Ntt = 20075;
-		 public const ushort GamerScore = 20076;
-		 public const ushort Actor_Gameover_Ntt = 20077;
-		 public const ushort Actor_GamerMoneyLess_Ntt = 20078;
-		 public const ushort G2M_PlayerEnterMatch_Req = 20079;
-		 public const ushort M2G_PlayerEnterMatch_Ack = 20080;
 	}
 }

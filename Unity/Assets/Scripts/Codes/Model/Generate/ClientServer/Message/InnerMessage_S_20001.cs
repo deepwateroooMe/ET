@@ -1,8 +1,8 @@
 using ET;
 using ProtoBuf;
 using System.Collections.Generic;
-namespace ET
-{
+
+namespace ET {
 	[ResponseType(nameof(ObjectQueryResponse))]
 	[Message(InnerMessage.ObjectQueryRequest)]
 	[ProtoContract]
@@ -1095,8 +1095,6 @@ namespace ET
 		 public const ushort Actor_MatchSucess_Ntt = 20047;
 		 public const ushort MH2MP_CreateRoom_Req = 20048;
 		 public const ushort MP2MH_CreateRoom_Ack = 20049;
-		 public const ushort Actor_PlayerEnterRoom_Req = 20050;
-		 public const ushort Actor_PlayerEnterRoom_Ack = 20051;
 		 public const ushort MP2MH_PlayerExitRoom_Req = 20052;
 		 public const ushort MH2MP_PlayerExitRoom_Ack = 20053;
 		 public const ushort MP2MH_SyncRoomState_Ntt = 20054;
@@ -1118,13 +1116,6 @@ namespace ET
 		 public const ushort GamerCardNum = 20070;
 		 public const ushort Actor_GameStart_Ntt = 20071;
 		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20072;
-		 public const ushort Actor_AuthorityPlayCard_Ntt = 20073;
-		 public const ushort Actor_SetMultiples_Ntt = 20074;
-		 public const ushort Actor_SetLandlord_Ntt = 20075;
-		 public const ushort GamerScore = 20076;
-		 public const ushort Actor_Gameover_Ntt = 20077;
-		 public const ushort Actor_GamerMoneyLess_Ntt = 20078;
 		 public const ushort G2M_PlayerEnterMatch_Req = 20079;
-		 public const ushort M2G_PlayerEnterMatch_Ack = 20080;
 	}
 }

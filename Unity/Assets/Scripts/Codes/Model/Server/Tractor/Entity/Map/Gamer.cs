@@ -1,4 +1,4 @@
-﻿namespace ET.Server {
+﻿namespace ET {
     [ObjectSystem]
     public class GamerAwakeSystem : AwakeSystem<Gamer,long> {
         protected override void Awake(Gamer self, long id) {
