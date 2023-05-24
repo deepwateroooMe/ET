@@ -1,4 +1,4 @@
-% Created 2023-05-15 Mon 08:34
+% Created 2023-05-24 Wed 11:05
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1112,8 +1112,7 @@ public class UILobbyEvent: AUIEvent {
 \subsection{TractorRoomEvent: 拖拉机房间，【待修改完成】}
 \label{sec-7-12}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// UI 系统的事件机制：定义，如何创建拖拉机游戏房间【TODO:】UNITY 里是需要制作相应预设的
-[UIEvent(UIType.TractorRoom)]
+[UIEvent(UIType.TractorRoom)] // UI 系统的事件机制：定义，如何创建拖拉机游戏房间【TODO:】UNITY 里是需要制作相应预设的
 public class TractorRoomEvent: AUIEvent {
     public override async ETTask<UI> OnCreate(UIComponent uiComponent, UILayer uiLayer) {
         await ETTask.CompletedTask;
@@ -1193,9 +1192,13 @@ public static class OperaComponentSystem { // 生命周期感知，生成系统
 }
 \end{minted}
 
-\section{Player: 玩家相关，添加的地方，以及使用【这里还是有点儿糊涂】}
+
+\section{Player: 玩家相关，添加的地方，以及使用}
 \label{sec-9}
-\subsection{Player: 玩家}
+\begin{itemize}
+\item 感觉有点儿糊涂，是因为用的时候不知道怎么连。那么，就应该是去把一个客户端注册登录，一个客户端玩家的产生，以及所有玩家的后续，前世今生前前后后都明白了，就不会糊涂了。。。
+\end{itemize}
+\subsection{Player:【服务端】玩家}
 \label{sec-9-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(PlayerComponent))]
@@ -1204,16 +1207,32 @@ public sealed class Player : Entity, IAwake<string> {
     public long UnitId { get; set; }
 }
 \end{minted}
-\subsection{PlayerComponent:}
+\subsection{PlayerSystem: 这不就是昨天在找要找的，小单元的生成系吗？一个服务端的例子。}
 \label{sec-9-2}
+\begin{itemize}
+\item 这里可以看见，即使是说，只传一个参数，帐户名进来，新的ET7 框架里，因为移除了 ECS 中的Component 最小组件，这种即便感觉永远不需要热更新，可以Model 层固定不变的，也都热更新到了热更新层，不得不给他们弄成是【生成系】。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[FriendOf(typeof(Player))]
+public static class PlayerSystem {
+    [ObjectSystem]
+    public class PlayerAwakeSystem : AwakeSystem<Player, string> {
+        protected override void Awake(Player self, string a) {
+            self.Account = a;
+        }
+    }
+}
+\end{minted}
+\subsection{PlayerComponent:【客户端】为什么来个这样的客户端呢？不是我干的，想想它为什么要在客户端加个这个东西，什么情况下可以用到？}
+\label{sec-9-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class PlayerComponent: Entity, IAwake {
     public long MyId { get; set; }
 }
 \end{minted}
-\subsection{服务器端的PlayerComponent}
-\label{sec-9-3}
+\subsection{服务器端的PlayerComponent: ET7 里但凡Component, 就都成为管理类，管理所有玩家，少不了字典备案}
+\label{sec-9-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
 [ComponentOf(typeof(Scene))]
@@ -1221,8 +1240,8 @@ public class PlayerComponent : Entity, IAwake, IDestroy {
     public readonly Dictionary<long, Player> idPlayers = new Dictionary<long, Player>();
 }
 \end{minted}
-\subsection{服务器端 PlayerComponentSystem}
-\label{sec-9-4}
+\subsection{服务器端 PlayerComponentSystem: 添加、删除、拿一个，去拿所有玩家。。}
+\label{sec-9-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
     [FriendOf(typeof(PlayerComponent))]
@@ -1243,8 +1262,8 @@ namespace ET.Server {
     }
 }
 \end{minted}
-\subsection{服务器端SceneFactory-CreateServerScene 时【网关服】会添加【PlayerComponent】玩家组件}
-\label{sec-9-5}
+\subsection{服务器端SceneFactory-CreateServerScene 时【网关服】会添加【PlayerComponent】服务端玩家管理组件，用于管理当前网关小区下的所有玩家。}
+\label{sec-9-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -1288,8 +1307,51 @@ public static class SceneFactory {
         return scene;
     }
 \end{minted}
+\subsection{客户端SceneFactory-CreateClientScene 时,场景工厂会为客户端绑定当前客户端的玩家}
+\label{sec-9-7}
+\begin{itemize}
+\item 那么，这个不就解决了，昨天下午傍晚想要找的【参考项目】里 ClientComponent 的整合问题了吗？
+\item 这两小节，【服务端】与【客户端】都能够顺利添加管理玩家。关于玩家的逻辑，我觉得，到这里是基本完整的。其它，必要时再检查逻辑。
+\item 到此，昨天项目编译过程中的所有小错误和问题，下午回家都基本可以全部改正了。。哈哈哈哈哈！【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateClientScene(int zone, string name) {
+        await ETTask.CompletedTask;
+
+        Scene clientScene = EntitySceneFactory.CreateScene(zone, SceneType.Client, name, ClientSceneManagerComponent.Instance);
+        clientScene.AddComponent<CurrentScenesComponent>();
+        clientScene.AddComponent<ObjectWait>();
+        clientScene.AddComponent<PlayerComponent>(); // <<<<<<<<<<<<<<<<<<<< 【客户端】玩家小单元，为客户端场景绑定当前玩家 
+
+        EventSystem.Instance.Publish(clientScene, new EventType.AfterCreateClientScene()); // 好奇葩的事件，去看下
+        return clientScene;
+    }
+    public static Scene CreateCurrentScene(long id, int zone, string name, CurrentScenesComponent currentScenesComponent) {
+        Scene currentScene = EntitySceneFactory.CreateScene(id, IdGenerater.Instance.GenerateInstanceId(), zone, SceneType.Current, name, currentScenesComponent);
+        currentScenesComponent.Scene = currentScene;
+        EventSystem.Instance.Publish(currentScene, new EventType.AfterCreateCurrentScene());
+        return currentScene;
+    }
+}
+\end{minted}
+\subsection{UnitHelper: 帮助，从客户端场景，或是当前场景下，去拿【客户端】PlayComponent.MyId}
+\label{sec-9-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class UnitHelper {
+    public static Unit GetMyUnitFromClientScene(Scene clientScene) {
+        PlayerComponent playerComponent = clientScene.GetComponent<PlayerComponent>();
+        Scene currentScene = clientScene.GetComponent<CurrentScenesComponent>().Scene;
+        return currentScene.GetComponent<UnitComponent>().Get(playerComponent.MyId);
+    }
+    public static Unit GetMyUnitFromCurrentScene(Scene currentScene) {
+        PlayerComponent playerComponent = currentScene.Parent.GetParent<Scene>().GetComponent<PlayerComponent>();
+        return currentScene.GetComponent<UnitComponent>().Get(playerComponent.MyId);
+    }
+}
+\end{minted}
 \subsection{SessionPlayerComponentSystem}
-\label{sec-9-6}
+\label{sec-9-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SessionPlayerComponentSystem {
     public class SessionPlayerComponentDestroySystem: DestroySystem<SessionPlayerComponent> {
@@ -1306,7 +1368,7 @@ public static class SessionPlayerComponentSystem {
 \end{minted}
 
 \subsection{SessionPlayerComponent: 会话框里，会保留客户端玩家 PlayerId}
-\label{sec-9-7}
+\label{sec-9-10}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Session))]
 public class SessionPlayerComponent : Entity, IAwake, IDestroy {

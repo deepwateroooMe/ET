@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 namespace ET.Server {
-    // User对象管理组件
-    public class UserComponent : Entity {
+    public class UserComponent : Entity { // User对象管理组件
         private readonly Dictionary<long, User> idUsers = new Dictionary<long, User>();
         // 添加User对象
         public void Add(User user) {

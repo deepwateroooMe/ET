@@ -1256,10 +1256,7 @@ public abstract class AMActorRpcHandler<E, Request, Response>: IMActorHandler wh
     }
 }
    #+END_SRC
-** 
-   #+BEGIN_SRC csharp
-   #+END_SRC
-* Unit: 不明白它是什么，不太懂
+* Unit: 
 ** UnitGateComponent: 
    #+BEGIN_SRC csharp
 [ComponentOf(typeof(Unit))]
@@ -1277,6 +1274,70 @@ public static class UnitGateComponentSystem {
     }
 }
 #+END_SRC
+
+* ET7 框架以及【参考项目】的ECS：小单元小类型的生成系，是怎么写的，找例子参考 
+- 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
+** IComponentSerialize: 
+- ET7 的重构里，系统框架比较强大，这些必要的接口，都变成了必要的标签系，狠多可以自动系统触发或是调用。必要时只需要必布必要事件就可以了
+- 这个接口的功能，与 Unity 自带的 ISerializationCallbackReceiver 功能类似。Unity 提供两个回调接口，通过实现该接口的两个方法OnBeforeSerialize 和 OnAfterDeserialize，使得原本不能被引擎正确序列化的类可以按照程序员的要求被加工成引擎能够序列化的类型。
+   #+BEGIN_SRC csharp
+// 在序列化前或者反序列化之后需要做一些操作，可以实现该接口，该接口的方法需要手动调用
+// 相比ISupportInitialize接口，BeginSerialize在BeginInit之前调用，EndDeSerialize在EndInit之后调用
+// 并且需要手动调用，可以在反序列化之后，在次方法中将注册组件到EventSystem之中等等
+public interface IComponentSerialize {
+    // 序列化之前调用
+    void BeginSerialize();
+    // 反序列化之后调用
+    void EndDeSerialize();
+}
+#+END_SRC
+- 可以去找：【ET7 框架】里，相关的接口与标签触发和发布逻辑。
+- ET7 提供了 ISerializeToEntity 接口和IDeserialize，但是并没有接到任何使用的地方。
+#+BEGIN_SRC csharp
+public interface ISerializeToEntity {  }
+
+public interface IDeserialize {
+}
+public interface IDeserializeSystem: ISystemType {
+    void Run(Entity o);
+}
+// 反序列化后执行的System
+[ObjectSystem]
+public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity, IDeserialize {
+    void IDeserializeSystem.Run(Entity o) {
+        this.Deserialize((T)o);
+    }
+    Type ISystemType.SystemType() {
+        return typeof(IDeserializeSystem);
+    }
+    InstanceQueueIndex ISystemType.GetInstanceQueueIndex() {
+        return InstanceQueueIndex.None;
+    }
+    Type ISystemType.Type() {
+        return typeof(T);
+    }
+    protected abstract void Deserialize(T self);
+}
+#+END_SRC
+
+** ClientComponent:【参考项目】客户端组件，找个ET7 里的组件
+- 这个组件，感觉是客户端单例，帮助把本地玩家给绑定到客户端单例。
+   #+BEGIN_SRC csharp
+[ObjectSystem]
+public class ClientComponentAwakeSystem : AwakeSystem<ClientComponent> {
+    public override void Awake(ClientComponent self) {
+        self.Awake();
+    }
+}
+public class ClientComponent : Component {
+    public static ClientComponent Instance { get; private set; }
+    public User LocalPlayer { get; set; }
+    public void Awake() {
+        Instance = this;
+    }
+}
+   #+END_SRC
+- ET7 里去找User/Player 相关
 
 * Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】
 - 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
@@ -1304,45 +1365,32 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 * 写在最后：反而是自己每天查看一再更新的
 - 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 - 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
-- 【问题】：某些消息，还分不清是内网还是外网消息，暂时先放一下，到时再改
 - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
 - 【ClientComponent】：新框架里重构丢了，去找怎么替代？那么现在去追一下，客户端的起始与场景加载或是切换大致过程。它变成了什么客户端场景管理？
 - 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
-* 现在的修改内容：
+
+* COMMENT 现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - *【ET7 框架】* 没有处理的逻辑是： *【ET7 框架里数据库的接入】*
 - *【Windows 下 proto2cs 消息转化】* ： ProtoBuf 这个库里还存在几个问题， enum-repeated 等关键字，因为程序域的问题等，没能连能
 - *【UILobbyComponent 可以测试】* ：这个大厅组件，Unity 里预设简单，可以试运行一下，看是否完全消除这个UI 组件的报错，这个屏的控件能否显示出来？还是错出得早，这个屏就出不来已经报错了？
   - 【客户端】的逻辑是处理好了，编译全过后可以测试
-<<<<<<< Updated upstream
   - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理： *C2G_StartMatch_ReqHandler*. 
-=======
-<<<<<<< Updated upstream
-  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理： *C2G_StartMatch_ReqHandler*. 必须记笔记。不记会忘。
-=======
-  - 【服务端】：处理用户请求匹配房间的逻辑，仍在处理：C2G_StartMatch_ReqHandler. 必须记笔记。不记会忘。
-    #+BEGIN_SRC csharp
-    #+END_SRC
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 - *【TractorRoomComponent】* ：因为是多组件嵌套，可以合并多组件为同一个组件；另早上看得一知半解的一个【ChildOf】标签，可以帮助组件套用吗？再找找理解消化一下
 - 【房间组件】：几个现存的 working-on 的问题：
   - 多组件嵌套：手工合并为一个组件。彻底理解确认后，会合并
   - 【服务端】：处理用户请求匹配房间的逻辑. 这里的编译错误终于改完。到时就看运行时错误了。
     - 【数据库模块的整合】：网关服在转发请求匹配时，验证会话框有效后，验证用户身份时，需要去【用户数据库】拿用户数据。ET7 留了个DBManagerComponent, 还没能整合出这个模块
-<<<<<<< Updated upstream
     -【参考来源 *C2R_LoginHandler* 】：Realm 处理客户端的登录请求的服务端逻辑。这里看见，它随机分配一个网关服。也就是，我（原本本质上也是随机分配）一个匹配服给用。可以依照这里的例子来改写。
-<<<<<<< Updated upstream
 - *【服务端的编译错误】* 基本上扫了一遍。【客户端】因为这些前期的工作，以及拖拉机项目重构设计还没有想透彻，暂停一下。
 - 【接下来的内容】： *【重构拖拉机项目】* 。把ET7 框架里【参考项目】的设计看懂，并借助这个例子，把拖拉机项目设计好。
 - 有时间，会试着尽早解决上面 ProtoBuf 里的几个小问题。但现在需要重构的设计思路，客户端的界面等才能够往下进行。 
-=======
-
-=======
     - 【匹配服地址】网关服的处理逻辑里，验证完用户合格后，为代为转发消息到匹配服，但需要拿匹配服的地址。ET7 重构里，还没能改出这部分。服务器系统配置初始化时，可以链表管理各小构匹配服，再去拿相关匹配服的地址。ET7 框架里的路由器系统，自己还没有弄懂。
     - 这个地方有点儿脑塞，完全搜不到新框架里可以参考的例子，暂时写不到了。那可以去读一读更大的框架，去找别人用ET7 的别人的例子里是怎么写的，再去参考一下别人的。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】今天下午先去看 Tractor 游戏源码，设计重构思路
+- 早上先看一下，再弄弄清楚【参考项目】里的 ECS. 然后去看拖拉机游戏的源码。 
+- 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看 *【不能再添加Component 组件。ET7 框架重构了，小单元也走热更新，在热更新层有天文小行星的生成系。可以参照 ET.pdf 里的服务端 PlayerSystem 来作例子】* ？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
+- ClientComponent 参考项目组件：去看ET7 里客户端的 PlayerComponent.
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+
 * TODO 其它的：部分完成，或是待完成的大的功能版块，列举
 - emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
   - Windows 10 平台下，C-; 是绑定到了 ISpell 下的某个功能，可是现在这个破 emacs 老报错，连查是绑定给哪个功能，过程报错都被阻止了。。。
@@ -1360,6 +1408,34 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【拖拉机游戏房间】：多组件构成
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
