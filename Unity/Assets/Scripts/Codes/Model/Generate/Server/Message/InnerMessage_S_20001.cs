@@ -1,28 +1,29 @@
 using ET;
 using ProtoBuf;
 using System.Collections.Generic;
+
+using pb = global::Google.Protobuf;
+using pbc = global::Google.Protobuf.Collections;
+using pbr = global::Google.Protobuf.Reflection;
+using scg = global::System.Collections.Generic;
+
 namespace ET
 {
-
-    /// <summary>
-    ///抢地主状态
-    /// </summary>
     public enum GrabLandlordState {
         /// <summary>
         ///未抢地主
         /// </summary>
-        Not = 0,
+        [pbr::OriginalName("Not")] Not = 0,
         /// <summary>
         ///抢地主
         /// </summary>
-        Grab = 1,
+        [pbr::OriginalName("Grab")] Grab = 1,
         /// <summary>
         ///不抢地主
         /// </summary>
-        UnGrab = 2,
-    }
+        [pbr::OriginalName("UnGrab")] UnGrab = 2,
+        }
     
-	[ResponseType(nameof(ObjectQueryResponse))]
 	[Message(InnerMessage.ObjectQueryRequest)]
 	[ProtoContract]
 	public partial class ObjectQueryRequest: ProtoObject, IActorRequest
@@ -38,7 +39,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(A2M_Reload))]
 	[Message(InnerMessage.M2A_Reload)]
 	[ProtoContract]
 	public partial class M2A_Reload: ProtoObject, IActorRequest
@@ -63,7 +63,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(G2G_LockResponse))]
 	[Message(InnerMessage.G2G_LockRequest)]
 	[ProtoContract]
 	public partial class G2G_LockRequest: ProtoObject, IActorRequest
@@ -94,7 +93,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(G2G_LockReleaseResponse))]
 	[Message(InnerMessage.G2G_LockReleaseRequest)]
 	[ProtoContract]
 	public partial class G2G_LockReleaseRequest: ProtoObject, IActorRequest
@@ -125,7 +123,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(ObjectAddResponse))]
 	[Message(InnerMessage.ObjectAddRequest)]
 	[ProtoContract]
 	public partial class ObjectAddRequest: ProtoObject, IActorRequest
@@ -156,7 +153,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(ObjectLockResponse))]
 	[Message(InnerMessage.ObjectLockRequest)]
 	[ProtoContract]
 	public partial class ObjectLockRequest: ProtoObject, IActorRequest
@@ -190,7 +186,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(ObjectUnLockResponse))]
 	[Message(InnerMessage.ObjectUnLockRequest)]
 	[ProtoContract]
 	public partial class ObjectUnLockRequest: ProtoObject, IActorRequest
@@ -224,7 +219,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(ObjectRemoveResponse))]
 	[Message(InnerMessage.ObjectRemoveRequest)]
 	[ProtoContract]
 	public partial class ObjectRemoveRequest: ProtoObject, IActorRequest
@@ -252,7 +246,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(ObjectGetResponse))]
 	[Message(InnerMessage.ObjectGetRequest)]
 	[ProtoContract]
 	public partial class ObjectGetRequest: ProtoObject, IActorRequest
@@ -283,7 +276,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(G2R_GetLoginKey))]
 	[Message(InnerMessage.R2G_GetLoginKey)]
 	[ProtoContract]
 	public partial class R2G_GetLoginKey: ProtoObject, IActorRequest
@@ -344,7 +336,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(M2M_UnitTransferResponse))]
 	[Message(InnerMessage.M2M_UnitTransferRequest)]
 	[ProtoContract]
 	public partial class M2M_UnitTransferRequest: ProtoObject, IActorRequest
@@ -444,18 +435,6 @@ namespace ET
 
 		[ProtoMember(1)]
 		public long UserID { get; set; }
-
-	}
-
-	[Message(InnerMessage.GamerScore)]
-	[ProtoContract]
-	public partial class GamerScore: ProtoObject
-	{
-		[ProtoMember(1)]
-		public long UserID { get; set; }
-
-		[ProtoMember(2)]
-		public long Score { get; set; }
 
 	}
 
@@ -936,7 +915,6 @@ namespace ET
 
 	}
 
-//抢地主状态: 参照这个，来改写抢2 和反主等
 	[Message(InnerMessage.GamerState)]
 	[ProtoContract]
 	public partial class GamerState: ProtoObject
@@ -1030,36 +1008,15 @@ namespace ET
 
 	}
 
-	[Message(InnerMessage.G2M_PlayerEnterMatch_Req)]
+	[Message(InnerMessage.GamerScore)]
 	[ProtoContract]
-	public partial class G2M_PlayerEnterMatch_Req: ProtoObject, IRequest
+	public partial class GamerScore: ProtoObject
 	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
 		[ProtoMember(1)]
-		public long PlayerID { get; set; }
-
-		[ProtoMember(2)]
 		public long UserID { get; set; }
 
-		[ProtoMember(3)]
-		public long SessionID { get; set; }
-
-	}
-
-	[Message(InnerMessage.M2G_PlayerEnterMatch_Ack)]
-	[ProtoContract]
-	public partial class M2G_PlayerEnterMatch_Ack: ProtoObject, IResponse
-	{
-		[ProtoMember(90)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(91)]
-		public int Error { get; set; }
-
-		[ProtoMember(92)]
-		public string Message { get; set; }
+		[ProtoMember(2)]
+		public long Score { get; set; }
 
 	}
 
@@ -1090,49 +1047,47 @@ namespace ET
 		 public const ushort M2M_UnitTransferResponse = 20024;
 		 public const ushort Actor_PlayerEnterRoom_Req = 20025;
 		 public const ushort Actor_PlayerEnterRoom_Ack = 20026;
-		 public const ushort Actor_AuthorityPlayCard_Ntt = 20027;
-		 public const ushort Actor_SetMultiples_Ntt = 20028;
-		 public const ushort Actor_SetLandlord_Ntt = 20029;
-		 public const ushort GamerScore = 20030;
-		 public const ushort Actor_Gameover_Ntt = 20031;
-		 public const ushort Actor_GamerMoneyLess_Ntt = 20032;
-		 public const ushort G2R_PlayerOnline_Req = 20033;
-		 public const ushort R2G_PlayerOnline_Ack = 20034;
-		 public const ushort G2R_PlayerOffline_Req = 20035;
-		 public const ushort R2G_PlayerOffline_Ack = 20036;
-		 public const ushort R2G_GetLoginKey_Req = 20037;
-		 public const ushort G2R_GetLoginKey_Ack = 20038;
-		 public const ushort R2G_PlayerKickOut_Req = 20039;
-		 public const ushort G2R_PlayerKickOut_Ack = 20040;
-		 public const ushort G2M_PlayerEnterMatch_Req = 20041;
-		 public const ushort M2G_PlayerEnterMatch_Ack = 20042;
-		 public const ushort G2M_PlayerExitMatch_Req = 20043;
-		 public const ushort M2G_PlayerExitMatch_Ack = 20044;
-		 public const ushort Actor_PlayerExitRoom_Req = 20045;
-		 public const ushort Actor_PlayerExitRoom_Ack = 20046;
-		 public const ushort Actor_MatchSucess_Ntt = 20047;
-		 public const ushort MH2MP_CreateRoom_Req = 20048;
-		 public const ushort MP2MH_CreateRoom_Ack = 20049;
-		 public const ushort MP2MH_PlayerExitRoom_Req = 20052;
-		 public const ushort MH2MP_PlayerExitRoom_Ack = 20053;
-		 public const ushort MP2MH_SyncRoomState_Ntt = 20054;
-		 public const ushort PlayerInfo = 20055;
-		 public const ushort Actor_GamerReady_Ntt = 20056;
-		 public const ushort Actor_GamerGrabLandlordSelect_Ntt = 20057;
-		 public const ushort Actor_GamerPlayCard_Req = 20058;
-		 public const ushort Actor_GamerPlayCard_Ack = 20059;
-		 public const ushort Actor_GamerPlayCard_Ntt = 20060;
-		 public const ushort Actor_GamerPrompt_Req = 20061;
-		 public const ushort Actor_GamerPrompt_Ack = 20062;
-		 public const ushort Actor_GamerDontPlay_Ntt = 20063;
-		 public const ushort Actor_Trusteeship_Ntt = 20064;
-		 public const ushort GamerInfo = 20065;
-		 public const ushort Actor_GamerEnterRoom_Ntt = 20066;
-		 public const ushort Actor_GamerExitRoom_Ntt = 20067;
-		 public const ushort GamerState = 20068;
-		 public const ushort Actor_GamerReconnect_Ntt = 20069;
-		 public const ushort GamerCardNum = 20070;
-		 public const ushort Actor_GameStart_Ntt = 20071;
-		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20072;
+		 public const ushort Actor_SetMultiples_Ntt = 20027;
+		 public const ushort Actor_SetLandlord_Ntt = 20028;
+		 public const ushort Actor_Gameover_Ntt = 20029;
+		 public const ushort Actor_GamerMoneyLess_Ntt = 20030;
+		 public const ushort G2R_PlayerOnline_Req = 20031;
+		 public const ushort R2G_PlayerOnline_Ack = 20032;
+		 public const ushort G2R_PlayerOffline_Req = 20033;
+		 public const ushort R2G_PlayerOffline_Ack = 20034;
+		 public const ushort R2G_GetLoginKey_Req = 20035;
+		 public const ushort G2R_GetLoginKey_Ack = 20036;
+		 public const ushort R2G_PlayerKickOut_Req = 20037;
+		 public const ushort G2R_PlayerKickOut_Ack = 20038;
+		 public const ushort G2M_PlayerExitMatch_Req = 20039;
+		 public const ushort M2G_PlayerExitMatch_Ack = 20040;
+		 public const ushort Actor_PlayerExitRoom_Req = 20041;
+		 public const ushort Actor_PlayerExitRoom_Ack = 20042;
+		 public const ushort Actor_MatchSucess_Ntt = 20043;
+		 public const ushort MH2MP_CreateRoom_Req = 20044;
+		 public const ushort MP2MH_CreateRoom_Ack = 20045;
+		 public const ushort MP2MH_PlayerExitRoom_Req = 20046;
+		 public const ushort MH2MP_PlayerExitRoom_Ack = 20047;
+		 public const ushort MP2MH_SyncRoomState_Ntt = 20048;
+		 public const ushort PlayerInfo = 20049;
+		 public const ushort Actor_GamerReady_Ntt = 20050;
+		 public const ushort Actor_GamerGrabLandlordSelect_Ntt = 20051;
+		 public const ushort Actor_GamerPlayCard_Req = 20052;
+		 public const ushort Actor_GamerPlayCard_Ack = 20053;
+		 public const ushort Actor_GamerPlayCard_Ntt = 20054;
+		 public const ushort Actor_GamerPrompt_Req = 20055;
+		 public const ushort Actor_GamerPrompt_Ack = 20056;
+		 public const ushort Actor_GamerDontPlay_Ntt = 20057;
+		 public const ushort Actor_Trusteeship_Ntt = 20058;
+		 public const ushort GamerInfo = 20059;
+		 public const ushort Actor_GamerEnterRoom_Ntt = 20060;
+		 public const ushort Actor_GamerExitRoom_Ntt = 20061;
+		 public const ushort GamerState = 20062;
+		 public const ushort Actor_GamerReconnect_Ntt = 20063;
+		 public const ushort GamerCardNum = 20064;
+		 public const ushort Actor_GameStart_Ntt = 20065;
+		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20066;
+		 public const ushort Actor_AuthorityPlayCard_Ntt = 20067;
+		 public const ushort GamerScore = 20068;
 	}
 }

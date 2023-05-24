@@ -2,7 +2,6 @@ syntax = "proto3";
 package ET;
 
 
-//抢地主状态
 enum GrabLandlordState
 {
 	Not = 0;	//未抢地主

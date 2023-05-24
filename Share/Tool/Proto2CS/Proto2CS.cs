@@ -8,7 +8,7 @@ namespace ET {
         public int Opcode;
     }
     public static class Proto2CS {
-        public static void Export() {
+        public static void Export() { // 主要作用：对外提供一个接口
             // InnerMessage.proto生成cs代码
             InnerProto2CS.Proto2CS();
             Log.Console("proto2cs succeed!");

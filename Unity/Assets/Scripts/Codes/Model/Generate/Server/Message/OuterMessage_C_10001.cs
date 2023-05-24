@@ -1,65 +1,14 @@
 using ET;
 using ProtoBuf;
-using pb = Google.ProtoBuf;
 using System.Collections.Generic;
+
+using pb = global::Google.Protobuf;
+using pbc = global::Google.Protobuf.Collections;
+using pbr = global::Google.Protobuf.Reflection;
+using scg = global::System.Collections.Generic;
+
 namespace ET
 {
-
-	    // 花色
-    public enum Suits {
-        // 梅花
-        Club = 0,
-        // 方块
-        Diamond = 1,
-        // 红心
-        Heart = 2,
-        // 黑桃
-        Spade = 3,
-        None = 4,
-    }
-    // 权重
-    public enum Weight {
-        // 3
-        Three = 0,
-        // 4
-        Four = 1,
-        // 5
-        Five = 2,
-        // 6
-        Six = 3,
-        // 7
-        Seven = 4,
-        // 8
-        Eight = 5,
-        // 9
-        Nine = 6,
-        // 10
-        Ten = 7,
-        // J
-        Jack = 8,
-        // Q
-        Queen = 9,
-        // K
-        King = 10,
-        // A
-        One = 11,
-        // 2
-        Two = 12,
-        // 小王
-        Sjoker = 13,
-        // 大王
-        Ljoker = 14,
-    }
-    // 身份
-    public enum Identity {
-        None = 0,
-        //平民
-        Farmer = 1,
-        //地主
-        Landlord = 2,
-    }
-
-    
 	[Message(OuterMessage.HttpGetRouterResponse)]
 	[ProtoContract]
 	public partial class HttpGetRouterResponse: ProtoObject
@@ -69,6 +18,9 @@ namespace ET
 
 		[ProtoMember(2)]
 		public List<string> Routers { get; set; }
+
+		[ProtoMember(3)]
+		public List<string> Matchs { get; set; }
 
 	}
 
@@ -84,7 +36,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(M2C_TestResponse))]
 	[Message(OuterMessage.C2M_TestRequest)]
 	[ProtoContract]
 	public partial class C2M_TestRequest: ProtoObject, IActorLocationRequest
@@ -115,7 +66,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(Actor_TransferResponse))]
 	[Message(OuterMessage.Actor_TransferRequest)]
 	[ProtoContract]
 	public partial class Actor_TransferRequest: ProtoObject, IActorLocationRequest
@@ -143,7 +93,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(G2C_EnterMap))]
 	[Message(OuterMessage.C2G_EnterMap)]
 	[ProtoContract]
 	public partial class C2G_EnterMap: ProtoObject, IRequest
@@ -307,7 +256,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(G2C_Ping))]
 	[Message(OuterMessage.C2G_Ping)]
 	[ProtoContract]
 	public partial class C2G_Ping: ProtoObject, IRequest
@@ -341,7 +289,6 @@ namespace ET
 	{
 	}
 
-	[ResponseType(nameof(M2C_Reload))]
 	[Message(OuterMessage.C2M_Reload)]
 	[ProtoContract]
 	public partial class C2M_Reload: ProtoObject, IRequest
@@ -372,7 +319,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(R2C_Login))]
 	[Message(OuterMessage.C2R_Login)]
 	[ProtoContract]
 	public partial class C2R_Login: ProtoObject, IRequest
@@ -412,7 +358,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(G2C_LoginGate))]
 	[Message(OuterMessage.C2G_LoginGate)]
 	[ProtoContract]
 	public partial class C2G_LoginGate: ProtoObject, IRequest
@@ -455,7 +400,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(M2C_TestRobotCase))]
 	[Message(OuterMessage.C2M_TestRobotCase)]
 	[ProtoContract]
 	public partial class C2M_TestRobotCase: ProtoObject, IActorLocationRequest
@@ -486,7 +430,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(M2C_TransferMap))]
 	[Message(OuterMessage.C2M_TransferMap)]
 	[ProtoContract]
 	public partial class C2M_TransferMap: ProtoObject, IActorLocationRequest
@@ -511,7 +454,6 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(G2C_Benchmark))]
 	[Message(OuterMessage.C2G_Benchmark)]
 	[ProtoContract]
 	public partial class C2G_Benchmark: ProtoObject, IRequest
@@ -667,69 +609,291 @@ namespace ET
 	public partial class C2G_ReturnLobby_Ntt: ProtoObject, IMessage
 	{
 	}
-        
-    public partial class Card : pb::IMessage {
-        private static readonly pb::MessageParser<Card> _parser = new pb::MessageParser<Card>(() => (Card)MessagePool.Instance.Fetch(typeof(Card)));
-        public static pb::MessageParser<Card> Parser { get { return _parser; } }
-        private global::ET.Weight cardWeight_ = 0;
-        public global::ET.Weight CardWeight {
-            get { return cardWeight_; }
-            set {
-                cardWeight_ = value;
-            }
+
+    public enum Suits {
+        // 梅花
+        [pbr::OriginalName("Club")] Club = 0,
+        // 方块
+        [pbr::OriginalName("Diamond")] Diamond = 1,
+        // 红心
+        [pbr::OriginalName("Heart")] Heart = 2,
+        // 黑桃
+        [pbr::OriginalName("Spade")] Spade = 3,
+        [pbr::OriginalName("None")] None = 4,
         }
-        private global::ET.Suits cardSuits_ = 0;
-        public global::ET.Suits CardSuits {
-            get { return cardSuits_; }
-            set {
-                cardSuits_ = value;
-            }
+    public enum Weight {
+        // 3
+        [pbr::OriginalName("Three")] Three = 0,
+        // 4
+        [pbr::OriginalName("Four")] Four = 1,
+        // 5
+        [pbr::OriginalName("Five")] Five = 2,
+        // 6
+        [pbr::OriginalName("Six")] Six = 3,
+        // 7
+        [pbr::OriginalName("Seven")] Seven = 4,
+        // 8
+        [pbr::OriginalName("Eight")] Eight = 5,
+        // 9
+        [pbr::OriginalName("Nine")] Nine = 6,
+        // 10
+        [pbr::OriginalName("Ten")] Ten = 7,
+        // J
+        [pbr::OriginalName("Jack")] Jack = 8,
+        // Q
+        [pbr::OriginalName("Queen")] Queen = 9,
+        // K
+        [pbr::OriginalName("King")] King = 10,
+        // A
+        [pbr::OriginalName("One")] One = 11,
+        // 2
+        [pbr::OriginalName("Two")] Two = 12,
+        // 小王
+        [pbr::OriginalName("SJoker")] Sjoker = 13,
+        // 大王
+        [pbr::OriginalName("LJoker")] Ljoker = 14,
         }
-        public void WriteTo(pb::CodedOutputStream output) {
-            if (CardWeight != 0) {
-                output.WriteRawTag(8);
-                output.WriteEnum((int) CardWeight);
-            }
-            if (CardSuits != 0) {
-                output.WriteRawTag(16);
-                output.WriteEnum((int) CardSuits);
-            }
-        }
-        public int CalculateSize() {
-            int size = 0;
-            if (CardWeight != 0) {
-                size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CardWeight);
-            }
-            if (CardSuits != 0) {
-                size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CardSuits);
-            }
-            return size;
-        }
-        public void MergeFrom(pb::CodedInputStream input) {
-            uint tag;
-            while ((tag = input.ReadTag()) != 0) {
-                switch(tag) {
-                default:
-                    input.SkipLastField();
-                    break;
-                case 8: {
-                    cardWeight_ = (global::ET.Weight) input.ReadEnum();
-                    break;
-                }
-                case 16: {
-                    cardSuits_ = (global::ET.Suits) input.ReadEnum();
-                    break;
-                }
-                }
-            }
-        }
-    }
-	// [Message(OuterMessage.Card)]
-	// [ProtoContract]
-	// public partial class Card: ProtoObject
-	// {
-	// {
-	// }
+    public enum Identity {
+        [pbr::OriginalName("IdentityNone")] None = 0,
+        // 平民
+        [pbr::OriginalName("Farmer")] Farmer = 1,
+        // 地主
+        [pbr::OriginalName("Landlord")] Landlord = 2,
+        }  
+
+//     public sealed partial class Card : pb::IMessage<Card>
+// #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+//         , pb::IBufferMessage
+// #endif
+//     {
+//         private static readonly pb::MessageParser<Card> _parser = new pb::MessageParser<Card>(() => new Card());
+//         private pb::UnknownFieldSet _unknownFields;
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public static pb::MessageParser<Card> Parser { get { return _parser; } }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public static pbr::MessageDescriptor Descriptor {
+//             get { return global::ET.OuterMessageC10001Reflection.Descriptor.MessageTypes[0]; }
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         pbr::MessageDescriptor pb::IMessage.Descriptor {
+//             get { return Descriptor; }
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public Card() {
+//             OnConstruction();
+//         }
+
+//         partial void OnConstruction();
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public Card(Card other) : this() {
+//             cardWeight_ = other.cardWeight_;
+//             cardSuits_ = other.cardSuits_;
+//             _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public Card Clone() {
+//             return new Card(this);
+//         }
+
+//         /// <summary>Field number for the "CardWeight" field.</summary>
+//         public const int CardWeightFieldNumber = 1;
+//         private global::ET.Weight cardWeight_ = global::ET.Weight.Three;
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public global::ET.Weight CardWeight {
+//             get { return cardWeight_; }
+//             set {
+//                 cardWeight_ = value;
+//             }
+//         }
+
+//         /// <summary>Field number for the "CardSuits" field.</summary>
+//         public const int CardSuitsFieldNumber = 2;
+//         private global::ET.Suits cardSuits_ = global::ET.Suits.Club;
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public global::ET.Suits CardSuits {
+//             get { return cardSuits_; }
+//             set {
+//                 cardSuits_ = value;
+//             }
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public override bool Equals(object other) {
+//             return Equals(other as Card);
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public bool Equals(Card other) {
+//             if (ReferenceEquals(other, null)) {
+//                 return false;
+//             }
+//             if (ReferenceEquals(other, this)) {
+//                 return true;
+//             }
+//             if (CardWeight != other.CardWeight) return false;
+//             if (CardSuits != other.CardSuits) return false;
+//             return Equals(_unknownFields, other._unknownFields);
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public override int GetHashCode() {
+//             int hash = 1;
+//             if (CardWeight != global::ET.Weight.Three) hash ^= CardWeight.GetHashCode();
+//             if (CardSuits != global::ET.Suits.Club) hash ^= CardSuits.GetHashCode();
+//             if (_unknownFields != null) {
+//                 hash ^= _unknownFields.GetHashCode();
+//             }
+//             return hash;
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public override string ToString() {
+//             return pb::JsonFormatter.ToDiagnosticString(this);
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public void WriteTo(pb::CodedOutputStream output) {
+//     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+//             output.WriteRawMessage(this);
+//     #else
+//             if (CardWeight != global::ET.Weight.Three) {
+//                 output.WriteRawTag(8);
+//                 output.WriteEnum((int) CardWeight);
+//             }
+//             if (CardSuits != global::ET.Suits.Club) {
+//                 output.WriteRawTag(16);
+//                 output.WriteEnum((int) CardSuits);
+//             }
+//             if (_unknownFields != null) {
+//                 _unknownFields.WriteTo(output);
+//             }
+//     #endif
+//         }
+
+//     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+//             if (CardWeight != global::ET.Weight.Three) {
+//                 output.WriteRawTag(8);
+//                 output.WriteEnum((int) CardWeight);
+//             }
+//             if (CardSuits != global::ET.Suits.Club) {
+//                 output.WriteRawTag(16);
+//                 output.WriteEnum((int) CardSuits);
+//             }
+//             if (_unknownFields != null) {
+//                 _unknownFields.WriteTo(ref output);
+//             }
+//         }
+//     #endif
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public int CalculateSize() {
+//             int size = 0;
+//             if (CardWeight != global::ET.Weight.Three) {
+//                 size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CardWeight);
+//             }
+//             if (CardSuits != global::ET.Suits.Club) {
+//                 size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) CardSuits);
+//             }
+//             if (_unknownFields != null) {
+//                 size += _unknownFields.CalculateSize();
+//             }
+//             return size;
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public void MergeFrom(Card other) {
+//             if (other == null) {
+//                 return;
+//             }
+//             if (other.CardWeight != global::ET.Weight.Three) {
+//                 CardWeight = other.CardWeight;
+//             }
+//             if (other.CardSuits != global::ET.Suits.Club) {
+//                 CardSuits = other.CardSuits;
+//             }
+//             _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+//         }
+
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         public void MergeFrom(pb::CodedInputStream input) {
+//     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+//             input.ReadRawMessage(this);
+//     #else
+//             uint tag;
+//             while ((tag = input.ReadTag()) != 0) {
+//                 switch(tag) {
+//                 default:
+//                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+//                     break;
+//                 case 8: {
+//                     CardWeight = (global::ET.Weight) input.ReadEnum();
+//                     break;
+//                 }
+//                 case 16: {
+//                     CardSuits = (global::ET.Suits) input.ReadEnum();
+//                     break;
+//                 }
+//                 }
+//             }
+//     #endif
+//         }
+
+//     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+//         [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+//         [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+//         void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+//             uint tag;
+//             while ((tag = input.ReadTag()) != 0) {
+//                 switch(tag) {
+//                 default:
+//                     _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+//                     break;
+//                 case 8: {
+//                     CardWeight = (global::ET.Weight) input.ReadEnum();
+//                     break;
+//                 }
+//                 case 16: {
+//                     CardSuits = (global::ET.Suits) input.ReadEnum();
+//                     break;
+//                 }
+//                 }
+//             }
+//         }
+//     #endif
+//     }
+    
+	[Message(OuterMessage.Card)]
+	[ProtoContract]
+	public partial class Card: ProtoObject {
+		[ProtoMember(1)]
+		public Weight CardWeight { get; set; }
+		[ProtoMember(2)]
+		public Suits CardSuits { get; set; }
+	}
 
 	public static class OuterMessage
 	{
@@ -775,7 +939,7 @@ namespace ET
 		 public const ushort R2C_Register_Ack = 10041;
 		 public const ushort C2G_LoginGate_Req = 10042;
 		 public const ushort G2C_LoginGate_Ack = 10043;
-		 public const ushort C2G_ReturnLobby_Ntt = 10046;
-		 public const ushort Card = 10047;
+		 public const ushort C2G_ReturnLobby_Ntt = 10044;
+		 public const ushort Card = 10045;
 	}
 }

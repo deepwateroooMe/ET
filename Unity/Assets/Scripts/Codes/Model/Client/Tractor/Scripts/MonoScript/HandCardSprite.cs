@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
-namespace ET.Client {
+namespace ET.Server {
 
     public class HandCardSprite : MonoBehaviour {
         public Card Poker { get; set; }

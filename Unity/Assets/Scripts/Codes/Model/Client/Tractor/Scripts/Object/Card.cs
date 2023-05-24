@@ -1,6 +1,6 @@
 ﻿using System;
 using Google.Protobuf;
-namespace ET.Client {
+namespace ET {
     public partial class Card : IEquatable<Card> {    // 牌类
         public bool Equals(Card other) { // 数字与花型 
             return this.CardWeight == other.CardWeight && this.CardSuits == other.CardSuits;

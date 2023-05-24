@@ -201,12 +201,6 @@ message Actor_SetLandlord_Ntt // IActorMessage
     repeated ET Card LordCards = 2;
 }
 
-message GamerScore
-{
-    int64 UserID = 1;
-    int64 Score = 2;
-}
-
 message Actor_Gameover_Ntt // IActorMessage
 {
 	int32 RpcId = 90;
@@ -327,23 +321,6 @@ message MP2MH_CreateRoom_Ack // IResponse
     int32 Error = 91;
     string Message = 92;
     long RoomID = 1;
-}
-
-message Actor_PlayerEnterRoom_Req // IActorRequest
-{
-    int32 RpcId = 90;
-    int64 ActorId = 91;
-    long PlayerID = 1;
-    long UserID = 2;
-    long SessionID = 3;
-}
-
-message Actor_PlayerEnterRoom_Ack // IActorResponse
-{
-    int32 RpcId = 90;
-    int32 Error = 91;
-    string Message = 92;
-    long GamerID = 1;
 }
 
 message MP2MH_PlayerExitRoom_Req // IRequest
