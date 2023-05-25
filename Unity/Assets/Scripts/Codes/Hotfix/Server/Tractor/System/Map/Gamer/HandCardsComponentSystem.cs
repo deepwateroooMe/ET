@@ -1,6 +1,7 @@
 ﻿using ET;
 namespace ET.Server {
     public static class HandCardsComponentSystem {
+
         // 获取所有手牌
         public static Card[] GetAll(this HandCardsComponent self) {
             return self.library.ToArray();

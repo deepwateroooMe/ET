@@ -1,11 +1,11 @@
-﻿namespace ET {
-    [ObjectSystem]
-    public class GamerAwakeSystem : AwakeSystem<Gamer,long> {
-        protected override void Awake(Gamer self, long id) {
-            self.Awake(id);
-            // self.UserID = id;
-        }
-    }
+﻿namespace ET.Server {
+    // [ObjectSystem]
+    // public class GamerAwakeSystem : AwakeSystem<Gamer,long> {
+    //     protected override void Awake(Gamer self, long id) {
+    //         self.Awake(id);
+    //         // self.UserID = id;
+    //     }
+    // }
     // 房间玩家对象
     public sealed class Gamer : Entity, IAwake<long> {
     // public sealed class Gamer : Entity {
@@ -19,19 +19,5 @@
         public bool IsReady { get; set; }
         // 是否离线
         public bool isOffline { get; set; }
-
-        public void Awake(long id) {
-            this.UserID = id;
-        }
-        public override void Dispose() {
-            if (this.IsDisposed) 
-                return;
-            base.Dispose();
-            this.UserID = 0;
-            this.PlayerID = 0;
-            this.RoomID = 0;
-            this.IsReady = false;
-            this.isOffline = false;
-        }
     }
 }

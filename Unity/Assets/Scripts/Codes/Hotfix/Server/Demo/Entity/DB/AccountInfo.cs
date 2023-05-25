@@ -1,5 +1,5 @@
 using MongoDB.Bson.Serialization.Attributes;
-namespace ET.Server {
+namespace ET {
 
     // 账号信息
     [BsonIgnoreExtraElements]

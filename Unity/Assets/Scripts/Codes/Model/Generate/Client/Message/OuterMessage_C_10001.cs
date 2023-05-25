@@ -616,6 +616,42 @@ namespace ET
 
 	}
 
+	[Message(OuterMessage.C2R_Login_Req)]
+	[ProtoContract]
+	public partial class C2R_Login_Req: ProtoObject, IRequest
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(1)]
+		public string Account { get; set; }
+
+		[ProtoMember(2)]
+		public string Password { get; set; }
+
+	}
+
+	[Message(OuterMessage.R2C_Login_Ack)]
+	[ProtoContract]
+	public partial class R2C_Login_Ack: ProtoObject, IResponse
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(91)]
+		public int Error { get; set; }
+
+		[ProtoMember(92)]
+		public string Message { get; set; }
+
+		[ProtoMember(1)]
+		public long Key { get; set; }
+
+		[ProtoMember(2)]
+		public string Address { get; set; }
+
+	}
+
 	public static class OuterMessage
 	{
 		 public const ushort HttpGetRouterResponse = 10002;
@@ -662,5 +698,7 @@ namespace ET
 		 public const ushort G2C_LoginGate_Ack = 10043;
 		 public const ushort C2G_ReturnLobby_Ntt = 10044;
 		 public const ushort Card = 10045;
+		 public const ushort C2R_Login_Req = 10046;
+		 public const ushort R2C_Login_Ack = 10047;
 	}
 }

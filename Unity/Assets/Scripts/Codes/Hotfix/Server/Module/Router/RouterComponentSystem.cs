@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+
 namespace ET.Server {
     [FriendOf(typeof (RouterComponent))]
     [FriendOf(typeof (RouterNode))]
@@ -249,7 +250,7 @@ namespace ET.Server {
                 }
                 break;
             }
-            case KcpProtocalType.FIN: // 断开 {
+            case KcpProtocalType.FIN: { // 断开
                 // 长度!=13，不是DisConnect消息
                 if (messageLength != 13) {
                     break;
@@ -305,160 +306,160 @@ namespace ET.Server {
                 }
                 break;
             }
+            }
         }
-    }
-    private static void RecvInnerHandler(this RouterComponent self, int messageLength, long timeNow) {
-        // 长度小于1，不是正常的消息
-        if (messageLength < 1) {
-            return;
-        }
-        // accept
-        byte flag = self.Cache[0];
-        switch (flag) {
-        case KcpProtocalType.RouterReconnectACK: {
-            uint innerConn = BitConverter.ToUInt32(self.Cache, 1);
-            uint outerConn = BitConverter.ToUInt32(self.Cache, 5);
-            uint connectId = BitConverter.ToUInt32(self.Cache, 9);
-            if (!self.ConnectIdNodes.TryGetValue(connectId, out RouterNode kcpRouterNode)) {
-                Log.Warning($"router node error: {innerConn} {connectId}");
+        private static void RecvInnerHandler(this RouterComponent self, int messageLength, long timeNow) {
+            // 长度小于1，不是正常的消息
+            if (messageLength < 1) {
+                return;
+            }
+            // accept
+            byte flag = self.Cache[0];
+            switch (flag) {
+            case KcpProtocalType.RouterReconnectACK: {
+                uint innerConn = BitConverter.ToUInt32(self.Cache, 1);
+                uint outerConn = BitConverter.ToUInt32(self.Cache, 5);
+                uint connectId = BitConverter.ToUInt32(self.Cache, 9);
+                if (!self.ConnectIdNodes.TryGetValue(connectId, out RouterNode kcpRouterNode)) {
+                    Log.Warning($"router node error: {innerConn} {connectId}");
+                    break;
+                }
+                // 必须校验innerConn，防止伪造
+                if (innerConn != kcpRouterNode.InnerConn) {
+                    Log.Warning(
+                        $"router node innerConn error: {innerConn} {kcpRouterNode.InnerConn} {outerConn} {kcpRouterNode.OuterConn} {kcpRouterNode.Status}");
+                    break;
+                }
+                // 必须校验outerConn，防止伪造
+                if (outerConn != kcpRouterNode.OuterConn) {
+                    Log.Warning(
+                        $"router node outerConn error: {innerConn} {kcpRouterNode.InnerConn} {outerConn} {kcpRouterNode.OuterConn} {kcpRouterNode.Status}");
+                    break;
+                }
+                kcpRouterNode.Status = RouterStatus.Msg;
+                kcpRouterNode.LastRecvInnerTime = timeNow;
+                // 校验成功才加到outerNodes中, 如果这里有冲突，外网将连接失败，不过几率极小
+                if (!self.OuterNodes.ContainsKey(outerConn)) {
+                    self.OuterNodes.Add(outerConn, kcpRouterNode);
+                    self.ConnectIdNodes.Remove(connectId);
+                }
+                // 转发出去
+                self.Cache.WriteTo(0, KcpProtocalType.RouterReconnectACK);
+                self.Cache.WriteTo(1, kcpRouterNode.InnerConn);
+                self.Cache.WriteTo(5, kcpRouterNode.OuterConn);
+                Log.Info($"kcp router RouterAck: {outerConn} {innerConn} {kcpRouterNode.SyncIpEndPoint}");
+                self.OuterSocket.SendTo(self.Cache, 0, 9, SocketFlags.None, kcpRouterNode.SyncIpEndPoint);
                 break;
             }
-            // 必须校验innerConn，防止伪造
-            if (innerConn != kcpRouterNode.InnerConn) {
-                Log.Warning(
-                    $"router node innerConn error: {innerConn} {kcpRouterNode.InnerConn} {outerConn} {kcpRouterNode.OuterConn} {kcpRouterNode.Status}");
-                break;
-            }
-            // 必须校验outerConn，防止伪造
-            if (outerConn != kcpRouterNode.OuterConn) {
-                Log.Warning(
-                    $"router node outerConn error: {innerConn} {kcpRouterNode.InnerConn} {outerConn} {kcpRouterNode.OuterConn} {kcpRouterNode.Status}");
-                break;
-            }
-            kcpRouterNode.Status = RouterStatus.Msg;
-            kcpRouterNode.LastRecvInnerTime = timeNow;
-            // 校验成功才加到outerNodes中, 如果这里有冲突，外网将连接失败，不过几率极小
-            if (!self.OuterNodes.ContainsKey(outerConn)) {
-                self.OuterNodes.Add(outerConn, kcpRouterNode);
-                self.ConnectIdNodes.Remove(connectId);
-            }
-            // 转发出去
-            self.Cache.WriteTo(0, KcpProtocalType.RouterReconnectACK);
-            self.Cache.WriteTo(1, kcpRouterNode.InnerConn);
-            self.Cache.WriteTo(5, kcpRouterNode.OuterConn);
-            Log.Info($"kcp router RouterAck: {outerConn} {innerConn} {kcpRouterNode.SyncIpEndPoint}");
-            self.OuterSocket.SendTo(self.Cache, 0, 9, SocketFlags.None, kcpRouterNode.SyncIpEndPoint);
-            break;
-        }
-        case KcpProtocalType.ACK: {
-            uint innerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
-            uint outerConn = BitConverter.ToUInt32(self.Cache, 5); // local
-            if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
-                Log.Warning($"kcp router ack not found outer nodes: {outerConn} {innerConn}");
-                break;
-            }
+            case KcpProtocalType.ACK: {
+                uint innerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
+                uint outerConn = BitConverter.ToUInt32(self.Cache, 5); // local
+                if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
+                    Log.Warning($"kcp router ack not found outer nodes: {outerConn} {innerConn}");
+                    break;
+                }
                     
-            kcpRouterNode.Status = RouterStatus.Msg;
-            kcpRouterNode.InnerConn = innerConn;
-            kcpRouterNode.LastRecvInnerTime = timeNow;
-            // 转发出去
-            Log.Info($"kcp router ack: {outerConn} {innerConn} {kcpRouterNode.OuterIpEndPoint}");
-            self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
-            break;
+                kcpRouterNode.Status = RouterStatus.Msg;
+                kcpRouterNode.InnerConn = innerConn;
+                kcpRouterNode.LastRecvInnerTime = timeNow;
+                // 转发出去
+                Log.Info($"kcp router ack: {outerConn} {innerConn} {kcpRouterNode.OuterIpEndPoint}");
+                self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
+                break;
+            }
+            case KcpProtocalType.FIN: { // 断开
+                // 长度!=13，不是DisConnect消息
+                if (messageLength != 13) {
+                    break;
+                }
+                uint innerConn = BitConverter.ToUInt32(self.Cache, 1);
+                uint outerConn = BitConverter.ToUInt32(self.Cache, 5);
+                if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
+                    Log.Warning($"kcp router inner fin not found outer nodes: {outerConn} {innerConn}");
+                    break;
+                }
+                // 比对innerConn
+                if (kcpRouterNode.InnerConn != innerConn) {
+                    Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouterNode.Status}");
+                    break;
+                }
+                // 重连，这个字段可能为空，需要客户端发送消息上来才能设置
+                if (kcpRouterNode.OuterIpEndPoint == null) {
+                    break;
+                }
+                kcpRouterNode.LastRecvInnerTime = timeNow;
+                Log.Info($"kcp router inner fin: {outerConn} {innerConn} {kcpRouterNode.OuterIpEndPoint}");
+                self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
+                break;
+            }
+            case KcpProtocalType.MSG: {
+                // 长度<9，不是Msg消息
+                if (messageLength < 9) {
+                    break;
+                }
+                // 处理chanel
+                uint innerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
+                uint outerConn = BitConverter.ToUInt32(self.Cache, 5); // local
+                if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
+                    Log.Warning($"kcp router inner msg not found outer nodes: {outerConn} {innerConn}");
+                    break;
+                }
+                // 比对innerConn
+                if (kcpRouterNode.InnerConn != innerConn) {
+                    Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouterNode.Status}");
+                    break;
+                }
+                // 重连，这个字段可能为空，需要客户端发送消息上来才能设置
+                if (kcpRouterNode.OuterIpEndPoint == null) {
+                    break;
+                }
+                kcpRouterNode.LastRecvInnerTime = timeNow;
+                self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
+                break;
+            }
+            }
         }
-        case KcpProtocalType.FIN: // 断开 {
-            // 长度!=13，不是DisConnect消息
-            if (messageLength != 13) {
-                break;
-            }
-            uint innerConn = BitConverter.ToUInt32(self.Cache, 1);
-            uint outerConn = BitConverter.ToUInt32(self.Cache, 5);
-            if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
-                Log.Warning($"kcp router inner fin not found outer nodes: {outerConn} {innerConn}");
-                break;
-            }
-            // 比对innerConn
-            if (kcpRouterNode.InnerConn != innerConn) {
-                Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouterNode.Status}");
-                break;
-            }
-            // 重连，这个字段可能为空，需要客户端发送消息上来才能设置
-            if (kcpRouterNode.OuterIpEndPoint == null) {
-                break;
-            }
-            kcpRouterNode.LastRecvInnerTime = timeNow;
-            Log.Info($"kcp router inner fin: {outerConn} {innerConn} {kcpRouterNode.OuterIpEndPoint}");
-            self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
-            break;
+        public static RouterNode Get(this RouterComponent self, uint outerConn) {
+            RouterNode routerNode = null;
+            self.OuterNodes.TryGetValue(outerConn, out routerNode);
+            return routerNode;
         }
-        case KcpProtocalType.MSG: {
-            // 长度<9，不是Msg消息
-            if (messageLength < 9) {
-                break;
+        private static RouterNode New(this RouterComponent self, string innerAddress, uint connectId, uint outerConn, uint innerConn, IPEndPoint syncEndPoint) {
+            RouterNode routerNode = self.AddChild<RouterNode>();
+            routerNode.ConnectId = connectId;
+            routerNode.OuterConn = outerConn;
+            routerNode.InnerConn = innerConn;
+            routerNode.InnerIpEndPoint = NetworkHelper.ToIPEndPoint(innerAddress);
+            routerNode.SyncIpEndPoint = syncEndPoint;
+            routerNode.InnerAddress = innerAddress;
+            routerNode.LastRecvInnerTime = TimeHelper.ClientNow();
+            self.ConnectIdNodes.Add(connectId, routerNode);
+            routerNode.Status = RouterStatus.Sync;
+            Log.Info($"router new: outerConn: {outerConn} innerConn: {innerConn} {syncEndPoint}");
+            return routerNode;
+        }
+        public static void OnError(this RouterComponent self, long id, int error) {
+            RouterNode routerNode = self.GetChild<RouterNode>(id);
+            if (routerNode == null) {
+                return;
             }
-            // 处理chanel
-            uint innerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
-            uint outerConn = BitConverter.ToUInt32(self.Cache, 5); // local
-            if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
-                Log.Warning($"kcp router inner msg not found outer nodes: {outerConn} {innerConn}");
-                break;
+            Log.Info($"router node remove: {routerNode.OuterConn} {routerNode.InnerConn} {error}");
+            self.Remove(id);
+        }
+        private static void Remove(this RouterComponent self, long id) {
+            RouterNode routerNode = self.GetChild<RouterNode>(id);
+            if (routerNode == null) {
+                return;
             }
-            // 比对innerConn
-            if (kcpRouterNode.InnerConn != innerConn) {
-                Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouterNode.Status}");
-                break;
+            self.OuterNodes.Remove(routerNode.OuterConn);
+            RouterNode connectRouterNode;
+            if (self.ConnectIdNodes.TryGetValue(routerNode.ConnectId, out connectRouterNode)) {
+                if (connectRouterNode.Id == routerNode.Id) {
+                    self.ConnectIdNodes.Remove(routerNode.ConnectId);
+                }
             }
-            // 重连，这个字段可能为空，需要客户端发送消息上来才能设置
-            if (kcpRouterNode.OuterIpEndPoint == null) {
-                break;
-            }
-            kcpRouterNode.LastRecvInnerTime = timeNow;
-            self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
-            break;
+            Log.Info($"router remove: {routerNode.Id} outerConn: {routerNode.OuterConn} innerConn: {routerNode.InnerConn}");
+            routerNode.Dispose();
         }
     }
-}
-public static RouterNode Get(this RouterComponent self, uint outerConn) {
-    RouterNode routerNode = null;
-    self.OuterNodes.TryGetValue(outerConn, out routerNode);
-    return routerNode;
-}
-private static RouterNode New(this RouterComponent self, string innerAddress, uint connectId, uint outerConn, uint innerConn, IPEndPoint syncEndPoint) {
-    RouterNode routerNode = self.AddChild<RouterNode>();
-    routerNode.ConnectId = connectId;
-    routerNode.OuterConn = outerConn;
-    routerNode.InnerConn = innerConn;
-    routerNode.InnerIpEndPoint = NetworkHelper.ToIPEndPoint(innerAddress);
-    routerNode.SyncIpEndPoint = syncEndPoint;
-    routerNode.InnerAddress = innerAddress;
-    routerNode.LastRecvInnerTime = TimeHelper.ClientNow();
-    self.ConnectIdNodes.Add(connectId, routerNode);
-    routerNode.Status = RouterStatus.Sync;
-    Log.Info($"router new: outerConn: {outerConn} innerConn: {innerConn} {syncEndPoint}");
-    return routerNode;
-}
-public static void OnError(this RouterComponent self, long id, int error) {
-    RouterNode routerNode = self.GetChild<RouterNode>(id);
-    if (routerNode == null) {
-        return;
-    }
-    Log.Info($"router node remove: {routerNode.OuterConn} {routerNode.InnerConn} {error}");
-    self.Remove(id);
-}
-private static void Remove(this RouterComponent self, long id) {
-    RouterNode routerNode = self.GetChild<RouterNode>(id);
-    if (routerNode == null) {
-        return;
-    }
-    self.OuterNodes.Remove(routerNode.OuterConn);
-    RouterNode connectRouterNode;
-    if (self.ConnectIdNodes.TryGetValue(routerNode.ConnectId, out connectRouterNode)) {
-        if (connectRouterNode.Id == routerNode.Id) {
-            self.ConnectIdNodes.Remove(routerNode.ConnectId);
-        }
-    }
-    Log.Info($"router remove: {routerNode.Id} outerConn: {routerNode.OuterConn} innerConn: {routerNode.InnerConn}");
-    routerNode.Dispose();
-}
-}
 }

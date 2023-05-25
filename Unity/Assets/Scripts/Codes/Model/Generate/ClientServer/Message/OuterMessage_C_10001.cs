@@ -1,6 +1,7 @@
 using ET;
 using ProtoBuf;
 using System.Collections.Generic;
+
 using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
@@ -8,22 +9,12 @@ using scg = global::System.Collections.Generic;
 
 namespace ET
 {
-
+#region Enums
     public enum GrabLandlordState {
-        /// <summary>
-        ///未抢地主
-        /// </summary>
         [pbr::OriginalName("Not")] Not = 0,
-        /// <summary>
-        ///抢地主
-        /// </summary>
         [pbr::OriginalName("Grab")] Grab = 1,
-        /// <summary>
-        ///不抢地主
-        /// </summary>
         [pbr::OriginalName("UnGrab")] UnGrab = 2,
-    }
-
+        }
     public enum Suits {
         [pbr::OriginalName("Club")] Club = 0,
         [pbr::OriginalName("Diamond")] Diamond = 1,
@@ -52,7 +43,8 @@ namespace ET
         [pbr::OriginalName("IdentityNone")] None = 0,
         [pbr::OriginalName("Farmer")] Farmer = 1,
         [pbr::OriginalName("Landlord")] Landlord = 2,
-    } 
+        } 
+#endregion
 
 	[Message(OuterMessage.HttpGetRouterResponse)]
 	[ProtoContract]
@@ -654,61 +646,102 @@ namespace ET
 	public partial class C2G_ReturnLobby_Ntt: ProtoObject, IMessage
 	{
 	}
- 
+
 	[Message(OuterMessage.Card)]
 	[ProtoContract]
-	public partial class Card: ProtoObject {
+	public partial class Card: ProtoObject
+	{
 		[ProtoMember(1)]
 		public Weight CardWeight { get; set; }
+
 		[ProtoMember(2)]
 		public Suits CardSuits { get; set; }
+
 	}
-   
+
+	[Message(OuterMessage.C2R_Login_Req)]
+	[ProtoContract]
+	public partial class C2R_Login_Req: ProtoObject, IRequest
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(1)]
+		public string Account { get; set; }
+
+		[ProtoMember(2)]
+		public string Password { get; set; }
+
+	}
+
+	[Message(OuterMessage.R2C_Login_Ack)]
+	[ProtoContract]
+	public partial class R2C_Login_Ack: ProtoObject, IResponse
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(91)]
+		public int Error { get; set; }
+
+		[ProtoMember(92)]
+		public string Message { get; set; }
+
+		[ProtoMember(1)]
+		public long Key { get; set; }
+
+		[ProtoMember(2)]
+		public string Address { get; set; }
+
+	}
+
 	public static class OuterMessage
 	{
-        public const ushort HttpGetRouterResponse = 10002;
-        public const ushort RouterSync = 10003;
-        public const ushort C2M_TestRequest = 10004;
-        public const ushort M2C_TestResponse = 10005;
-        public const ushort Actor_TransferRequest = 10006;
-        public const ushort Actor_TransferResponse = 10007;
-        public const ushort C2G_EnterMap = 10008;
-        public const ushort G2C_EnterMap = 10009;
-        public const ushort MoveInfo = 10010;
-        public const ushort UnitInfo = 10011;
-        public const ushort M2C_CreateUnits = 10012;
-        public const ushort M2C_CreateMyUnit = 10013;
-        public const ushort M2C_StartSceneChange = 10014;
-        public const ushort M2C_RemoveUnits = 10015;
-        public const ushort C2M_PathfindingResult = 10016;
-        public const ushort C2M_Stop = 10017;
-        public const ushort M2C_PathfindingResult = 10018;
-        public const ushort M2C_Stop = 10019;
-        public const ushort C2G_Ping = 10020;
-        public const ushort G2C_Ping = 10021;
-        public const ushort G2C_Test = 10022;
-        public const ushort C2M_Reload = 10023;
-        public const ushort M2C_Reload = 10024;
-        public const ushort C2R_Login = 10025;
-        public const ushort R2C_Login = 10026;
-        public const ushort C2G_LoginGate = 10027;
-        public const ushort G2C_LoginGate = 10028;
-        public const ushort G2C_TestHotfixMessage = 10029;
-        public const ushort C2M_TestRobotCase = 10030;
-        public const ushort M2C_TestRobotCase = 10031;
-        public const ushort C2M_TransferMap = 10032;
-        public const ushort M2C_TransferMap = 10033;
-        public const ushort C2G_Benchmark = 10034;
-        public const ushort G2C_Benchmark = 10035;
-        public const ushort C2G_StartMatch_Req = 10036;
-        public const ushort G2C_StartMatch_Ack = 10037;
-        public const ushort C2G_GetUserInfo_Req = 10038;
-        public const ushort G2C_GetUserInfo_Ack = 10039;
-        public const ushort C2R_Register_Req = 10040;
-        public const ushort R2C_Register_Ack = 10041;
-        public const ushort C2G_LoginGate_Req = 10042;
-        public const ushort G2C_LoginGate_Ack = 10043;
-        public const ushort C2G_ReturnLobby_Ntt = 10044;
-        public const ushort Card = 10045;
+		 public const ushort HttpGetRouterResponse = 10002;
+		 public const ushort RouterSync = 10003;
+		 public const ushort C2M_TestRequest = 10004;
+		 public const ushort M2C_TestResponse = 10005;
+		 public const ushort Actor_TransferRequest = 10006;
+		 public const ushort Actor_TransferResponse = 10007;
+		 public const ushort C2G_EnterMap = 10008;
+		 public const ushort G2C_EnterMap = 10009;
+		 public const ushort MoveInfo = 10010;
+		 public const ushort UnitInfo = 10011;
+		 public const ushort M2C_CreateUnits = 10012;
+		 public const ushort M2C_CreateMyUnit = 10013;
+		 public const ushort M2C_StartSceneChange = 10014;
+		 public const ushort M2C_RemoveUnits = 10015;
+		 public const ushort C2M_PathfindingResult = 10016;
+		 public const ushort C2M_Stop = 10017;
+		 public const ushort M2C_PathfindingResult = 10018;
+		 public const ushort M2C_Stop = 10019;
+		 public const ushort C2G_Ping = 10020;
+		 public const ushort G2C_Ping = 10021;
+		 public const ushort G2C_Test = 10022;
+		 public const ushort C2M_Reload = 10023;
+		 public const ushort M2C_Reload = 10024;
+		 public const ushort C2R_Login = 10025;
+		 public const ushort R2C_Login = 10026;
+		 public const ushort C2G_LoginGate = 10027;
+		 public const ushort G2C_LoginGate = 10028;
+		 public const ushort G2C_TestHotfixMessage = 10029;
+		 public const ushort C2M_TestRobotCase = 10030;
+		 public const ushort M2C_TestRobotCase = 10031;
+		 public const ushort C2M_TransferMap = 10032;
+		 public const ushort M2C_TransferMap = 10033;
+		 public const ushort C2G_Benchmark = 10034;
+		 public const ushort G2C_Benchmark = 10035;
+		 public const ushort C2G_StartMatch_Req = 10036;
+		 public const ushort G2C_StartMatch_Ack = 10037;
+		 public const ushort C2G_GetUserInfo_Req = 10038;
+		 public const ushort G2C_GetUserInfo_Ack = 10039;
+		 public const ushort C2R_Register_Req = 10040;
+		 public const ushort R2C_Register_Ack = 10041;
+		 public const ushort C2G_LoginGate_Req = 10042;
+		 public const ushort G2C_LoginGate_Ack = 10043;
+		 public const ushort C2G_ReturnLobby_Ntt = 10044;
+		 public const ushort Card = 10045;
+		 public const ushort C2R_Login_Req = 10046;
+		 public const ushort R2C_Login_Ack = 10047;
 	}
 }

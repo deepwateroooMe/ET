@@ -41,6 +41,19 @@
             <Link>Generate\%(RecursiveDir)%(FileName)%(Extension)</Link>
         </Compile>
         
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Client\Tractor\Scripts\MonoScript\HandCardSprite.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\GateMapComponent.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\GateSessionKeyComponent.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\Player.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\PlayerComponent.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\SessionInfoComponent.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\SessionPlayerComponent.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Map\Unit\UnitGateComponent.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Google.Protobuf" Version="3.23.1" />
     </ItemGroup> 
     <ItemGroup> 
         <ProjectReference Include="..\..\Share\Analyzer\Share.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

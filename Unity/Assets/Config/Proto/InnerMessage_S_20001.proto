@@ -340,7 +340,7 @@ message MH2MP_PlayerExitRoom_Ack // IResponse
 message MP2MH_SyncRoomState_Ntt // IMessage
 {
     long RoomID = 1;
-    RoomState State = 2;
+    ET.Server.RoomState State = 2;
 }
 
 message PlayerInfo // IMessage
@@ -497,3 +497,21 @@ message GamerScore
     int64 UserID = 1;
     int64 Score = 2;
 }
+
+
+message G2M_PlayerEnterMatch_Req // IRequest
+{
+    int32 RpcId = 90;
+    long PlayerID = 1;
+    long UserID = 2;
+    long SessionID = 3;
+}
+
+message M2G_PlayerEnterMatch_Ack // IResponse
+{
+    int32 RpcId = 90;
+    int32 Error = 91;
+    string Message = 92;
+
+}
+

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-namespace ET {
+namespace ET.Server {
 
     // 房间状态
     public enum RoomState : byte {
@@ -17,20 +17,20 @@ namespace ET {
         public RoomState State { get; set; } = RoomState.Idle;
         // 房间玩家数量
         public int Count { get { return seats.Values.Count; } }
-
-        public override void Dispose() {
-            if (this.IsDisposed) {
-                return;
-            }
-            base.Dispose();
-            seats.Clear();
-            for (int i = 0; i < gamers.Length; i++) {
-                if (gamers[i] != null) {
-                    gamers[i].Dispose();
-                    gamers[i] = null;
-                }
-            }
-            State = RoomState.Idle;
-        }
+        // 没弄懂：ET7 里下面的，大概是在 Entity 里自动处理了，不用管它了
+        // public override void Dispose() {
+        //     if (this.IsDisposed) {
+        //         return;
+        //     }
+        //     base.Dispose();
+        //     seats.Clear();
+        //     for (int i = 0; i < gamers.Length; i++) {
+        //         if (gamers[i] != null) {
+        //             gamers[i].Dispose();
+        //             gamers[i] = null;
+        //         }
+        //     }
+        //     State = RoomState.Idle;
+        // }
     }
 }

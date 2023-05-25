@@ -1,10 +1,8 @@
 ﻿using System.Linq;
 using System.Collections.Generic;
 namespace ET.Server {
-
     // 匹配房间管理组件，逻辑在MatchRoomComponentSystem扩展
     public class MatchRoomComponent : Entity, IAwake {
-
         // 所有房间列表
         public readonly Dictionary<long, Room> rooms = new Dictionary<long, Room>();
         // 游戏中房间列表
@@ -24,14 +22,14 @@ namespace ET.Server {
         // 空闲房间数
         public int IdleRoomCount { get { return idleRooms.Count; } }
 
-        public override void Dispose() {
-            if (this.IsDisposed) {
-                return;
-            }
-            base.Dispose();
-            foreach (var room in this.rooms.Values) {
-                room.Dispose();
-            }
-        }
+        // public override void Dispose() {
+        //     if (this.IsDisposed) {
+        //         return;
+        //     }
+        //     base.Dispose();
+        //     foreach (var room in this.rooms.Values) {
+        //         room.Dispose();
+        //     }
+        // }
     }
 }

@@ -309,7 +309,6 @@ message C2G_ReturnLobby_Ntt // IMessage
 
 }
 
-
 //花色
 enum Suits
 {
@@ -352,4 +351,21 @@ message Card
 {
 	Weight CardWeight = 1;
 	Suits CardSuits = 2;
+}
+
+
+message C2R_Login_Req // IRequest
+{
+	int32 RpcId = 90;
+    string Account = 1;
+    string Password = 2;
+}
+
+message R2C_Login_Ack // IResponse
+{
+	int32 RpcId = 90;
+	int32 Error = 91;
+	string Message = 92;
+    int64 Key = 1;
+    string Address = 2;
 }

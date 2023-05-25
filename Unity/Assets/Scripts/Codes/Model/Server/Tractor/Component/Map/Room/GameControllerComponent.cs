@@ -12,14 +12,14 @@ namespace ET.Server {
         // 最低入场门槛
         public long MinThreshold { get; set; }
 
-        public override void Dispose() {
-            if(this.IsDisposed) {
-                return;
-            }
-            base.Dispose();
-            this.BasePointPerMatch = 0;
-            this.Multiples = 0;
-            this.MinThreshold = 0;
-        }
+        // public override void Dispose() {
+        //     if(this.IsDisposed) {
+        //         return;
+        //     }
+        //     base.Dispose();
+        //     this.BasePointPerMatch = 0;
+        //     this.Multiples = 0;
+        //     this.MinThreshold = 0;
+        // }
     }
 }

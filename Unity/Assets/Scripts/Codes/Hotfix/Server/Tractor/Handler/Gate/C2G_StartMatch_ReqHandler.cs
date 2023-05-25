@@ -28,7 +28,7 @@ namespace ET.Server {
                 Scene scene = session.DomainScene(); 
                 StartSceneConfig config = RealmGateAddressHelper.GetMatch(session.DomainZone()); // 随机分配一个Match 匹配服 
                 Log.Debug($"match address: {MongoHelper.ToJson(config)}");
-                M2G_PlayerEnterMatch_Ack m2G_PlayerEnterMatch_Ack = await scene.GetComponent<NetInnerComponent>().Get(config.InstanceId).Call(, new G2M_PlayerEnterMatch_Req() { // 发消息代为客户端申请：申请匹配游戏
+                M2G_PlayerEnterMatch_Ack m2G_PlayerEnterMatch_Ack = await scene.GetComponent<NetInnerComponent>().Get(config.InstanceId).Call(new G2M_PlayerEnterMatch_Req() { // 发消息代为客户端申请：申请匹配游戏
                         PlayerID = user.InstanceId,
                             UserID = user.UserID,
                             SessionID = session.InstanceId,

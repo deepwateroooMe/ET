@@ -1,29 +1,8 @@
 using ET;
 using ProtoBuf;
 using System.Collections.Generic;
-
-using pb = global::Google.Protobuf;
-using pbc = global::Google.Protobuf.Collections;
-using pbr = global::Google.Protobuf.Reflection;
-using scg = global::System.Collections.Generic;
-
 namespace ET
 {
-    public enum GrabLandlordState {
-        /// <summary>
-        ///未抢地主
-        /// </summary>
-        [pbr::OriginalName("Not")] Not = 0,
-        /// <summary>
-        ///抢地主
-        /// </summary>
-        [pbr::OriginalName("Grab")] Grab = 1,
-        /// <summary>
-        ///不抢地主
-        /// </summary>
-        [pbr::OriginalName("UnGrab")] UnGrab = 2,
-        }
-    
 	[Message(InnerMessage.ObjectQueryRequest)]
 	[ProtoContract]
 	public partial class ObjectQueryRequest: ProtoObject, IActorRequest
@@ -725,7 +704,7 @@ namespace ET
 		public long RoomID { get; set; }
 
 		[ProtoMember(2)]
-		public RoomState State { get; set; }
+		public ET.Server.RoomState State { get; set; }
 
 	}
 
@@ -1020,6 +999,39 @@ namespace ET
 
 	}
 
+	[Message(InnerMessage.G2M_PlayerEnterMatch_Req)]
+	[ProtoContract]
+	public partial class G2M_PlayerEnterMatch_Req: ProtoObject, IRequest
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(1)]
+		public long PlayerID { get; set; }
+
+		[ProtoMember(2)]
+		public long UserID { get; set; }
+
+		[ProtoMember(3)]
+		public long SessionID { get; set; }
+
+	}
+
+	[Message(InnerMessage.M2G_PlayerEnterMatch_Ack)]
+	[ProtoContract]
+	public partial class M2G_PlayerEnterMatch_Ack: ProtoObject, IResponse
+	{
+		[ProtoMember(90)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(91)]
+		public int Error { get; set; }
+
+		[ProtoMember(92)]
+		public string Message { get; set; }
+
+	}
+
 	public static class InnerMessage
 	{
 		 public const ushort ObjectQueryRequest = 20002;
@@ -1089,5 +1101,7 @@ namespace ET
 		 public const ushort Actor_AuthorityGrabLandlord_Ntt = 20066;
 		 public const ushort Actor_AuthorityPlayCard_Ntt = 20067;
 		 public const ushort GamerScore = 20068;
+		 public const ushort G2M_PlayerEnterMatch_Req = 20069;
+		 public const ushort M2G_PlayerEnterMatch_Ack = 20070;
 	}
 }
