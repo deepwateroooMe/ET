@@ -1321,7 +1321,7 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
     public virtual void Dispose() { }
 }
    #+END_SRC
-** StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 吃饱了撑得吗？
+** StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge:
 - 当数据库集群成区服的形式，这里各服务器的配置，成了 ProtoBuf 里进程间可传的消息模式？。。。
 - 这里配置是从哪里来的呢？仍然是从各种配置文件里
    #+BEGIN_SRC java

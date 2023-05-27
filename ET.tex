@@ -1,4 +1,4 @@
-% Created 2023-05-24 Wed 11:05
+% Created 2023-05-24 Wed 11:33
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1324,7 +1324,7 @@ public static class SceneFactory {
         clientScene.AddComponent<ObjectWait>();
         clientScene.AddComponent<PlayerComponent>(); // <<<<<<<<<<<<<<<<<<<< 【客户端】玩家小单元，为客户端场景绑定当前玩家 
 
-        EventSystem.Instance.Publish(clientScene, new EventType.AfterCreateClientScene()); // 好奇葩的事件，去看下
+        EventSystem.Instance.Publish(clientScene, new EventType.AfterCreateClientScene()); 
         return clientScene;
     }
     public static Scene CreateCurrentScene(long id, int zone, string name, CurrentScenesComponent currentScenesComponent) {

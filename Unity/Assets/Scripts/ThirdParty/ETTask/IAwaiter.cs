@@ -1,14 +1,10 @@
-﻿namespace ET
-{
-    public enum AwaiterStatus: byte
-    {
-        /// <summary>The operation has not yet completed.</summary>
+﻿namespace ET {
+    public enum AwaiterStatus: byte {
+        // The operation has not yet completed.
         Pending = 0,
-
-        /// <summary>The operation completed successfully.</summary>
+        // The operation completed successfully.
         Succeeded = 1,
-
-        /// <summary>The operation completed with an error.</summary>
+        // The operation completed with an error.
         Faulted = 2,
     }
 }

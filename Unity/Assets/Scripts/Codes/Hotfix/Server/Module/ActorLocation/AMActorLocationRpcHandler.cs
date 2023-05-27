@@ -2,7 +2,6 @@
 namespace ET.Server {
     [EnableClass]
     public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
-
         // protected abstract ETTask Run(E unit, Request request, Response response);
         protected abstract void Run(E unit, Request request, Response response);
         // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {

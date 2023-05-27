@@ -14,7 +14,6 @@ namespace ET.Server {
                 Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
                 return;
             }
-            
             ActorResponse response = new() {RpcId = message.RpcId};
             ActorHandleHelper.Reply(fromProcess, response);
             // await this.Run(e, message);

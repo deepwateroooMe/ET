@@ -1,4 +1,4 @@
-% Created 2023-05-24 Wed 10:43
+% Created 2023-05-26 Fri 21:15
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1447,11 +1447,659 @@ public class ClientComponent : Component {
     }
 }
 \end{minted}
-\item ET7 里去找User/Player 相关
 \end{itemize}
 
-\section{Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】}
+\section{各种ActorXXX 的消息处理器：上面总结 Actor 的时候，没能想到这些}
 \label{sec-10}
+\begin{itemize}
+\item 任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
+\end{itemize}
+\subsection{AMActorLocationHandler: 源码被我改动了}
+\label{sec-10-1}
+\begin{itemize}
+\item 源码被我改动了，正确性与否没有关系，主要是帮助自己梳理一下几大不同的类型，到改编译错误的时候，能够边修改边弄明白。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[EnableClass]
+public abstract class AMActorLocationHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorLocationMessage {
+    // protected abstract ETTask Run(E entity, Message message);
+    protected abstract void Run(E entity, Message message);
+    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+    public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        if (actorMessage is not Message message) {
+            Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
+            return;
+        }
+        if (entity is not E e) {
+            Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
+            return;
+        }
+        ActorResponse response = new() {RpcId = message.RpcId};
+        ActorHandleHelper.Reply(fromProcess, response);
+        // await this.Run(e, message);
+        this.Run(e, message);
+    }
+    public Type GetRequestType() {
+        return typeof (Message);
+    }
+    public Type GetResponseType() {
+        return typeof (ActorResponse);
+    }
+}
+\end{minted}
+\end{itemize}
+
+\subsection{AMActorLocationRpcHandler: Rpc 就是进程间消息（或是ET7 重构为SceneType 之后的多核间消息）}
+\label{sec-10-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[EnableClass]
+public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
+    // protected abstract ETTask Run(E unit, Request request, Response response);
+    protected abstract void Run(E unit, Request request, Response response);
+    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+    public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        try {
+            if (actorMessage is not Request request) {
+                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
+                return;
+            }
+            if (entity is not E ee) {
+                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
+                return;
+            }
+            int rpcId = request.RpcId;
+            Response response = Activator.CreateInstance<Response>();
+            try {
+                //await this.Run(ee, request, response);
+                this.Run(ee, request, response);
+            }
+            catch (Exception exception) {
+                Log.Error(exception);
+                response.Error = ErrorCore.ERR_RpcFail;
+                response.Message = exception.ToString();
+            }
+            response.RpcId = rpcId;
+            ActorHandleHelper.Reply(fromProcess, response);
+        }
+        catch (Exception e) {
+            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
+        }
+    }
+    public Type GetRequestType() {
+        return typeof (Request);
+    }
+    public Type GetResponseType() {
+        return typeof (Response);
+    }
+}
+\end{minted}
+
+\section{ETTask 和 ETVoid: 第三方库的ETTask}
+\label{sec-11}
+\begin{itemize}
+\item 特异包装：主要是实际了异步调用的流式写法。
+\item 这个框架里ET7 里，就有相关模块 \textbf{【具体说是，两个实体类，实际定义了两种不同返回值ETTask-ETVoid 的协程编译生成方法】} ，能够实现对这个包装的自动编译成协程的编译逻辑方法定义。理解上，感觉像是ET7 框架里，为了这个流式写法，定义了必要的标签系，和相关的协程生成方法，来帮助这个第三方库实现异步调用的流式写法。
+\item 今天晚上好好看看这里，看能否理解透彻。【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
+\end{itemize}
+\subsection{enum AwaiterStatus: IAwaiter.cs 文件里. 理解为异步任务的现执行进展状态}
+\label{sec-11-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public enum AwaiterStatus: byte {
+    // The operation has not yet completed.
+    Pending = 0,
+    // The operation completed successfully.
+    Succeeded = 1,
+    // The operation completed with an error.
+    Faulted = 2,
+}
+\end{minted}
+\subsection{ETTaskCompleted: 已经完成了的异步任务比较特殊：可以简单进行写结果？等必要回收工作，就可以返回异步任务对象池回收再利用？}
+\label{sec-11-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[AsyncMethodBuilder(typeof (AsyncETTaskCompletedMethodBuilder))]
+public struct ETTaskCompleted: ICriticalNotifyCompletion {
+    [DebuggerHidden]
+    public ETTaskCompleted GetAwaiter() {
+        return this;
+    }
+    [DebuggerHidden]
+    public bool IsCompleted => true;
+    [DebuggerHidden]
+    public void GetResult() {
+    }
+// 就是说：下面的两个回调函数，可以帮  助把异步任务的执行结果给返回回去
+    [DebuggerHidden]
+    public void OnCompleted(Action continuation) {              
+    }
+    [DebuggerHidden]
+    public void UnsafeOnCompleted(Action continuation) {  
+    }
+}
+\end{minted}
+\subsection{struct ETVoid: ICriticalNotifyCompletion. 这里涉及协程的分阶段的执行相关逻辑的生成方法自动化相关的标签}
+\label{sec-11-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[AsyncMethodBuilder(typeof (AsyncETVoidMethodBuilder))]// 【异步方法生成标签】：是。NET CompilerService里的属性标签。自动生成协程相关方法的标签？今天晚上也可以细看一下
+internal struct ETVoid: ICriticalNotifyCompletion {
+    [DebuggerHidden]
+        public void Coroutine() { }
+    [DebuggerHidden]
+        public bool IsCompleted => true;
+    [DebuggerHidden]
+        public void OnCompleted(Action continuation) { }
+    [DebuggerHidden]
+        public void UnsafeOnCompleted(Action continuation) { }
+}
+\end{minted}
+\subsection{ETTask: ICriticalNotifyCompletion:}
+\label{sec-11-4}
+\begin{itemize}
+\item 这个类的定义比较大，分普通类，和泛型类。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[AsyncMethodBuilder(typeof (ETAsyncTaskMethodBuilder))]
+public class ETTask: ICriticalNotifyCompletion {
+    public static Action<Exception> ExceptionHandler;// 异常回调
+    public static ETTaskCompleted CompletedTask {    // 异步任务结束后的封装
+        get {
+            return new ETTaskCompleted();
+        }
+    }
+    private static readonly Queue<ETTask> queue = new Queue<ETTask>();// 异步任务对象池
+    // 请不要随便使用ETTask的对象池，除非你完全搞懂了ETTask!!!
+    // 假如开启了池,await之后不能再操作ETTask，否则可能操作到再次从池中分配出来的ETTask，产生灾难性的后果
+    // SetResult的时候请现将tcs置空，避免多次对同一个ETTask SetResult
+    public static ETTask Create(bool fromPool = false) {
+        if (!fromPool) 
+            return new ETTask();
+        if (queue.Count == 0) 
+            return new ETTask() {fromPool = true};    
+        return queue.Dequeue();
+    }
+    private void Recycle() { 
+        if (!this.fromPool) // 原则：只有从池里取出来的，才返回池
+            return;
+        this.state = AwaiterStatus.Pending; // 【没明白：】回收时还设置为 Pending, 什么时候写的当前结果？应该是在回收前
+        this.callback = null;
+        // 太多了
+        if (queue.Count > 1000) 
+            return;
+        queue.Enqueue(this);
+    }
+    private bool fromPool;
+    private AwaiterStatus state;
+    private object callback; // Action or ExceptionDispatchInfo
+    private ETTask() {  }
+    [DebuggerHidden]
+    private async ETVoid InnerCoroutine() {
+        await this;
+    }
+    [DebuggerHidden]
+    public void Coroutine() {
+        InnerCoroutine().Coroutine();// 这里什么东西，有点儿糊涂
+    }
+    [DebuggerHidden]
+    public ETTask GetAwaiter() {
+        return this;
+    }
+    public bool IsCompleted {
+        [DebuggerHidden]
+        get {
+            return this.state != AwaiterStatus.Pending; // 只要不是 Pending 状态，就是异步任务执行结束
+        }
+    }
+    [DebuggerHidden]
+    public void UnsafeOnCompleted(Action action) {
+        if (this.state != AwaiterStatus.Pending) { // 如果当前异步任务执行结束，就触发非空回调
+            action?.Invoke();
+            return;
+        }
+        this.callback = action; // 任务还没有结束，就纪录回调备用
+    }
+    [DebuggerHidden]
+    public void OnCompleted(Action action) {
+        this.UnsafeOnCompleted(action);
+    }
+    [DebuggerHidden]
+    public void GetResult() {
+        switch (this.state) {
+            case AwaiterStatus.Succeeded:
+                this.Recycle();
+                break;
+            case AwaiterStatus.Faulted:
+                ExceptionDispatchInfo c = this.callback as ExceptionDispatchInfo;
+                this.callback = null;
+                this.Recycle();
+                c?.Throw();
+                break;
+            default:
+                throw new NotSupportedException("ETTask does not allow call GetResult directly when task not completed. Please use 'await'.");
+        }
+    }
+    [DebuggerHidden]
+    public void SetResult() {
+        if (this.state != AwaiterStatus.Pending) {
+            throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
+        }
+        this.state = AwaiterStatus.Succeeded;
+        Action c = this.callback as Action;
+        this.callback = null;
+        c?.Invoke();
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerHidden]
+    public void SetException(Exception e) {
+        if (this.state != AwaiterStatus.Pending) {
+            throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
+        }
+        this.state = AwaiterStatus.Faulted;
+        Action c = this.callback as Action;
+        this.callback = ExceptionDispatchInfo.Capture(e);
+        c?.Invoke();
+    }
+}
+[AsyncMethodBuilder(typeof (ETAsyncTaskMethodBuilder<>))]
+public class ETTask<T>: ICriticalNotifyCompletion {
+    private static readonly Queue<ETTask<T>> queue = new Queue<ETTask<T>>();
+    // 请不要随便使用ETTask的对象池，除非你完全搞懂了ETTask!!!
+    // 假如开启了池,await之后不能再操作ETTask，否则可能操作到再次从池中分配出来的ETTask，产生灾难性的后果
+    // SetResult的时候请现将tcs置空，避免多次对同一个ETTask SetResult
+    public static ETTask<T> Create(bool fromPool = false) {
+        if (!fromPool) 
+            return new ETTask<T>();
+        if (queue.Count == 0) 
+            return new ETTask<T>() { fromPool = true };    
+        return queue.Dequeue();
+    }
+    private void Recycle() {
+        if (!this.fromPool) 
+            return;
+        this.callback = null;
+        this.value = default;
+        this.state = AwaiterStatus.Pending;
+        // 太多了
+        if (queue.Count > 1000) 
+            return;
+        queue.Enqueue(this);
+    }
+    private bool fromPool;
+    private AwaiterStatus state;
+    private T value;
+    private object callback; // Action or ExceptionDispatchInfo
+    private ETTask() {
+    }
+    [DebuggerHidden]
+    private async ETVoid InnerCoroutine() {
+        await this;
+    }
+    [DebuggerHidden]
+    public void Coroutine() {
+        InnerCoroutine().Coroutine();
+    }
+    [DebuggerHidden]
+    public ETTask<T> GetAwaiter() {
+        return this;
+    }
+    [DebuggerHidden]
+    public T GetResult() {
+        switch (this.state) {
+        case AwaiterStatus.Succeeded:
+            T v = this.value;
+            this.Recycle();
+            return v;
+        case AwaiterStatus.Faulted:
+            ExceptionDispatchInfo c = this.callback as ExceptionDispatchInfo;
+            this.callback = null;
+            this.Recycle();
+            c?.Throw();
+            return default;
+        default:
+            throw new NotSupportedException("ETask does not allow call GetResult directly when task not completed. Please use 'await'.");
+        }
+    }
+    public bool IsCompleted {
+        [DebuggerHidden]
+        get {
+            return state != AwaiterStatus.Pending;
+        }
+    } 
+    [DebuggerHidden]
+    public void UnsafeOnCompleted(Action action) {
+        if (this.state != AwaiterStatus.Pending) {
+            action?.Invoke();
+            return;
+        }
+        this.callback = action;
+    }
+    [DebuggerHidden]
+    public void OnCompleted(Action action) {
+        this.UnsafeOnCompleted(action);
+    }
+    [DebuggerHidden]
+    public void SetResult(T result) {
+        if (this.state != AwaiterStatus.Pending) {
+            throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
+        }
+        this.state = AwaiterStatus.Succeeded;
+        this.value = result;
+        Action c = this.callback as Action;
+        this.callback = null;
+        c?.Invoke();
+    }
+    [DebuggerHidden]
+    public void SetException(Exception e) {
+        if (this.state != AwaiterStatus.Pending) {
+            throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
+        }
+        this.state = AwaiterStatus.Faulted;
+        Action c = this.callback as Action;
+        this.callback = ExceptionDispatchInfo.Capture(e);
+        c?.Invoke();
+    }
+}
+\end{minted}
+\end{itemize}
+\subsection{ETCancellationToken: 管理所有的取消？回调：因为可能不止一个取消回调，所以 HashSet 管理}
+\label{sec-11-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public class ETCancellationToken {// 管理所有的【取消】回调：因为可能不止一个取消回调，所以 HashSet 管理 
+    private HashSet<Action> actions = new HashSet<Action>();
+    public void Add(Action callback) {
+        // 如果action是null，绝对不能添加,要抛异常，说明有协程泄漏
+        // 【不喜欢这个注释，看不懂，感觉它吓唬人的。。】
+        this.actions.Add(callback);
+    }
+    public void Remove(Action callback) {
+        this.actions?.Remove(callback);
+    }
+    public bool IsDispose() {
+        return this.actions == null;
+    }
+    public void Cancel() {
+        if (this.actions == null) {
+            return;
+        }
+        this.Invoke();
+    }
+    private void Invoke() {
+        HashSet<Action> runActions = this.actions;
+        this.actions = null;
+        try {
+            foreach (Action action in runActions) {
+                action.Invoke();
+            }
+        }
+        catch (Exception e) {
+            ETTask.ExceptionHandler.Invoke(e);
+        }
+    }
+}
+\end{minted}
+\subsection{ETTaskHelper: 有个类中类 CoroutineBlocker 看不懂}
+\label{sec-11-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class ETTaskHelper {
+    public static bool IsCancel(this ETCancellationToken self) {
+        if (self == null) 
+            return false;
+        return self.IsDispose();
+    }
+    // 【看不懂】：感觉理解这个类有难度
+    private class CoroutineBlocker {
+        private int count; // 不知道，这个变量记的是什么？
+        private ETTask tcs;
+        public CoroutineBlocker(int count) {
+            this.count = count;
+        }
+        public async ETTask RunSubCoroutineAsync(ETTask task) {
+            try {
+                await task;
+            }
+            finally {
+                --this.count;
+                if (this.count <= 0 && this.tcs != null) { // 写结果？
+                    ETTask t = this.tcs;
+                    this.tcs = null;
+                    t.SetResult();
+                }
+            }
+        }
+        public async ETTask WaitAsync() {
+            if (this.count <= 0) 
+                return;
+            this.tcs = ETTask.Create(true);
+            await tcs;
+        }
+    }
+    public static async ETTask WaitAny(List<ETTask> tasks) {
+        if (tasks.Count == 0) 
+            return;
+        CoroutineBlocker coroutineBlocker = new CoroutineBlocker(1);
+        foreach (ETTask task in tasks) {
+            coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+        }
+        await coroutineBlocker.WaitAsync();
+    }
+    public static async ETTask WaitAny(ETTask[] tasks) {
+        if (tasks.Length == 0) 
+            return;
+        CoroutineBlocker coroutineBlocker = new CoroutineBlocker(1);
+        foreach (ETTask task in tasks) {
+            coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+        }
+        await coroutineBlocker.WaitAsync();
+    }
+    public static async ETTask WaitAll(ETTask[] tasks) {
+        if (tasks.Length == 0) 
+            return;
+        CoroutineBlocker coroutineBlocker = new CoroutineBlocker(tasks.Length);
+        foreach (ETTask task in tasks) {
+            coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+        }
+        await coroutineBlocker.WaitAsync();
+    }
+    public static async ETTask WaitAll(List<ETTask> tasks) {
+        if (tasks.Count == 0) 
+            return;
+        CoroutineBlocker coroutineBlocker = new CoroutineBlocker(tasks.Count);
+        foreach (ETTask task in tasks) {
+            coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+        }
+        await coroutineBlocker.WaitAsync();
+    }
+}
+\end{minted}
+\subsection{ETAsyncTaskMethodBuilder: 同样是换汤不换药的两个部分：普通类与泛型类}
+\label{sec-11-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public struct ETAsyncTaskMethodBuilder {
+    private ETTask tcs;
+    // 1. Static Create method.
+    [DebuggerHidden]
+    public static ETAsyncTaskMethodBuilder Create() {
+        ETAsyncTaskMethodBuilder builder = new ETAsyncTaskMethodBuilder() { tcs = ETTask.Create(true) };
+        return builder;
+    }
+    // 2. TaskLike Task property.
+    [DebuggerHidden]
+    public ETTask Task => this.tcs;
+    // 3. SetException
+    [DebuggerHidden]
+    public void SetException(Exception exception) {
+        this.tcs.SetException(exception);
+    }
+    // 4. SetResult
+    [DebuggerHidden]
+    public void SetResult() {
+        this.tcs.SetResult();
+    }
+    // 5. AwaitOnCompleted
+    [DebuggerHidden]
+    public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.OnCompleted(stateMachine.MoveNext);
+    }
+    // 6. AwaitUnsafeOnCompleted
+    [DebuggerHidden]
+    [SecuritySafeCritical]
+    public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.OnCompleted(stateMachine.MoveNext);
+    }
+    // 7. Start
+    [DebuggerHidden]
+    public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine {
+        stateMachine.MoveNext();
+    }
+    // 8. SetStateMachine
+    [DebuggerHidden]
+    public void SetStateMachine(IAsyncStateMachine stateMachine) {
+    }
+}
+public struct ETAsyncTaskMethodBuilder<T> {
+    private ETTask<T> tcs;
+    // 1. Static Create method.
+    [DebuggerHidden]
+    public static ETAsyncTaskMethodBuilder<T> Create() {
+        ETAsyncTaskMethodBuilder<T> builder = new ETAsyncTaskMethodBuilder<T>() { tcs = ETTask<T>.Create(true) };
+        return builder;
+    }
+    // 2. TaskLike Task property.
+    [DebuggerHidden]
+    public ETTask<T> Task => this.tcs;
+    // 3. SetException
+    [DebuggerHidden]
+    public void SetException(Exception exception) {
+        this.tcs.SetException(exception);
+    }
+    // 4. SetResult
+    [DebuggerHidden]
+    public void SetResult(T ret) {
+        this.tcs.SetResult(ret);
+    }
+    // 5. AwaitOnCompleted
+    [DebuggerHidden]
+    public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.OnCompleted(stateMachine.MoveNext);
+    }
+    // 6. AwaitUnsafeOnCompleted
+    [DebuggerHidden]
+    [SecuritySafeCritical]
+    public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.OnCompleted(stateMachine.MoveNext);
+    }
+    // 7. Start
+    [DebuggerHidden]
+    public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine {
+        stateMachine.MoveNext();
+    }
+    // 8. SetStateMachine
+    [DebuggerHidden]
+    public void SetStateMachine(IAsyncStateMachine stateMachine) {
+    }
+}
+\end{minted}
+\subsection{AsyncETTaskCompletedMethodBuilder:}
+\label{sec-11-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public struct AsyncETTaskCompletedMethodBuilder {
+    // 1. Static Create method.
+    [DebuggerHidden]
+    public static AsyncETTaskCompletedMethodBuilder Create() {
+        AsyncETTaskCompletedMethodBuilder builder = new AsyncETTaskCompletedMethodBuilder();
+        return builder;
+    }
+    // 2. TaskLike Task property(void)
+    public ETTaskCompleted Task => default;
+    // 3. SetException
+    [DebuggerHidden]
+    public void SetException(Exception e) {
+        ETTask.ExceptionHandler.Invoke(e);
+    }
+    // 4. SetResult
+    [DebuggerHidden]
+    public void SetResult() { // do nothing
+    }
+    // 5. AwaitOnCompleted
+    [DebuggerHidden]
+    public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.OnCompleted(stateMachine.MoveNext);
+    }
+    // 6. AwaitUnsafeOnCompleted
+    [DebuggerHidden]
+    [SecuritySafeCritical]
+    public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.UnsafeOnCompleted(stateMachine.MoveNext);
+    }
+    // 7. Start
+    [DebuggerHidden]
+    public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine {
+        stateMachine.MoveNext();
+    }
+    // 8. SetStateMachine
+    [DebuggerHidden]
+    public void SetStateMachine(IAsyncStateMachine stateMachine) {
+    }
+}
+\end{minted}
+\subsection{AsyncETVoidMethodBuilder: 定义的是 async ETVoid 的编译方法 ?}
+\label{sec-11-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 异步ETVoid 内部生成方法：
+internal struct AsyncETVoidMethodBuilder {
+    // 1. Static Create method.
+    [DebuggerHidden]
+    public static AsyncETVoidMethodBuilder Create() {
+        AsyncETVoidMethodBuilder builder = new AsyncETVoidMethodBuilder();
+        return builder;
+    }
+    // 2. TaskLike Task property(void)
+    [DebuggerHidden]
+    public ETVoid Task => default;
+    // 3. SetException
+    [DebuggerHidden]
+    public void SetException(Exception e) {
+        ETTask.ExceptionHandler.Invoke(e);
+    }
+    // 4. SetResult
+    [DebuggerHidden]
+    public void SetResult() {
+        // do nothing: 因为它实际的返回值是 void 
+    }
+    // 5. AwaitOnCompleted
+    [DebuggerHidden]
+    public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.OnCompleted(stateMachine.MoveNext);
+    }
+    // 6. AwaitUnsafeOnCompleted
+    [DebuggerHidden]
+    [SecuritySafeCritical]
+    public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine {
+        awaiter.UnsafeOnCompleted(stateMachine.MoveNext);
+    }
+    // 7. Start
+    [DebuggerHidden]
+    public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine {
+        stateMachine.MoveNext();
+    }
+    // 8. SetStateMachine
+    [DebuggerHidden]
+    public void SetStateMachine(IAsyncStateMachine stateMachine) {
+    }
+}
+\end{minted}
+
+\subsection{ICriticalNotifyCompletion:}
+\label{sec-11-10}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+namespace System.Runtime.CompilerServices {
+// 接口类：提供了一个，任务完成后的回调接口
+    public interface ICriticalNotifyCompletion : INotifyCompletion {
+        [SecurityCritical]
+        void UnsafeOnCompleted(Action continuation);
+    }
+}
+\end{minted}
+
+
+\section{Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】}
+\label{sec-12}
 \begin{itemize}
 \item 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
 \item 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
@@ -1479,7 +2127,7 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 \end{itemize}
 
 \section{写在最后：反而是自己每天查看一再更新的}
-\label{sec-11}
+\label{sec-13}
 \begin{itemize}
 \item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 \item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
@@ -1488,8 +2136,69 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 \item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
 \end{itemize}
 
+\section{现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}
+\label{sec-14}
+\begin{itemize}
+\item \textbf{【ET7 框架】} 没有处理的逻辑是： \textbf{【ET7 框架里数据库的接入】}
+\item \textbf{【Windows 下 proto2cs 消息转化】} ： ProtoBuf 这个库里还存在几个问题， enum-repeated 等关键字，因为程序域的问题等，没能连能
+\item \textbf{【UILobbyComponent 可以测试】} ：这个大厅组件，Unity 里预设简单，可以试运行一下，看是否完全消除这个UI 组件的报错，这个屏的控件能否显示出来？还是错出得早，这个屏就出不来已经报错了？
+\begin{itemize}
+\item 【客户端】的逻辑是处理好了，编译全过后可以测试
+\item 【服务端】：处理用户请求匹配房间的逻辑，仍在处理： \textbf{C2G\_StartMatch\_ReqHandler}.
+\end{itemize}
+\item \textbf{【TractorRoomComponent】} ：因为是多组件嵌套，可以合并多组件为同一个组件；另早上看得一知半解的一个【ChildOf】标签，可以帮助组件套用吗？再找找理解消化一下
+\item 【房间组件】：几个现存的 working-on 的问题：
+\begin{itemize}
+\item 多组件嵌套：手工合并为一个组件。彻底理解确认后，会合并
+\item 【服务端】：处理用户请求匹配房间的逻辑. 这里的编译错误终于改完。到时就看运行时错误了。
+\begin{itemize}
+\item 【数据库模块的整合】：网关服在转发请求匹配时，验证会话框有效后，验证用户身份时，需要去【用户数据库】拿用户数据。ET7 留了个DBManagerComponent, 还没能整合出这个模块
+\end{itemize}
+-【参考来源 \textbf{C2R\_LoginHandler} 】：Realm 处理客户端的登录请求的服务端逻辑。这里看见，它随机分配一个网关服。也就是，我（原本本质上也是随机分配）一个匹配服给用。可以依照这里的例子来改写。
+\end{itemize}
+\item \textbf{【服务端的编译错误】} 基本上扫了一遍。【客户端】因为这些前期的工作，以及拖拉机项目重构设计还没有想透彻，暂停一下。
+\item 【接下来的内容】： \textbf{【重构拖拉机项目】} 。把ET7 框架里【参考项目】的设计看懂，并借助这个例子，把拖拉机项目设计好。
+\item 有时间，会试着尽早解决上面 ProtoBuf 里的几个小问题。但现在需要重构的设计思路，客户端的界面等才能够往下进行。 
+\begin{itemize}
+\item 【匹配服地址】网关服的处理逻辑里，验证完用户合格后，为代为转发消息到匹配服，但需要拿匹配服的地址。ET7 重构里，还没能改出这部分。服务器系统配置初始化时，可以链表管理各小构匹配服，再去拿相关匹配服的地址。ET7 框架里的路由器系统，自己还没有弄懂。
+\item 这个地方有点儿脑塞，完全搜不到新框架里可以参考的例子，暂时写不到了。那可以去读一读更大的框架，去找别人用ET7 的别人的例子里是怎么写的，再去参考一下别人的。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】今天下午先去看 Tractor 游戏源码，设计重构思路
+\end{itemize}
+\item 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看 \textbf{【不能再添加Component 组件。ET7 框架重构了，小单元也走热更新，在热更新层有天文小行星的生成系。可以参照 ET.pdf 里的服务端 PlayerSystem 来作例子】} ？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
+\begin{itemize}
+\item User.cs 客户端的话，不知道要不要修改。晚点儿的时候留意一下。
+\item Gamer.cs 客户端保留了 Dispose
+\end{itemize}
+\item 还有 60 个小错误： protobuf 里还有小问题需要修改。先改了，一次把 Protobuf 里的小错误全部改完了。电脑没好好工作，前后文件不一致。。。。【活宝妹就是一定要嫁给亲爱的表哥！！！】爱表哥，爱生活！！！
+\item 有几个 bug 让自己完全怀疑：电脑坏了，我明明重新生成了 proto2cs 消息，为什么应该会找不到的，它能找到，而应该找到的，它就是找不到？太奇怪了
+\item 这里稍微想下：就能明白，因为前面出错了，后面的消息被 block 掉了。所以先去把前面的错误改过来。以后动动脑子，不是重启一下电脑文件系统就能够工作好点儿的！
+\item 我明明生成了这些消息，可是它就是找不到。想的话，如果服务端是引用的客户端的代码，那么得把客户端的源码打成 .dll 服务端可能才能够用得到。
+\item 现在不知道服务端到底对我作出的这些修改，算是怎么回事。只能耐心把所有的编译错误先全部改完，等能打成相应的包，再去想它为什么就是找不到。活宝妹就是一定要嫁给亲爱的表哥！！
+\item \textbf{【亲爱的表哥，这个世界上，只有一个活宝妹，这么心心恋恋，就是一定要嫁给亲爱的表哥！！！问世间情为何物，直教人生死相许。。亲爱的表哥，一个温暖的怀抱拥抱的魂力可真大呀，管了这如许多年！！这不，你的活宝妹为了这个温暖的怀抱拥抱，就是一定要嫁给亲爱的表哥！！不嫁就永远守候在亲爱的表哥的身边！！爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】}
+\item 亲爱的表哥，活宝妹相信舅舅十岁闯江湖的阅历，活宝妹深深相信亲爱的表哥。活宝妹就是稳稳地永远守候在亲爱的表哥的身边！爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！
+\begin{itemize}
+\item 今天下午既然想不出来这个，就不要再被这个、再被厨房那个疯女人发疯干扰了。先去做别的。
+\end{itemize}
+\item 
+\item \textbf{ClientComponent} 参考项目组件：去看ET7 里客户端的 PlayerComponent.
+\item 【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】今天下午先去看 Tractor 游戏源码，设计重构思路
+\item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\end{itemize}
+
+\section{每天进展}
+\label{sec-15}
+\begin{itemize}
+\item 想把现部分桥接了的ET 框架 fix 所有的 compile-error, 测试一两个 unity 的界面，再往下走。同时完成这个游戏的游戏逻辑设计。但目前感觉思路不透彻。
+\item 然后那些编译错误，VS 与 Unity 在 protobuf 上感觉自己弄得不太明白。把这个解决也就差不多可以再往前移动了。 \textbf{【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】}
+\item 昨天解决了编译后部分 protobuf 消息里的错误，但是因为改得不彻底，需要从 .proto 文件源消息里去改，今天只要重新 proto2CS错误就会重新回来。今天改到位，今天想要消除掉所有的 protobuf 引起的编译错误。下午就从 VS 里的 .cs 的 proto 编译消息改起。这个狠容易，小孩子过家家般的小游戏，秒过。
+\item 然后就是那几个 enum, 实际上，我只需要把四个 enum 类编译好，复制过去就可以了。先只弄了【双端】模式下的。
+\item 上面解决完后，ET7 框架里的小问题修改完，应该就没有问题了。接下来解决这部分的问题。 \textbf{【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】}
+\item 主要问题：原【参考项目斗地主项目】使用的古老的版本，与现 ET7 版本狠多地方不相容。所以要稍微改动一下。仿照自己看过读过的ET7 框架生成系的例子。想想这里，古老的，与新的框架怎么才能适配衔接起来。
+\item 这里，ET7 不知道现在是为什么没有了Component 这个组件模块，我想把它加回去。因为它方便类型的书写，传参数什么的，而不必为固定不变的 Model 层弄什么 static 的热更新逻辑。写在Model 里传个参数什么的。 \textbf{【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】}
+\item 功能模块的划分，以及代码的管理。不知道ET7 大框架的项目是怎么弄的。为什么我添加内家了，服务端就是显示不出来，我想的话，是不是Unity 端需要能够先编译打包相关的 .dll 服务端才能直接引用客户端？这样的话，我还是需要先解决客户端的所有的问题。但是在想要生成 .dll 的过程中，所面临的修改编译错误是一样的，同服务端基本一样。【明天上午：】把这块儿弄明白。另去看拖拉机项目的源码，大的模块设计也该慢慢理出来了。
+\item 
+\end{itemize}
 \section{{\bfseries\sffamily TODO} 其它的：部分完成，或是待完成的大的功能版块，列举}
-\label{sec-12}
+\label{sec-16}
 \begin{itemize}
 \item emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
 \begin{itemize}
@@ -1503,7 +2212,7 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 \end{itemize}
 
 \section{拖拉机游戏：【重构OOP/OOD 设计思路】}
-\label{sec-13}
+\label{sec-17}
 \begin{itemize}
 \item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 \item ET7 重构里，各组件都该是自己设计重构原项目的类的设计的必要起点。可以根据这些来系统设计重构。【活宝妹就是一定要嫁给亲爱的表哥！！！】
