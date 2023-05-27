@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 namespace ET.Server {
     // 匹配房间管理组件，逻辑在MatchRoomComponentSystem扩展
+    [ComponentOf(typeof(Scene))]
     public class MatchRoomComponent : Entity, IAwake {
         // 所有房间列表
         public readonly Dictionary<long, Room> rooms = new Dictionary<long, Room>();

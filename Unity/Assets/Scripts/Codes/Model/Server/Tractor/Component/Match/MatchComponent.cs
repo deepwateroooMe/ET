@@ -2,6 +2,7 @@
 namespace ET.Server {
 
     // 匹配组件，匹配逻辑在MatchComponentSystem扩展. 这里是处理匹配的组件，与 Matcher 被匹配者相区分开来
+    [ComponentOf(typeof(Scene))]
     public class MatchComponent : Entity, IAwake, IUpdate {
 
         // 游戏中匹配对象列表：值是 roomId

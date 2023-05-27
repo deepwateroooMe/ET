@@ -4,7 +4,8 @@ namespace ET.Server {
     public abstract class AMActorRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorRequest where Response : class, IActorResponse {
         // protected abstract ETTask Run(E unit, Request request, Response response);
         protected abstract void Run(E unit, Request request, Response response);
-        public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+        // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+        public void Handle(Entity entity, int fromProcess, object actorMessage) {
             try {
                 if (actorMessage is not Request request) {
                     Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");

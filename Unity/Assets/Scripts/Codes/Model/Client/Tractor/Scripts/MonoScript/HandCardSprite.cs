@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
-namespace ET.Server {
+namespace ET.Client {
     // 【去找一下】：什么地方会需要用到这个类？去找这个类 HandCardSprite 是加在哪个场景的什么控件上
     public class HandCardSprite : MonoBehaviour {
         public Card Poker { get; set; }
