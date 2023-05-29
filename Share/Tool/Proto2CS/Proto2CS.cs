@@ -14,7 +14,6 @@ namespace ET {
             Log.Console("proto2cs succeed!");
         }
     }
-
     public static class InnerProto2CS {
         private const string protoDir = "../Unity/Assets/Config/Proto";
         private const string clientMessagePath = "../Unity/Assets/Scripts/Codes/Model/Generate/Client/Message/";

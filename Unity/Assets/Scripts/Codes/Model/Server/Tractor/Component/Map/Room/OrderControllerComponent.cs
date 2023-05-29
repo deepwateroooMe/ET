@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 namespace ET.Server {
+
     // 这些都算是：游戏逻辑控制的组件化拆分。以前自己的游戏可能是一个巨大无比的控制器文件，这里折分成了狠多个小组件控制
+    [ComponentOf(typeof(Room))]
     public class OrderControllerComponent : Entity, IAwake {
         // 先手玩家
         public KeyValuePair<long, bool> FirstAuthority { get; set; }

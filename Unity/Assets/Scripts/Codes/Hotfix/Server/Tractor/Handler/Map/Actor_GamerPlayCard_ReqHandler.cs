@@ -3,23 +3,26 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ET;
 namespace ET.Server {
-
-    [ActorMessageHandler(SceneType.Map)] 
+    // 不知道，这破烂代码是怎么变成这个样子的. 这里关于基类的错，明天上午再改 
+[ActorMessageHandler(SceneType.Map)] 
     public class Actor_GamerPlayCard_ReqHandler : AMActorRpcHandler<Gamer, Actor_GamerPlayCard_Req, Actor_GamerPlayCard_Ack> {
-
-        protected override async Task Run(Gamer gamer, Actor_GamerPlayCard_Req message, Action<Actor_GamerPlayCard_Ack> reply) {
+    // protected override void Run(Gamer unit, Actor_GamerPlayCard_Req request, Actor_GamerPlayCard_Ack response) => throw new NotImplementedException();
+        // protected override async Task Run(Gamer gamer, Actor_GamerPlayCard_Req message, Action<Actor_GamerPlayCard_Ack> reply) {
+		protected override void Run(Gamer gamer, Actor_GamerPlayCard_Req request, Actor_GamerPlayCard_Ack reply) {
+        // protected override void Run(Gamer gamer, Actor_GamerPlayCard_Req request, Action<Actor_GamerPlayCard_Ack> reply) {
             Actor_GamerPlayCard_Ack response = new Actor_GamerPlayCard_Ack();
             try {
-                Room room = Game.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+                // Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID); // 它这里，RoomComponent 与RoomSystem 是相互生成系。。
+                Room room = RoomComponentSystem.Get(gamer.RoomID); // 这里有点儿不知道怎么改，先放一下
                 GameControllerComponent gameController = room.GetComponent<GameControllerComponent>();
                 DeskCardsCacheComponent deskCardsCache = room.GetComponent<DeskCardsCacheComponent>();
                 OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
                 // 检测是否符合出牌规则
-                if (CardsHelper.PopEnable(message.Cards, out CardsType type)) {
+                if (CardsHelper.PopEnable(request.Cards, out CardsType type)) {
                     // 当前出牌牌型是否比牌桌上牌型的权重更大
-                    bool isWeightGreater = CardsHelper.GetWeight(message.Cards, type) > deskCardsCache.GetTotalWeight();
+                    bool isWeightGreater = CardsHelper.GetWeight(request.Cards, type) > deskCardsCache.GetTotalWeight();
                     // 当前出牌牌型是否和牌桌上牌型的数量一样
-                    bool isSameCardsNum = message.Cards.count == deskCardsCache.GetAll().Length;
+                    bool isSameCardsNum = request.Cards.Count == deskCardsCache.GetAll().Length;
                     // 当前出牌玩家是否是上局最大出牌者: 为什么是这里来检查这个呢？
                     // 这个，如果是上局最大权重玩家的先手出牌，它将会有选择权，可以作为新轮次第一个出牌者出任意牌型；而其它跟随出牌的，必须遵循这个出牌牌型 
                     bool isBiggest = orderController.Biggest == orderController.CurrentAuthority;
@@ -56,13 +59,13 @@ namespace ET.Server {
                 deskCardsCache.Clear();
                 deskCardsCache.Rule = type;
                 HandCardsComponent handCards = gamer.GetComponent<HandCardsComponent>();
-                foreach (var card in message.Cards) {
+                foreach (var card in request.Cards) {
                     handCards.PopCard(card);
                     deskCardsCache.AddCard(card);
                 }
                 reply(response);
                 // 转发玩家出牌消息
-                room.Broadcast(new Actor_GamerPlayCard_Ntt() { UserID = gamer.UserID, Cards = message.Cards });
+                room.Broadcast(new Actor_GamerPlayCard_Ntt() { UserID = gamer.UserID, Cards = request.Cards });
                 // 游戏控制器继续游戏
                 gameController.Continue(gamer);
             }
@@ -70,5 +73,5 @@ namespace ET.Server {
                 ReplyError(response, e, reply);
             }
         }
-    }
+	}
 }

@@ -415,6 +415,9 @@ namespace ET
 		[ProtoMember(1)]
 		public long UserID { get; set; }
 
+		[ProtoMember(2)]
+		public List<ET.Card> LordCards { get; set; }
+
 	}
 
 	[Message(InnerMessage.Actor_Gameover_Ntt)]
@@ -426,6 +429,9 @@ namespace ET
 
 		[ProtoMember(94)]
 		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public ET.Identity Winner { get; set; }
 
 		[ProtoMember(2)]
 		public long BasePointPerMatch { get; set; }
@@ -704,7 +710,7 @@ namespace ET
 		public long RoomID { get; set; }
 
 		[ProtoMember(2)]
-		public ET.Server.RoomState State { get; set; }
+		public ET.RoomState State { get; set; }
 
 	}
 
@@ -760,6 +766,9 @@ namespace ET
 		[ProtoMember(91)]
 		public long ActorId { get; set; }
 
+		[ProtoMember(1)]
+		public List<ET.Card> Cards { get; set; }
+
 	}
 
 	[Message(InnerMessage.Actor_GamerPlayCard_Ack)]
@@ -790,6 +799,9 @@ namespace ET
 		[ProtoMember(1)]
 		public long UserID { get; set; }
 
+		[ProtoMember(2)]
+		public List<ET.Card> Cards { get; set; }
+
 	}
 
 	[Message(InnerMessage.Actor_GamerPrompt_Req)]
@@ -816,6 +828,9 @@ namespace ET
 
 		[ProtoMember(92)]
 		public string Message { get; set; }
+
+		[ProtoMember(1)]
+		public List<ET.Card> Cards { get; set; }
 
 	}
 
@@ -901,6 +916,9 @@ namespace ET
 		[ProtoMember(1)]
 		public long UserID { get; set; }
 
+		[ProtoMember(2)]
+		public ET.Identity UserIdentity { get; set; }
+
 		[ProtoMember(3)]
 		public GrabLandlordState State { get; set; }
 
@@ -922,8 +940,14 @@ namespace ET
 		[ProtoMember(2)]
 		public int Multiples { get; set; }
 
+		[ProtoMember(3)]
+		public List<ET.Card> Cards { get; set; }
+
 		[ProtoMember(4)]
 		public List<GamerState> GamersState { get; set; }
+
+		[ProtoMember(5)]
+		public List<ET.Card> LordCards { get; set; }
 
 	}
 
@@ -948,6 +972,9 @@ namespace ET
 
 		[ProtoMember(94)]
 		public long ActorId { get; set; }
+
+		[ProtoMember(1)]
+		public List<ET.Card> HandCards { get; set; }
 
 		[ProtoMember(2)]
 		public List<GamerCardNum> GamersCardNum { get; set; }

@@ -2,9 +2,10 @@
 namespace ET.Server {
 
     // 房间管理组件
+    [ComponentOf(typeof(Scene))]
     public class RoomComponent : Entity, IAwake {
 
-        private readonly Dictionary<long, Room> rooms = new Dictionary<long, Room>();
+        public Dictionary<long, Room> rooms = new Dictionary<long, Room>();
         // // 添加房间
         // public void Add(Room room) {
         //     this.rooms.Add(room.InstanceId, room);

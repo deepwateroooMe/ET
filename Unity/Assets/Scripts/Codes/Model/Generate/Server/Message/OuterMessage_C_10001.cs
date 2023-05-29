@@ -9,8 +9,6 @@ using scg = global::System.Collections.Generic;
 
 namespace ET
 {
-
-#region Enums
     public enum GrabLandlordState {
         [pbr::OriginalName("Not")] Not = 0,
         [pbr::OriginalName("Grab")] Grab = 1,
@@ -45,8 +43,6 @@ namespace ET
         [pbr::OriginalName("Farmer")] Farmer = 1,
         [pbr::OriginalName("Landlord")] Landlord = 2,
         } 
-#endregion
-
 	[Message(OuterMessage.HttpGetRouterResponse)]
 	[ProtoContract]
 	public partial class HttpGetRouterResponse: ProtoObject

@@ -1,8 +1,48 @@
 using ET;
 using ProtoBuf;
 using System.Collections.Generic;
+
+using pb = global::Google.Protobuf;
+using pbc = global::Google.Protobuf.Collections;
+using pbr = global::Google.Protobuf.Reflection;
+using scg = global::System.Collections.Generic;
+
 namespace ET
 {
+    public enum GrabLandlordState {
+        [pbr::OriginalName("Not")] Not = 0,
+        [pbr::OriginalName("Grab")] Grab = 1,
+        [pbr::OriginalName("UnGrab")] UnGrab = 2,
+        }
+    public enum Suits {
+        [pbr::OriginalName("Club")] Club = 0,
+        [pbr::OriginalName("Diamond")] Diamond = 1,
+        [pbr::OriginalName("Heart")] Heart = 2,
+        [pbr::OriginalName("Spade")] Spade = 3,
+        [pbr::OriginalName("None")] None = 4,
+        }
+    public enum Weight {
+        [pbr::OriginalName("Three")] Three = 0,
+        [pbr::OriginalName("Four")] Four = 1,
+        [pbr::OriginalName("Five")] Five = 2,
+        [pbr::OriginalName("Six")] Six = 3,
+        [pbr::OriginalName("Seven")] Seven = 4,
+        [pbr::OriginalName("Eight")] Eight = 5,
+        [pbr::OriginalName("Nine")] Nine = 6,
+        [pbr::OriginalName("Ten")] Ten = 7,
+        [pbr::OriginalName("Jack")] Jack = 8,
+        [pbr::OriginalName("Queen")] Queen = 9,
+        [pbr::OriginalName("King")] King = 10,
+        [pbr::OriginalName("One")] One = 11,
+        [pbr::OriginalName("Two")] Two = 12,
+        [pbr::OriginalName("SJoker")] Sjoker = 13,
+        [pbr::OriginalName("LJoker")] Ljoker = 14,
+        }
+    public enum Identity {
+        [pbr::OriginalName("IdentityNone")] None = 0,
+        [pbr::OriginalName("Farmer")] Farmer = 1,
+        [pbr::OriginalName("Landlord")] Landlord = 2,
+        } 
 	[Message(OuterMessage.HttpGetRouterResponse)]
 	[ProtoContract]
 	public partial class HttpGetRouterResponse: ProtoObject
