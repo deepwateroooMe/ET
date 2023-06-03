@@ -1237,6 +1237,7 @@ unsafe class ETModel_Card_Binding {
 public interface IDBCollection {}
    #+END_SRC
 ** DBComponent: 带生成系。可以查表，查询数据
+- 它的生成系就是解决对数据库的CRUD 必要操作，单条信息的，或是批量处理的
    #+BEGIN_SRC java
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
 public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
@@ -1759,6 +1760,9 @@ public static class GamerFactory {
 - 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 - 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-% Created 2023-06-01 Thu 16:00
+% Created 2023-06-03 Sat 11:07
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1610,12 +1610,25 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 \section{ETTask 和 ETVoid: 第三方库的ETTask}
 \label{sec-11}
 \begin{itemize}
-\item 特异包装：主要是实际了异步调用的流式写法。
+\item 特异包装：主要是实际了异步调用的流式写法。它方法定义的内部，是封装有协程异步状态机的？IAsyncStateMachine. 当要运行协程的下一步，也是调用和运行。NET 库里的 IAsyncStateMachine.moveNext()
 \item 这个框架里ET7 里，就有相关模块 \textbf{【具体说是，两个实体类，实际定义了两种不同返回值ETTask-ETVoid 的协程编译生成方法】} ，能够实现对这个包装的自动编译成协程的编译逻辑方法定义。理解上，感觉像是ET7 框架里，为了这个流式写法，定义了必要的标签系，和相关的协程生成方法，来帮助这个第三方库实现异步调用的流式写法。
-\item 今天晚上好好看看这里，看能否理解透彻。【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
+\item 上面的，写得把自己都写昏了。就是ET7 框架是如何实现异步调用的流式写法的呢？它把异步调用封装成协程。面对ET7 框架里广泛用到的ETTask|ETVoid 两类稍带个性化异步任务，如同 ETTask 和 ETVoid 是框架自己的封装一样，这个框架，也使用 .NET 里的 IAsyncStateMachine 等底层接口API 等，自定义了异步协程任务的生成方法。
+\item 这类方法里，都封装有一个ETTask, 因为自定义封装在这些自定义类里，就对可能会用到的操作提供了必要的API, 比如设置异常，拿取任务等等。
+\item 上面的自定义方法生成器：有三类，分别是 AsyncETVoidMethodBuilder, AsyncETTaskMethodBuilder 和 AsyncETTaskCompletedMethodBuilder
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
 \end{itemize}
-\subsection{enum AwaiterStatus: IAwaiter.cs 文件里. 理解为异步任务的现执行进展状态}
+\subsection{IAsyncStateMachine}
 \label{sec-11-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+namespace System.Runtime.CompilerServices {
+    public interface IAsyncStateMachine {
+        void MoveNext();
+        void SetStateMachine(IAsyncStateMachine stateMachine);
+    }
+}
+\end{minted}
+\subsection{enum AwaiterStatus: IAwaiter.cs 文件里. 理解为异步任务的现执行进展状态}
+\label{sec-11-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public enum AwaiterStatus: byte {
     // The operation has not yet completed.
@@ -1627,7 +1640,7 @@ public enum AwaiterStatus: byte {
 }
 \end{minted}
 \subsection{ETTaskCompleted: 已经完成了的异步任务比较特殊：可以简单进行写结果？等必要回收工作，就可以返回异步任务对象池回收再利用？}
-\label{sec-11-2}
+\label{sec-11-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [AsyncMethodBuilder(typeof (AsyncETTaskCompletedMethodBuilder))]
 public struct ETTaskCompleted: ICriticalNotifyCompletion {
@@ -1650,7 +1663,7 @@ public struct ETTaskCompleted: ICriticalNotifyCompletion {
 }
 \end{minted}
 \subsection{struct ETVoid: ICriticalNotifyCompletion. 这里涉及协程的分阶段的执行相关逻辑的生成方法自动化相关的标签}
-\label{sec-11-3}
+\label{sec-11-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [AsyncMethodBuilder(typeof (AsyncETVoidMethodBuilder))]// 【异步方法生成标签】：是。NET CompilerService里的属性标签。自动生成协程相关方法的标签？今天晚上也可以细看一下
 internal struct ETVoid: ICriticalNotifyCompletion {
@@ -1665,7 +1678,7 @@ internal struct ETVoid: ICriticalNotifyCompletion {
 }
 \end{minted}
 \subsection{ETTask: ICriticalNotifyCompletion:}
-\label{sec-11-4}
+\label{sec-11-5}
 \begin{itemize}
 \item 这个类的定义比较大，分普通类，和泛型类。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -1872,7 +1885,7 @@ public class ETTask<T>: ICriticalNotifyCompletion {
 \end{minted}
 \end{itemize}
 \subsection{ETCancellationToken: 管理所有的取消？回调：因为可能不止一个取消回调，所以 HashSet 管理}
-\label{sec-11-5}
+\label{sec-11-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ETCancellationToken {// 管理所有的【取消】回调：因为可能不止一个取消回调，所以 HashSet 管理 
     private HashSet<Action> actions = new HashSet<Action>();
@@ -1908,7 +1921,7 @@ public class ETCancellationToken {// 管理所有的【取消】回调：因为�
 }
 \end{minted}
 \subsection{ETTaskHelper: 有个类中类 CoroutineBlocker 看不懂}
-\label{sec-11-6}
+\label{sec-11-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class ETTaskHelper {
     public static bool IsCancel(this ETCancellationToken self) {
@@ -1982,7 +1995,7 @@ public static class ETTaskHelper {
 }
 \end{minted}
 \subsection{ETAsyncTaskMethodBuilder: 同样是换汤不换药的两个部分：普通类与泛型类}
-\label{sec-11-7}
+\label{sec-11-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public struct ETAsyncTaskMethodBuilder {
     private ETTask tcs;
@@ -2070,7 +2083,7 @@ public struct ETAsyncTaskMethodBuilder<T> {
 }
 \end{minted}
 \subsection{AsyncETTaskCompletedMethodBuilder:}
-\label{sec-11-8}
+\label{sec-11-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public struct AsyncETTaskCompletedMethodBuilder {
     // 1. Static Create method.
@@ -2113,7 +2126,7 @@ public struct AsyncETTaskCompletedMethodBuilder {
 }
 \end{minted}
 \subsection{AsyncETVoidMethodBuilder: 定义的是 async ETVoid 的编译方法 ?}
-\label{sec-11-9}
+\label{sec-11-10}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 异步ETVoid 内部生成方法：
 internal struct AsyncETVoidMethodBuilder {
@@ -2159,7 +2172,7 @@ internal struct AsyncETVoidMethodBuilder {
 }
 \end{minted}
 \subsection{ICriticalNotifyCompletion:}
-\label{sec-11-10}
+\label{sec-11-11}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace System.Runtime.CompilerServices {
 // 接口类：提供了一个，任务完成后的回调接口
