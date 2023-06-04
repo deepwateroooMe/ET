@@ -1,0 +1,3 @@
+**/*.meta
+Unity/Library
+Unity/Assets/Scripts/ThirdParty/Google.Protobuf
