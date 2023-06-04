@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
 namespace ET.Server {
+
+    [FriendOf(typeof(UserComponent))]
     public static class UserComponentSystem { // User对象管理组件生成系
         [ObjectSystem]
         public class UserComponentAwakeSystem : AwakeSystem<UserComponent> { // 可以找个例子出来看一下
-            protected override void Awake(UserComponent self, long id) {
+            protected override void Awake(UserComponent self) {
             }
         }
         // 添加User对象
@@ -21,13 +23,18 @@ namespace ET.Server {
             self.idUsers.Remove(id);
         }
         // User对象总数量
-        public static int Count {
-            get {
+        public static int Count(UserComponent self) {
+            // get {
                 return self.idUsers.Count;
-            }
+            // }
         }
+        // public static int Count {
+        //     get {
+        //         return self.idUsers.Count;
+        //     }
+        // }
         // 获取所有User对象
-        public static User[] GetAll() {
+        public static User[] GetAll(UserComponent self) {
             return self.idUsers.Values.ToArray();
         }
     }

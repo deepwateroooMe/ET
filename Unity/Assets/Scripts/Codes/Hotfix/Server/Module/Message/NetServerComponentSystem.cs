@@ -30,13 +30,7 @@ namespace ET.Server {
         private static void OnAccept(this NetServerComponent self, long channelId, IPEndPoint ipEndPoint) {
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
             session.RemoteAddress = ipEndPoint;
-<<<<<<< HEAD
             if (self.DomainScene().SceneType != SceneType.BenchmarkServer) {
-=======
-
-            if (self.Domain.SceneType != SceneType.BenchmarkServer)
-            {
->>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
                 // 挂上这个组件，5秒就会删除session，所以客户端验证完成要删除这个组件。该组件的作用就是防止外挂一直连接不发消息也不进行权限验证
                 session.AddComponent<SessionAcceptTimeoutComponent>();
                 // 客户端连接，2秒检查一次recv消息，10秒没有消息则断开

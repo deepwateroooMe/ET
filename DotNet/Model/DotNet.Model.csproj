@@ -44,6 +44,7 @@
     </ItemGroup>
     <ItemGroup>
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Client\Tractor\Scripts\MonoScript\HandCardSprite.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Component\Gate\SessionInfoComponent.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\GateMapComponent.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\GateSessionKeyComponent.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\Player.cs" />

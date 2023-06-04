@@ -13,16 +13,8 @@ namespace ET.Server {
         public void Handle(Session session, object message) {
             try {
                 Request request = message as Request;
-<<<<<<< HEAD
                 if (request == null) 
                     Log.Error($"消息类型转换错误: {message.GetType().Name} to {typeof (Request).Name}");
-=======
-                if (request == null)
-                {
-                    throw new Exception($"消息类型转换错误: {message.GetType().FullName} to {typeof (Request).FullName}");
-                }
-
->>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
                 int rpcId = request.RpcId;
                 long instanceId = session.InstanceId;
                 this.Run(session, request, response => {

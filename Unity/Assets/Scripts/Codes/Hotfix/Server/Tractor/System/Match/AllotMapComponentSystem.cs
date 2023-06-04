@@ -2,10 +2,11 @@
 namespace ET.Server {
     [ObjectSystem]
     public class AllotMapComponentStartSystem : StartSystem<AllotMapComponent> {
-        public override void Start(AllotMapComponent self) {
+        protected override void Start(AllotMapComponent self) {
             self.Start();
         }
     }
+    [FriendOf(typeof(AllotMapComponent))]
     public static class AllotMapComponentSystem {
         public static void Start(this AllotMapComponent self) {
             StartConfig[] startConfigs = self.GetParent<Entity>().GetComponent<StartConfigComponent>().GetAll();
@@ -18,7 +19,7 @@ namespace ET.Server {
         }
         // 随机获取一个房间服务器地址
         public static StartConfig GetAddress(this AllotMapComponent self) {
-            int n = RandomHelper.RandomNumber(0, self.MapAddress.Count);
+            int n = RandomGenerator.RandomNumber(0, self.MapAddress.Count);
             return self.MapAddress[n];
         }
     }

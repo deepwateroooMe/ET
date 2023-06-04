@@ -1,48 +1,8 @@
 using ET;
 using ProtoBuf;
 using System.Collections.Generic;
-
-using pb = global::Google.Protobuf;
-using pbc = global::Google.Protobuf.Collections;
-using pbr = global::Google.Protobuf.Reflection;
-using scg = global::System.Collections.Generic;
-
 namespace ET
 {
-    public enum GrabLandlordState {
-        [pbr::OriginalName("Not")] Not = 0,
-        [pbr::OriginalName("Grab")] Grab = 1,
-        [pbr::OriginalName("UnGrab")] UnGrab = 2,
-        }
-    public enum Suits {
-        [pbr::OriginalName("Club")] Club = 0,
-        [pbr::OriginalName("Diamond")] Diamond = 1,
-        [pbr::OriginalName("Heart")] Heart = 2,
-        [pbr::OriginalName("Spade")] Spade = 3,
-        [pbr::OriginalName("None")] None = 4,
-        }
-    public enum Weight {
-        [pbr::OriginalName("Three")] Three = 0,
-        [pbr::OriginalName("Four")] Four = 1,
-        [pbr::OriginalName("Five")] Five = 2,
-        [pbr::OriginalName("Six")] Six = 3,
-        [pbr::OriginalName("Seven")] Seven = 4,
-        [pbr::OriginalName("Eight")] Eight = 5,
-        [pbr::OriginalName("Nine")] Nine = 6,
-        [pbr::OriginalName("Ten")] Ten = 7,
-        [pbr::OriginalName("Jack")] Jack = 8,
-        [pbr::OriginalName("Queen")] Queen = 9,
-        [pbr::OriginalName("King")] King = 10,
-        [pbr::OriginalName("One")] One = 11,
-        [pbr::OriginalName("Two")] Two = 12,
-        [pbr::OriginalName("SJoker")] Sjoker = 13,
-        [pbr::OriginalName("LJoker")] Ljoker = 14,
-        }
-    public enum Identity {
-        [pbr::OriginalName("IdentityNone")] None = 0,
-        [pbr::OriginalName("Farmer")] Farmer = 1,
-        [pbr::OriginalName("Landlord")] Landlord = 2,
-        } 
 	[Message(OuterMessage.HttpGetRouterResponse)]
 	[ProtoContract]
 	public partial class HttpGetRouterResponse: ProtoObject
@@ -84,7 +44,7 @@ namespace ET
 
 	[Message(OuterMessage.M2C_TestResponse)]
 	[ProtoContract]
-	public partial class M2C_TestResponse: ProtoObject, IActorResponse
+	public partial class M2C_TestResponse: ProtoObject, IActorLocationResponse
 	{
 		[ProtoMember(1)]
 		public int RpcId { get; set; }
@@ -231,7 +191,7 @@ namespace ET
 	[ProtoContract]
 	public partial class M2C_RemoveUnits: ProtoObject, IActorMessage
 	{
-		[ProtoMember(1)]
+		[ProtoMember(2)]
 		public List<long> Units { get; set; }
 
 	}
@@ -434,18 +394,6 @@ namespace ET
 
 	}
 
-	[Message(OuterMessage.C2M_TestRobotCase)]
-	[ProtoContract]
-	public partial class C2M_TestRobotCase: ProtoObject, IActorLocationRequest
-	{
-		[ProtoMember(1)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(2)]
-		public int N { get; set; }
-
-	}
-
 	[Message(OuterMessage.M2C_TestRobotCase)]
 	[ProtoContract]
 	public partial class M2C_TestRobotCase: ProtoObject, IActorLocationResponse
@@ -464,20 +412,6 @@ namespace ET
 
 	}
 
-<<<<<<< HEAD
-=======
-	[Message(OuterMessage.C2M_TestRobotCase2)]
-	[ProtoContract]
-	public partial class C2M_TestRobotCase2: ProtoObject, IActorLocationMessage
-	{
-		[ProtoMember(1)]
-		public int RpcId { get; set; }
-
-		[ProtoMember(2)]
-		public int N { get; set; }
-
-	}
-
 	[Message(OuterMessage.M2C_TestRobotCase2)]
 	[ProtoContract]
 	public partial class M2C_TestRobotCase2: ProtoObject, IActorLocationMessage
@@ -490,8 +424,30 @@ namespace ET
 
 	}
 
-	[ResponseType(nameof(M2C_TransferMap))]
->>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
+	[Message(OuterMessage.C2M_TestRobotCase2)]
+	[ProtoContract]
+	public partial class C2M_TestRobotCase2: ProtoObject, IActorLocationMessage
+	{
+		[ProtoMember(1)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(2)]
+		public int N { get; set; }
+
+	}
+
+	[Message(OuterMessage.C2M_TestRobotCase)]
+	[ProtoContract]
+	public partial class C2M_TestRobotCase: ProtoObject, IActorLocationRequest
+	{
+		[ProtoMember(1)]
+		public int RpcId { get; set; }
+
+		[ProtoMember(2)]
+		public int N { get; set; }
+
+	}
+
 	[Message(OuterMessage.C2M_TransferMap)]
 	[ProtoContract]
 	public partial class C2M_TransferMap: ProtoObject, IActorLocationRequest
@@ -750,32 +706,25 @@ namespace ET
 		 public const ushort C2G_LoginGate = 10027;
 		 public const ushort G2C_LoginGate = 10028;
 		 public const ushort G2C_TestHotfixMessage = 10029;
-		 public const ushort C2M_TestRobotCase = 10030;
-		 public const ushort M2C_TestRobotCase = 10031;
-<<<<<<< HEAD
-		 public const ushort C2M_TransferMap = 10032;
-		 public const ushort M2C_TransferMap = 10033;
-		 public const ushort C2G_Benchmark = 10034;
-		 public const ushort G2C_Benchmark = 10035;
-		 public const ushort C2G_StartMatch_Req = 10036;
-		 public const ushort G2C_StartMatch_Ack = 10037;
-		 public const ushort C2G_GetUserInfo_Req = 10038;
-		 public const ushort G2C_GetUserInfo_Ack = 10039;
-		 public const ushort C2R_Register_Req = 10040;
-		 public const ushort R2C_Register_Ack = 10041;
-		 public const ushort C2G_LoginGate_Req = 10042;
-		 public const ushort G2C_LoginGate_Ack = 10043;
-		 public const ushort C2G_ReturnLobby_Ntt = 10044;
-		 public const ushort Card = 10045;
-		 public const ushort C2R_Login_Req = 10046;
-		 public const ushort R2C_Login_Ack = 10047;
-=======
+		 public const ushort M2C_TestRobotCase = 10030;
+		 public const ushort M2C_TestRobotCase2 = 10031;
 		 public const ushort C2M_TestRobotCase2 = 10032;
-		 public const ushort M2C_TestRobotCase2 = 10033;
+		 public const ushort C2M_TestRobotCase = 10033;
 		 public const ushort C2M_TransferMap = 10034;
 		 public const ushort M2C_TransferMap = 10035;
 		 public const ushort C2G_Benchmark = 10036;
 		 public const ushort G2C_Benchmark = 10037;
->>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
+		 public const ushort C2G_StartMatch_Req = 10038;
+		 public const ushort G2C_StartMatch_Ack = 10039;
+		 public const ushort C2G_GetUserInfo_Req = 10040;
+		 public const ushort G2C_GetUserInfo_Ack = 10041;
+		 public const ushort C2R_Register_Req = 10042;
+		 public const ushort R2C_Register_Ack = 10043;
+		 public const ushort C2G_LoginGate_Req = 10044;
+		 public const ushort G2C_LoginGate_Ack = 10045;
+		 public const ushort C2G_ReturnLobby_Ntt = 10046;
+		 public const ushort Card = 10047;
+		 public const ushort C2R_Login_Req = 10048;
+		 public const ushort R2C_Login_Ack = 10049;
 	}
 }
