@@ -2,8 +2,15 @@ using System;
 using System.IO;
 namespace ET.Client {
     [Event(SceneType.Process)]
+<<<<<<< HEAD
     public class EntryEvent3_InitClient: AEvent<ET.EventType.EntryEvent3> {
         protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent3 args) {
+=======
+    public class EntryEvent3_InitClient: AEvent<Scene, ET.EventType.EntryEvent3>
+    {
+        protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent3 args)
+        {
+>>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
             // 加载配置
             Root.Instance.Scene.AddComponent<ResourcesComponent>();
             

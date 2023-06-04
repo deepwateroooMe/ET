@@ -62,9 +62,18 @@ namespace ET {
                 Log.Error($"消息没有处理: {opcode} {message}");
                 return;
             }
+<<<<<<< HEAD
             SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
             foreach (MessageDispatcherInfo ev in actions) {
                 if (ev.SceneType != sceneType) {
+=======
+
+            SceneType sceneType = session.Domain.SceneType;
+            foreach (MessageDispatcherInfo ev in actions)
+            {
+                if (!ev.SceneType.HasSameFlag(sceneType))
+                {
+>>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
                     continue;
                 }
                 try {

@@ -1,7 +1,6 @@
 ﻿using System;
 namespace ET {
-    public interface ILateUpdate {
-    }
+    public interface ILateUpdate {}
     public interface ILateUpdateSystem: ISystemType {
         void Run(Entity o);
     }

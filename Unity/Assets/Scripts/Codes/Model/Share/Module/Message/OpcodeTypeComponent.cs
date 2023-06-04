@@ -54,9 +54,18 @@ namespace ET {
         public static bool IsOutrActorMessage(this OpcodeTypeComponent self, ushort opcode) {
             return self.outrActorMessage.Contains(opcode);
         }
+<<<<<<< HEAD
         public static Type GetResponseType(this OpcodeTypeComponent self, Type request) {
             if (!self.requestResponse.TryGetValue(request, out Type response)) {
                 throw new Exception($"not found response type, request type: {request.GetType().Name}");
+=======
+
+        public static Type GetResponseType(this OpcodeTypeComponent self, Type request)
+        {
+            if (!self.requestResponse.TryGetValue(request, out Type response))
+            {
+                throw new Exception($"not found response type, request type: {request.GetType().FullName}");
+>>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
             }
             return response;
         }

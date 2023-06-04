@@ -37,9 +37,18 @@ namespace ET {
             if (!self.allWatchers.TryGetValue(args.NumericType, out list)) {
                 return;
             }
+<<<<<<< HEAD
             SceneType unitDomainSceneType = unit.DomainScene().SceneType;
             foreach (NumericWatcherInfo numericWatcher in list) {
                 if (numericWatcher.SceneType != unitDomainSceneType) {
+=======
+
+            SceneType unitDomainSceneType = unit.Domain.SceneType;
+            foreach (NumericWatcherInfo numericWatcher in list)
+            {
+                if (!numericWatcher.SceneType.HasSameFlag(unitDomainSceneType))
+                {
+>>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
                     continue;
                 }
                 numericWatcher.INumericWatcher.Run(unit, args);

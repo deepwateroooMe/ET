@@ -1,8 +1,6 @@
 ﻿using System;
 namespace ET {
-
-    public interface IDestroy {
-    }
+    public interface IDestroy {}
     public interface IDestroySystem: ISystemType {
         void Run(Entity o);
     }

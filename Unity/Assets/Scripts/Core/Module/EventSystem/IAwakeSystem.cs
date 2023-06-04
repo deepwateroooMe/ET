@@ -30,14 +30,14 @@ namespace ET {
         Type ISystemType.SystemType() {
             return typeof(IAwakeSystem);
         }
-        InstanceQueueIndex ISystemType.GetInstanceQueueIndex() {
+		InstanceQueueIndex ISystemType.GetInstanceQueueIndex() {
             return InstanceQueueIndex.None;
         }
         void IAwakeSystem.Run(Entity o) {
             this.Awake((T)o);
         }
         protected abstract void Awake(T self);
-    }
+	}
     [ObjectSystem]
     public abstract class AwakeSystem<T, A> : IAwakeSystem<A> where T: Entity, IAwake<A> {
         Type ISystemType.Type() {

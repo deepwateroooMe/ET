@@ -1,5 +1,5 @@
 ﻿namespace ET {
-
+    // 这里的源码有点儿混乱了，不知乎算是怎么回事
     public enum SceneType {
         None = -1,
         Process = 0,

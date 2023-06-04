@@ -1,7 +1,6 @@
 ﻿using System;
 namespace ET {
-    public interface ILoad {
-    }
+    public interface ILoad {  }
     public interface ILoadSystem: ISystemType {
         void Run(Entity o);
     }

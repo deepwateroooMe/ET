@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 namespace ET {
+using System.Diagnostics.CodeAnalysis;
 
-    public class ETCancellationToken {// 管理所有的【取消】回调：因为可能不止一个取消回调，所以 HashSet 管理 
+public class ETCancellationToken {// 管理所有的【取消】回调：因为可能不止一个取消回调，所以 HashSet 管理 
         private HashSet<Action> actions = new HashSet<Action>();
         public void Add(Action callback) {
             // 如果action是null，绝对不能添加,要抛异常，说明有协程泄漏

@@ -19,5 +19,5 @@ namespace ET {
             return typeof(T);
         }
         protected abstract void AddComponent(T self, Entity component);
-    }
+	}
 }

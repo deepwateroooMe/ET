@@ -4,8 +4,15 @@ namespace ET.Client {
 
     // 这个比较喜欢：场景切换，切换开始，可以做点什么？切换结束，可以做点什么？全成事件触发机制。任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
     [Event(SceneType.Client)]
+<<<<<<< HEAD
     public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
         protected override async ETTask Run(Scene scene, EventType.SceneChangeStart args) {
+=======
+    public class SceneChangeStart_AddComponent: AEvent<Scene, EventType.SceneChangeStart>
+    {
+        protected override async ETTask Run(Scene scene, EventType.SceneChangeStart args)
+        {
+>>>>>>> 754634147ad9acf18faf318f2e566d59bc43f684
             Scene currentScene = scene.CurrentScene();
             // 加载场景资源
             await ResourcesComponent.Instance.LoadBundleAsync($"{currentScene.Name}.unity3d");

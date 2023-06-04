@@ -110,9 +110,12 @@ namespace ET
 		public int RpcId { get; set; }
 
 		[ProtoMember(2)]
-		public long Key { get; set; }
+		public int Type { get; set; }
 
 		[ProtoMember(3)]
+		public long Key { get; set; }
+
+		[ProtoMember(4)]
 		public long InstanceId { get; set; }
 
 	}
@@ -140,12 +143,15 @@ namespace ET
 		public int RpcId { get; set; }
 
 		[ProtoMember(2)]
-		public long Key { get; set; }
+		public int Type { get; set; }
 
 		[ProtoMember(3)]
-		public long InstanceId { get; set; }
+		public long Key { get; set; }
 
 		[ProtoMember(4)]
+		public long InstanceId { get; set; }
+
+		[ProtoMember(5)]
 		public int Time { get; set; }
 
 	}
@@ -173,12 +179,15 @@ namespace ET
 		public int RpcId { get; set; }
 
 		[ProtoMember(2)]
-		public long Key { get; set; }
+		public int Type { get; set; }
 
 		[ProtoMember(3)]
-		public long OldInstanceId { get; set; }
+		public long Key { get; set; }
 
 		[ProtoMember(4)]
+		public long OldInstanceId { get; set; }
+
+		[ProtoMember(5)]
 		public long InstanceId { get; set; }
 
 	}
@@ -206,6 +215,9 @@ namespace ET
 		public int RpcId { get; set; }
 
 		[ProtoMember(2)]
+		public int Type { get; set; }
+
+		[ProtoMember(3)]
 		public long Key { get; set; }
 
 	}
@@ -233,6 +245,9 @@ namespace ET
 		public int RpcId { get; set; }
 
 		[ProtoMember(2)]
+		public int Type { get; set; }
+
+		[ProtoMember(3)]
 		public long Key { get; set; }
 
 	}
@@ -251,6 +266,9 @@ namespace ET
 		public string Message { get; set; }
 
 		[ProtoMember(4)]
+		public int Type { get; set; }
+
+		[ProtoMember(5)]
 		public long InstanceId { get; set; }
 
 	}
