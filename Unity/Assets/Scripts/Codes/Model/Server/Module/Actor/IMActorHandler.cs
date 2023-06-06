@@ -2,8 +2,8 @@
 namespace ET.Server {
 
     public interface IMActorHandler {
-        // ETTask Handle(Entity entity, int fromProcess, object actorMessage);
-        void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的
+        // 下面，参考的是ET-EUI 可能是 6.0 版本。ET7 里，可能接口还可以简化，还是Actor 消息机制模块简化了，不一定如下面这样
+        ETTask Handle(Entity entity, object actorMessage, Action<IActorResponse> reply);
         Type GetRequestType();
         Type GetResponseType();
     }

@@ -6,7 +6,10 @@ namespace ET.Server {
     //【专用路由器管理场景】：是客户端会发消息过来要拿地址吗？它就把请求消息返回去。我应该去把发请求消息，要拿地址的地方找出来 
     [HttpHandler(SceneType.RouterManager, "/get_router")]
     public class HttpGetRouterHandler : IHttpHandler {
-        public async ETTask Handle(Entity domain, HttpListenerContext context) {
+        // 它说：申明过的接口是这个，但是这个接口没有具体实现. 反正它第一个参数没用，就直接换一下
+		public async ETTask Handle(Scene scene, HttpListenerContext context)// => throw new NotImplementedException();
+        // public async ETTask Handle(Entity domain, HttpListenerContext context)
+        {
             HttpGetRouterResponse response = new HttpGetRouterResponse();
             response.Realms = new List<string>();
             response.Matchs = new List<string>();// 匹配服链表  // <<<<<<<<<<<<<<<<<<<< 
@@ -24,5 +27,5 @@ namespace ET.Server {
             HttpHelper.Response(context, response);
             await ETTask.CompletedTask;
         }
-    }
+	}
 }

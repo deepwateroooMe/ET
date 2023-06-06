@@ -1,8 +1,9 @@
-﻿using System;
+﻿﻿using System;
 namespace ET {
     public interface IEvent {
         Type Type { get; }
     }
+    
     public abstract class AEvent<A>: IEvent where A: struct {
         public Type Type {
             get {

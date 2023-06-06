@@ -3,8 +3,8 @@ namespace ET.Server {
     [EnableClass]
     public abstract class AMActorLocationHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorLocationMessage {
         // protected abstract ETTask Run(E entity, Message message);
-        protected abstract void Run(E entity, Message message);
         // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+        protected abstract void Run(E entity, Message message);
         public void Handle(Entity entity, int fromProcess, object actorMessage) {
             if (actorMessage is not Message message) {
                 Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
@@ -25,5 +25,7 @@ namespace ET.Server {
         public Type GetResponseType() {
             return typeof (ActorResponse);
         }
-    }
+
+		public ETTask Handle(Entity entity, object actorMessage, Action<IActorResponse> reply) => throw new NotImplementedException();
+	}
 }

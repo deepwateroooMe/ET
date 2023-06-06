@@ -6,6 +6,3 @@ namespace ET.Server {
         public readonly Dictionary<long, Player> idPlayers = new Dictionary<long, Player>();
     }
 }
-
-
-
