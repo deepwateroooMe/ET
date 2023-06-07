@@ -16,6 +16,8 @@
         BenchmarkServer = 11,
         Benchmark = 12,
         Match = 13,  // 是可以加上 Match 服的
+        AllServer = 14,  // 自已加的
+
         // 客户端Model层
         Client = 31,
         Current = 34,

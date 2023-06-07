@@ -17,7 +17,7 @@ namespace ET.Server {
         }
         // 移除房间并返回
         public static Room Remove(RoomComponent self, long id) {
-            Room room = Get(id);
+            Room room = Get(self, id);
             self.rooms.Remove(id);
             return room;
         }

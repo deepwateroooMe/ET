@@ -4,8 +4,8 @@ using System.Linq;
 using System.Text;
 namespace ET {
     // 管理根部的Scene: 这个根部，是全局视图的根节点
-    public class Root: Singleton<Root>, ISingletonAwake {
-        // 管理所有的Entity
+    public class Root: Singleton<Root>, ISingletonAwake { // 单例类，自觉醒
+        // 管理所有的Entity: 
         private readonly Dictionary<long, Entity> allEntities = new();
         
         public Scene Scene { get; private set; }

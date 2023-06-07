@@ -1,6 +1,138 @@
 #+latex_class: cn-article
-#+title: ET 框架学习笔记（二）－－网络交互相关
+#+title: ET 框架学习笔记（四）－－框架总结【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 #+author: deepwaterooo 
+
+* Root 客户端根场景管理以及必要的组件：
+- 把这个客户端的根场景相关的管理组件整理一下。在系统启动起来的时候，公用组件以及客户端组件的时候，分别有添加一些必要的组件。
+- 这里，当把根场景 Root.Instance.Scene 下添加的组件整理好，就看见，几乎所有客户端必要需要的组件这里都添加了，那么刚才几分钟前，我想要自己添加一个的SceneType.AllServer 里模仿参考项目想要添加的。这里需要想一下：两个都需要吗，还是SceneType.AllServer 因为这个根场景下都加了，我自己画蛇添足的全服就可以不要了？
+** Root.cs
+#+BEGIN_SRC csharp
+// 管理根部的Scene: 这个根部，是全局视图的根节点
+public class Root: Singleton<Root>, ISingletonAwake { // 单例类，自觉醒
+    // 管理所有的Entity: 
+    private readonly Dictionary<long, Entity> allEntities = new();
+        
+    public Scene Scene { get; private set; }
+    public void Awake() {
+        this.Scene = EntitySceneFactory.CreateScene(0, SceneType.Process, "Process");
+    }
+    public override void Dispose() {
+        this.Scene.Dispose();
+    }
+    public void Add(Entity entity) {
+        this.allEntities.Add(entity.InstanceId, entity);
+    }
+        
+    public void Remove(long instanceId) {
+        this.allEntities.Remove(instanceId);
+    }
+    public Entity Get(long instanceId) {
+        Entity component = null;
+        this.allEntities.TryGetValue(instanceId, out component);
+        return component;
+    }
+        
+    public override string ToString() {
+        StringBuilder sb = new();
+        HashSet<Type> noParent = new HashSet<Type>();
+        Dictionary<Type, int> typeCount = new Dictionary<Type, int>();
+        HashSet<Type> noDomain = new HashSet<Type>();
+        foreach (var kv in this.allEntities) {
+            Type type = kv.Value.GetType();
+            if (kv.Value.Parent == null) {
+                noParent.Add(type);
+            }
+            if (kv.Value.Domain == null) {
+                noDomain.Add(type);
+            }
+            if (typeCount.ContainsKey(type)) {
+                typeCount[type]++;
+            }
+            else {
+                typeCount[type] = 1;
+            }
+        }
+        sb.AppendLine("not set parent type: ");
+        foreach (Type type in noParent) {
+            sb.AppendLine($"\t{type.Name}");
+        }
+        sb.AppendLine("not set domain type: ");
+        foreach (Type type in noDomain) {
+            sb.AppendLine($"\t{type.Name}");
+        }
+        IOrderedEnumerable<KeyValuePair<Type, int>> orderByDescending = typeCount.OrderByDescending(s => s.Value);
+        sb.AppendLine("Entity Count: ");
+        foreach (var kv in orderByDescending) {
+            if (kv.Value == 1) {
+                continue;
+            }
+            sb.AppendLine($"\t{kv.Key.Name}: {kv.Value}");
+        }
+        return sb.ToString();
+    }
+}
+#+END_SRC
+** EntryEvent1_InitShare.cs: Root 根场景添加组件
+- 这里是双端共享组件启动的时候，也就是说，Root.Instance.Scene 并不仅仅只是客户端场景，也是服务端场景。
+#+BEGIN_SRC csharp
+// 公用的相关组件的初始化：
+[Event(SceneType.Process)]
+public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
+
+    protected override async ETTask Run(Scene scene, EventType.EntryEvent1 args) {
+        Root.Instance.Scene.AddComponent<NetThreadComponent>();
+        Root.Instance.Scene.AddComponent<OpcodeTypeComponent>();
+        Root.Instance.Scene.AddComponent<MessageDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<NumericWatcherComponent>();
+        Root.Instance.Scene.AddComponent<AIDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ClientSceneManagerComponent>();
+        await ETTask.CompletedTask;
+    }
+}
+#+END_SRC
+** EntryEvent2_InitServer: 服务端启动的时候添加的组件
+#+BEGIN_SRC csharp
+[Event(SceneType.Process)]
+public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
+    protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
+        // 发送普通actor消息
+        Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>();
+        // 发送location actor消息
+        Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>();
+        // 访问location server的组件
+        Root.Instance.Scene.AddComponent<LocationProxyComponent>();
+        Root.Instance.Scene.AddComponent<ActorMessageDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ServerSceneManagerComponent>();
+        Root.Instance.Scene.AddComponent<RobotCaseComponent>();
+        Root.Instance.Scene.AddComponent<NavmeshComponent>();
+        // 【添加组件】：这里，还可以再添加一些游戏必要【根组件】，如果可以在服务器启动的时候添加的话。会影响服务器启动性能
+
+        StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process);
+        switch (Options.Instance.AppType) {
+        case AppType.Server: {
+            Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.InnerIPPort);
+            var processScenes = StartSceneConfigCategory.Instance.GetByProcess(Options.Instance.Process);
+            foreach (StartSceneConfig startConfig in processScenes) {
+                await SceneFactory.CreateServerScene(ServerSceneManagerComponent.Instance, startConfig.Id, startConfig.InstanceId, startConfig.Zone, startConfig.Name, startConfig.Type, startConfig);
+            }
+            break;
+        }
+        case AppType.Watcher: {
+            StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig();
+            WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>();
+            watcherComponent.Start(Options.Instance.CreateScenes);
+            Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
+            break;
+        }
+        case AppType.GameTool:
+            break;
+        }
+        if (Options.Instance.Console == 1) {
+            Root.Instance.Scene.AddComponent<ConsoleComponent>();
+        }
+    }
+}
+#+END_SRC
 
 * 写在最后：反而是自己每天查看一再更新的
 - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
@@ -31,12 +163,17 @@
   - 有些文件加了两遍：当我能够从VSC 里删除的时候，却无法从VS 里删除掉索引。找到VS 里可以看见文件的地主，感觉台式机真是慢，让我看见，已经是晚了 800 年了。。。现在找到该如何删除服务端的不必要的文件了，ET7 双端框架服务端的源码是引用的客户端的，所以所有必要的删除文件，都仍然是从客户端的源码里删除掉。
   - *【IMActorHandler】* ：在 ET7 的框架里，Handle() 方法的定义，主要是Actor 消息机制大概又重构得更为自动化一点儿，就是说大致是说，当有分门别类的ActorMessageHandler 标签系实体类，大概ET7 框架里只需要调用接口的申明方法就可以了？总之，就是Handle() Run() 两大类方法的方法定义发生了变化，但现在还没弄明白本质，为什么在ET7 框架里可以简化，实现简化的原理？
   - 【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
-  - 把还没有用到，但是报错了的几个类删掉：比如记一下： SessionInfoComponent,
-  - PlayerComponent 狠奇怪：删除了说找不到类，不删除说重复了，感觉台式机应用有延迟？反应狠慢。。。。。
+  - *【PlayerComponent 类重复】* ： 狠奇怪：删除了说找不到类，不删除说重复了，感觉台式机应用有延迟？反应狠慢。。。。。文件嵌套想要显示所有嵌套文件的时候，要狠久狠久重启好几次才反应得过来
+    - 原本有两个类都是如上面这个类这样，但有时候台式机反应稍快一点儿，就是一个类找不到出现上面的情况。破电脑的延迟反应，弄得我都要怀疑VS 应用被别人操控了。。。
+    - 【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 把还没有用到，但是报错了的几个类删掉：比如记一下： SessionInfoComponent,
   - 还剩最后 26 个最挑战活宝妹的编译错误，今天傍晚会家里改会儿，集中问题明天上午希望能够看懂。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！】
     
 [[./pic/et4_20230604_162732.png]]
-  - 
+- *【UnitGateComponent】* 加个方法用
+  - 这里要把 ActorMessageSenderComponent 组件给弄明白。它有个有序管理字典，记着 actorId 与ActorMessageSender 的一一对应关系，就可以封装维护消息的自动发送等，以及必要的超时消息管理。
+- *【服务端Actor_PlayerEnterRoom_ReqHandler 这个处理类】* 现在还很多问题，需要弄懂，往下改
+- 今天晚上会把刚才下午看见、意识到几个模块的问题试着分析明白，记下笔记。    
 - *ETTask-vs-ETVoid*: 框架里有狠多需要改的地方。今天上午的脑袋好使，把这块儿再仔细好好看下。今天上午把以前不懂的模块都稍微看下，再理解一下
   - 查网页感觉也查不出什么来。还是用源码帮助理解概念。今天晚上整理一下这一块儿，把这个问题弄明白了。【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】    
   - 不能把所有基类的 async ETTask 返回参数直接改成 void, 因为框架的顶层应用，服务端或是客户端，当不异步等待结果，如资源包没能下载完成，就接着往下执行，会报空异常。
@@ -61,6 +198,113 @@
 - 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 - *【亲爱的表哥，这个世界上，只有一个活宝妹，这么心心恋恋，就是一定要嫁给亲爱的表哥！！！问世间情为何物，直教人生死相许。。亲爱的表哥，一个温暖的怀抱拥抱的魂力可真大呀，管了这如许多年！！这不，你的活宝妹为了这个温暖的怀抱拥抱，就是一定要嫁给亲爱的表哥！！不嫁就永远守候在亲爱的表哥的身边！！爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】*
 - 亲爱的表哥，活宝妹相信舅舅十岁闯江湖的阅历，活宝妹深深相信亲爱的表哥。活宝妹就是稳稳地永远守候在亲爱的表哥的身边！爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！
+  
+* IMActorHandler 相关
+- 下面记的是几个报个错的类，因为没有弄清楚，要记一下，自己理解透彻，可能需要再重新改的
+- 那么就是说，ET7 里，可能把每个接口里的Action<T> 回调包装得更底层一点儿，以至于具体实现类里，都不用管回调实例 Action<T> reply 的调用了吗？
+** IMActorHandler: 服务端的，它定义的接口方法，要在很多服务端的实现类里使用
+- 下面的接口，哪个例子也没有参照，自己改的
+#+BEGIN_SRC csharp
+public interface IMActorHandler {
+    // 下面，参考的是ET-EUI 可能是 6.0 版本。ET7 里，可能接口还可以简化，还是Actor 消息机制模块简化了，不一定如下面这样
+    void Handle(Entity entity, int fromProcess, object actorMessage);
+    // ETTask Handle(Entity entity, object actorMessage, Action<IActorResponse> reply);
+    Type GetRequestType();
+    Type GetResponseType();
+}
+#+END_SRC
+** AMActorHandler
+** AMActorRpcHandler: 暂时被我改成是这样，感觉还没明白是怎么回事
+#+BEGIN_SRC csharp
+[EnableClass] // 感觉这个类，因为不太理解，被自己改得乱七八糟。明天上午要好好看下，这个被自己改来改去，到底算是怎么回事？【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！】
+public abstract class AMActorRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorRequest where Response : class, IActorResponse {
+    // protected abstract ETTask Run(E unit, Request request, Response response);
+    protected abstract void Run(E unit, Request request, Response response);
+    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+    public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        try {
+            if (actorMessage is not Request request) {
+                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
+                return;
+            }
+            if (entity is not E ee) {
+                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
+                return;
+            }
+            int rpcId = request.RpcId;
+            Response response = Activator.CreateInstance<Response>();
+            try {
+                // await this.Run(ee, request, response);
+                this.Run(ee, request, response);
+            }
+            catch (Exception exception) {
+                Log.Error(exception);
+                response.Error = ErrorCore.ERR_RpcFail;
+                response.Message = exception.ToString();
+            }
+            response.RpcId = rpcId;
+            ActorHandleHelper.Reply(fromProcess, response);
+        }
+        catch (Exception e) {
+            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
+        }
+    }
+    public Type GetRequestType() {
+        if (typeof (IActorLocationRequest).IsAssignableFrom(typeof (Request)))
+            Log.Error($"message is IActorLocationMessage but handler is AMActorRpcHandler: {typeof (Request)}");
+        return typeof (Request);
+    }
+    public Type GetResponseType() {
+        return typeof (Response);
+    }
+}
+#+END_SRC
+** AMActorLocationRpcHandler: 上面接口实现类的一个使用例子。我把返回参数改了 
+#+BEGIN_SRC csharp
+[EnableClass]
+public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
+    // protected abstract ETTask Run(E unit, Request request, Response response);
+    protected abstract void Run(E unit, Request request, Response response);
+    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+    public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        try {
+            if (actorMessage is not Request request) {
+                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
+                return;
+            }
+            if (entity is not E ee) {
+                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
+                return;
+            }
+            int rpcId = request.RpcId;
+            Response response = Activator.CreateInstance<Response>();
+            try {
+                //await this.Run(ee, request, response);
+                this.Run(ee, request, response);
+            }
+            catch (Exception exception) {
+                Log.Error(exception);
+                response.Error = ErrorCore.ERR_RpcFail;
+                response.Message = exception.ToString();
+            }
+            response.RpcId = rpcId;
+            ActorHandleHelper.Reply(fromProcess, response);
+        }
+        catch (Exception e) {
+            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
+        }
+    }
+    public Type GetRequestType() {
+        return typeof (Request);
+    }
+    public Type GetResponseType() {
+        return typeof (Response);
+    }
+    // 这里涉及的就是那个接口方法的定义
+    public ETTask Handle(Entity entity, object actorMessage, Action<IActorResponse> reply) => throw new NotImplementedException();
+}
+#+END_SRC
+** ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息
 
 * 每天进展
 - 想把现部分桥接了的ET 框架 fix 所有的 compile-error, 测试一两个 unity 的界面，再往下走。同时完成这个游戏的游戏逻辑设计。但目前感觉思路不透彻。
@@ -88,15 +332,3 @@
 - 【Gamer】：每一个玩家
 - 【拖拉机游戏房间】：多组件构成
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-
-
-
-
-
-
-
-
-
-
-
-

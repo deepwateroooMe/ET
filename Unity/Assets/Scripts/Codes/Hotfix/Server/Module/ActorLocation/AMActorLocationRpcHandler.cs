@@ -39,5 +39,5 @@ namespace ET.Server {
         public Type GetResponseType() {
             return typeof (Response);
         }
-    }
+	}
 }
