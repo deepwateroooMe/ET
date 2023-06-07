@@ -2,8 +2,10 @@
 #+title: ET 框架学习笔记（二）－－网络交互相关
 #+author: deepwaterooo 
 
-* Net 网络交互相关：【服务端+客户端】只是稍微改装成事件系统而已
+* Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制而已
+- 以前看得比较空洞。今天读源码看见一个例子（同一进程内消息，不走网络层，直接处理消息的例子），顺着那个实例再理解一遍。
 - 当网络模块也改成是事件机制，可能是我先前对网络模块理解得还是不够透彻，怎么感觉 ET7 之后不知道会话框是怎么管理的？
+  - 内网的话，内网组件创建、记录管理同其它内网场景的会话框；外网，可以再看一下
 - 这次重构里，以前是Model 里，生成系为非静态，这次全搬进热更新域里，生成系与方法全是静态的。
 - 因为生成系全变成了静态，那么调用方法就成为比如：直接使用生成系的类名，与静态方法调用。
 #+BEGIN_SRC java
@@ -25,7 +27,7 @@ namespace ET.Server {
             this.ActorId = instanceIdStruct.ToLong();
         }
     }
-    
+    // 下面这个结构体：可以用来封装发布内网读事件
     public struct NetInnerComponentOnRead {
         public long ActorId;
         public object Message;
@@ -42,6 +44,7 @@ namespace ET.Server {
 }
    #+END_SRC
 ** NetInnerComponentSystem: 生成系
+- 处理内网消息：它发布了一个内网读到消息的事件。那么订阅过它的客户端？相关事件会被触发。去看 NetClientComponentOnReadEvent 类
    #+BEGIN_SRC java
 [FriendOf(typeof(NetInnerComponent))]
 public static class NetInnerComponentSystem {
@@ -95,13 +98,15 @@ public static class NetInnerComponentSystem {
         session.LastRecvTime = TimeHelper.ClientFrameTime();
         self.HandleMessage(actorId, message);
     }
+// 这里，内网组件，处理内网消息看出，这些都重构成了事件机制，发布根场景内网组件读到消息事件
     public static void HandleMessage(this NetInnerComponent self, long actorId, object message) {
         EventSystem.Instance.Publish(Root.Instance.Scene, new NetInnerComponentOnRead() { ActorId = actorId, Message = message });
     }
     private static void OnError(this NetInnerComponent self, long channelId, int error) {
         Session session = self.GetChild<Session>(channelId);
-        if (session == null) 
+        if (session == null) {
             return;
+        }
         session.Error = error;
         session.Dispose();
     }
@@ -119,11 +124,12 @@ public static class NetInnerComponentSystem {
         // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
         return session;
     }
-    // 内网actor session，channelId是进程号
+    // 内网actor session，channelId是进程号。【自己的理解】：这些内网服务器间，或说重构的SceneType 间，有维护着会话框的，比如Realm 注册登录服与Gate 网关服等
     public static Session Get(this NetInnerComponent self, long channelId) {
         Session session = self.GetChild<Session>(channelId);
-        if (session != null) 
+        if (session != null) { // 有已经创建过，就直接返回
             return session;
+        } // 下面，还没创建过，就创建一个会话框
         IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
         session = self.CreateInner(channelId, ipEndPoint);
         return session;
@@ -239,15 +245,15 @@ public static class NetClientComponentSystem { // ... Awake() etc
         return session;
     }
 #+END_SRC
-** NetClientComponentOnReadEvent
+** NetClientComponentOnReadEvent: 框架里只有这一个注册过的回调事件
 #+BEGIN_SRC csharp
 [Event(SceneType.Process)]
 public class NetClientComponentOnReadEvent: AEvent<NetClientComponentOnRead> {
     protected override async ETTask Run(Scene scene, NetClientComponentOnRead args) {
         Session session = args.Session;
         object message = args.Message;
-        if (message is IResponse response) {
-            session.OnResponse(response);
+        if (message is IResponse response) {// 这里是回复消息，就交给会话框去处理
+            session.OnResponse(response);// 由会话框层往下走
             return;
         }
         // 普通消息或者是Rpc请求消息
@@ -310,33 +316,6 @@ public static class MessageDispatcherComponentHelper { // Awake() etc...
             }
         }
     }
-}
-#+END_SRC
-
-** NetInnerComponent: 
-#+BEGIN_SRC csharp
-// 【服务器】：对不同进程的一些处理
-public struct ProcessActorId {
-    public int Process;
-    public long ActorId;
-    public ProcessActorId(long actorId) {
-        InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
-        this.Process = instanceIdStruct.Process;
-        instanceIdStruct.Process = Options.Instance.Process;
-        this.ActorId = instanceIdStruct.ToLong();
-    }
-}
-public struct NetInnerComponentOnRead {
-    public long ActorId;
-    public object Message;
-}
-[ComponentOf(typeof(Scene))]
-public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
-    public int ServiceId;
-
-    public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
-    [StaticField]
-    public static NetInnerComponent Instance;
 }
 #+END_SRC
 
@@ -1760,14 +1739,5 @@ public static class GamerFactory {
 - 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 - 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
-
-
-
-
-
-
-
-
-
 
 

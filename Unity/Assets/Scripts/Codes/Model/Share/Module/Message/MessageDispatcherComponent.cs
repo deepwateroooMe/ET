@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 namespace ET {
+
     // 总管：对每个场景，消息分发器
-    public class MessageDispatcherInfo {
+    // 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。那么默认，每种场景，只有一个消息处理器实体类
+    public class MessageDispatcherInfo { 
         public SceneType SceneType { get; }
         public IMHandler IMHandler { get; }
         public MessageDispatcherInfo(SceneType sceneType, IMHandler imHandler) {

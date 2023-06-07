@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 namespace ET {
-    // 消息分发组件
+
+    // 消息分发组件, 它说是个帮助类，是使用标签系，加载时自动扫描标签实例化出来的帮助类
     [FriendOf(typeof(MessageDispatcherComponent))]
     public static class MessageDispatcherComponentHelper {
         [ObjectSystem]
@@ -39,7 +40,7 @@ namespace ET {
                     
                     Type messageType = iMHandler.GetMessageType();
                     
-                    ushort opcode = NetServices.Instance.GetOpcode(messageType);
+                    ushort opcode = NetServices.Instance.GetOpcode(messageType); // 这里相对、理解上的困难是：感觉无法把OpCode 网络操作码与消息类型，从概念上连接起来
                     if (opcode == 0) {
                         Log.Error($"消息opcode为0: {messageType.Name}");
                         continue;
@@ -62,7 +63,8 @@ namespace ET {
                 Log.Error($"消息没有处理: {opcode} {message}");
                 return;
             }
-            SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
+            // 这里就不明白：它的那些 Domain 什么的
+            SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
             foreach (MessageDispatcherInfo ev in actions) {
                 if (ev.SceneType != sceneType) {
                     continue;
@@ -77,6 +79,3 @@ namespace ET {
         }
     }
 }
-
-
-

@@ -4,14 +4,21 @@
 
 * Actor 消息相关
 ** ActorMessageSender: 知道对方的instanceId，使用这个类发actor消息
+- Tcs 成员变量：精华在这里：因为内部自带一个IActorResponse 的异步任务成员变量，可以帮助实现异步消息的自动回复
+- 正是因为内部成员自带一个异步任务，所以会多一个成员变量，就是标记是否要抛异常。这是异步任务成员变量带来的
    #+BEGIN_SRC csharp
 public readonly struct ActorMessageSender {
     public long ActorId { get; }
     public long CreateTime { get; } // 最近接收或者发送消息的时间
     public IActorRequest Request { get; }
     public bool NeedException { get; }
-    public ETTask<IActorResponse> Tcs { get; }
+    public ETTask<IActorResponse> Tcs { get; } // <<<<<<<<<<<<<<<<<<<< 精华在这里：因为内部自带一个IActorResponse 的异步任务成员变量，可以帮助实现异步消息的自动回复
     public ActorMessageSender(long actorId, IActorRequest iActorRequest, ETTask<IActorResponse> tcs, bool needException) { // tv ... 
+        this.ActorId = actorId;
+        this.Request = iActorRequest;
+        this.CreateTime = TimeHelper.ServerNow();
+        this.Tcs = tcs;
+        this.NeedException = needException;
     }
 }
    #+END_SRC
@@ -27,7 +34,10 @@ public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public List<int> TimeoutActorMessageSenders = new List<int>();
 }
    #+END_SRC
-** ActorMessageSenderComponentSystem: 这个类，今天晚上没有看懂，明天上午再看一下
+** ActorMessageSenderComponentSystem: 这个类ETTask 的细节，要再多看几遍
+- 这个类，可以看见ET7 框架更为系统化、消息机制的更为往底层或说更进一步的封装，就是今天下午看见的，以前的 handle() 或是 run() 方法，或回调实例 Action<T> reply, 现在的封装里，这些什么创建回复实例之类的，全部封装到了管理器或是帮助类
+- 比如这里， check() 方法里，返回消息的实例，已经是自动化系统化地封装了
+- 如果发向同一个进程，则直接处理，不需要通过网络层。内网组件处理内网消息：这个分支可以再跟一下源码，理解一下重构的事件机制流程
    #+BEGIN_SRC csharp
 [FriendOf(typeof(ActorMessageSenderComponent))]
 public static class ActorMessageSenderComponentSystem {
@@ -42,17 +52,19 @@ public static class ActorMessageSenderComponentSystem {
             }
         }
     }
-    // [ObjectSystem] // Awake() etc
-    private static void Run(ActorMessageSender self, IActorResponse response) {
+    // [ObjectSystem]// 这里把Awake() Destroy() 方法跳过，不是重点
+// 下面的方法是：帮助发送回复消息？好像不对，感觉异步任务结果已经出来了，只差最后写结果的步骤。结果是什么时候执行的？
+    private static void Run(ActorMessageSender self, IActorResponse response) { // 传进来的参数：是一个IActorResponse 实例 
         if (response.Error == ErrorCore.ERR_ActorTimeout) {
             self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
             return;
         }
-        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) {
+        // ActorMessageSenderComponent 一个组件，一次只执行一个（返回）消息发送任务，成员变量永远只管当前任务，也是因为Actor 机制是并行的，一个使者一次只能发一个消息 ...
+        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常，就先抛异常
             self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
             return;
         }
-        self.Tcs.SetResult(response);
+        self.Tcs.SetResult(response); // 写结果：把异步任务的状态设置为完成，并触发必要的非空回调订阅者
     }
     private static void Check(this ActorMessageSenderComponent self) {
         long timeNow = TimeHelper.ServerNow();
@@ -75,13 +87,13 @@ public static class ActorMessageSenderComponentSystem {
         }
         self.TimeoutActorMessageSenders.Clear();
     }
-    public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) {
+    public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息 
         if (actorId == 0) {
             throw new Exception($"actor id is 0: {message}");
         }
         ProcessActorId processActorId = new(actorId);
         // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
-        if (processActorId.Process == Options.Instance.Process) {
+        if (processActorId.Process == Options.Instance.Process) { // 没看懂：这里怎么就说，消息是发向同一进程的了？
             NetInnerComponent.Instance.HandleMessage(actorId, message);
             return;
         }
@@ -103,7 +115,7 @@ public static class ActorMessageSenderComponentSystem {
         }
         return await self.Call(actorId, request.RpcId, request, needException);
     }
-    public static async ETTask<IActorResponse> Call(
+    public static async ETTask<IActorResponse> Call( // 发消息：细节比较难懂。感觉还是对ETTask 异步任务没能理解透彻
         this ActorMessageSenderComponent self,
         long actorId,
         int rpcId,
@@ -113,11 +125,14 @@ public static class ActorMessageSenderComponentSystem {
         if (actorId == 0) {
             throw new Exception($"actor id is 0: {iActorRequest}");
         }
-        var tcs = ETTask<IActorResponse>.Create(true);
-        self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException));
-        self.Send(actorId, iActorRequest);
+        var tcs = ETTask<IActorResponse>.Create(true); // 对象池里：取一个异步任务。用这个异步作务实例，去创建下面的消息发送者实例
+        self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException)); // 对照发返回消息，再看一遍
+        self.Send(actorId, iActorRequest); // 把请求消息发出去
         long beginTime = TimeHelper.ServerFrameTime();
-        IActorResponse response = await tcs;
+// 【难点】：两个类，当前类，与ETTask，感觉每个词都看懂了，下面一行，连一起，就不明白，它在干什么？
+        // 自己想一下的话：异步消息发出去，某个服会处理，有返回消息的话，这个服处理后会返回一个返回消息。
+        // 那么下面一行，不是等待创建 Create() 异步任务，是等待这个处理发送消息的服，返回来返回消息，或说把返回消息的内容填好，应该还没发回到消息发送者 
+        IActorResponse response = await tcs; // 【稀里糊涂，有点儿不懂】：等异步任务的创建完成，实际是等处理发送消息的服，处理完并写好返回消息
         long endTime = TimeHelper.ServerFrameTime();
         long costTime = endTime - beginTime;
         if (costTime > 200) {
@@ -125,17 +140,21 @@ public static class ActorMessageSenderComponentSystem {
         }
         return response;
     }
+    // 下面方法：处理IActorResponse 消息，也就是，发回复消息给收消息的人XX, 那么谁发，怎么发，就是这个方法的定义
     public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
         ActorMessageSender actorMessageSender;
-        if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) {
+// 下面取、实例化 ActorMessageSender 来看，感觉收消息的 rpcId, 与消息发送者 ActorMessageSender 成一一对应关系。上面的Call() 方法里，创建实例化消息发送者就是这么创始垢 
+        if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) { // 这里取不到，是说，这个返回消息的发送已经被处理了？
             return;
         }
-        self.requestCallback.Remove(response.RpcId);
+        self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除
         Run(actorMessageSender, response);
     }
 }
    #+END_SRC
-** LocationProxyComponent
+** LocationProxyComponent: 这个代理，什么情况下会用到？
+- 就是有个启动类管理 StartSceneConfigCategory 类，它会分门别类地管理一些什么网关、注册登录服，地址服之类的东西。然后从这个里面拿位置服务器地址？大概意思是这样。
+- 这个类先前仔细读过。还记得小伙伴搬家吗？有的小伙伴搬得狠慢，要花狠久，它搬家过程中就要上锁。大致是这类位置转移管理，位置添加、更新等相关管理操作。
    #+BEGIN_SRC csharp
 [ComponentOf(typeof(Scene))]
 public class LocationProxyComponent: Entity, IAwake, IDestroy {
@@ -351,53 +370,56 @@ public class ActorMessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
     public readonly Dictionary<Type, List<ActorMessageDispatcherInfo>> ActorMessageHandlers = new();
 }
    #+END_SRC
-** ActorMessageDispatcherComponentHelper: 感觉名字不系统化，不知道是不是自己干的
+** ActorMessageDispatcherComponentHelper: 帮助类
+- Actor消息分发组件：对于管理器里的，对同一发送消息类型，不同场景下不同处理器的链表管理，多看几遍
+- 这里，对于同一发送消息类型, 是会、是可能存在【从不同的场景类型中返回，带不同的消息处理器】 以致于必须得链表管理同一发送消息类型的不同可能处理情况。
    #+BEGIN_SRC csharp
-[FriendOf(typeof(ActorMessageDispatcherComponent))] // Actor消息分发组件
-public static class ActorMessageDispatcherComponentHelper {
-    // [ObjectSystem] // awake() etc
-    private static void Awake(this ActorMessageDispatcherComponent self) {
-        self.Load();
-    }
-    private static void Load(this ActorMessageDispatcherComponent self) {
-        self.ActorMessageHandlers.Clear();
-        var types = EventSystem.Instance.GetTypes(typeof (ActorMessageHandlerAttribute));
+[FriendOf(typeof(ActorMessageDispatcherComponent))] // Actor消息分发组件：对于管理器里的，对同一发送消息类型，不同场景下不同处理器的链表管理，多看几遍
+public static class ActorMessageDispatcherComponentHelper {// Awake() Load() Destroy() 省略掉了
+    private static void Load(this ActorMessageDispatcherComponent self) { // 加载：程序域回载的时候
+        self.ActorMessageHandlers.Clear(); // 清空字典 
+        var types = EventSystem.Instance.GetTypes(typeof (ActorMessageHandlerAttribute)); // 扫描程序域里的特定消息处理器标签 
         foreach (Type type in types) {
-            object obj = Activator.CreateInstance(type);
+            object obj = Activator.CreateInstance(type); // 加载时：框架封装，自动创建【消息处理器】实例
             IMActorHandler imHandler = obj as IMActorHandler;
             if (imHandler == null) {
                 throw new Exception($"message handler not inherit IMActorHandler abstract class: {obj.GetType().FullName}");
             }
-
             object[] attrs = type.GetCustomAttributes(typeof(ActorMessageHandlerAttribute), false);
             foreach (object attr in attrs) {
                 ActorMessageHandlerAttribute actorMessageHandlerAttribute = attr as ActorMessageHandlerAttribute;
-                Type messageType = imHandler.GetRequestType();
-                Type handleResponseType = imHandler.GetResponseType();
+                Type messageType = imHandler.GetRequestType(); // 因为消息处理接口的封装：可以拿到发送类型
+                Type handleResponseType = imHandler.GetResponseType();// 因为消息处理接口的封装：可以拿到返回消息的类型
                 if (handleResponseType != null) {
                     Type responseType = OpcodeTypeComponent.Instance.GetResponseType(messageType);
                     if (handleResponseType != responseType) {
                         throw new Exception($"message handler response type error: {messageType.FullName}");
                     }
                 }
+                // 将必要的消息【发送类型】【返回类型】存起来，统一管理，备用
+                // 这里，对于同一发送消息类型, 是会、是可能存在【从不同的场景类型中返回，带不同的消息处理器】 以致于必须得链表管理
+                // 这里，感觉因为想不到、从概念上也地无法理解，可能会存在的适应情况、上下文场景，所以这里的链表管理同一发送消息类型，理解起来还有点儿困难
                 ActorMessageDispatcherInfo actorMessageDispatcherInfo = new(actorMessageHandlerAttribute.SceneType, imHandler);
-                self.RegisterHandler(messageType, actorMessageDispatcherInfo);
+                self.RegisterHandler(messageType, actorMessageDispatcherInfo); // 存在本管理组件，所管理的字典里
             }
         }
     }
     private static void RegisterHandler(this ActorMessageDispatcherComponent self, Type type, ActorMessageDispatcherInfo handler) {
+        // 这里，对于同一发送消息类型, 是会、是可能存在【从不同的场景类型中返回，带不同的消息处理器】 以致于必须得链表管理
+        // 这里，感觉因为想不到、从概念上也地无法理解，可能会存在的适应情况、上下文场景，所以这里的链表管理同一发送消息类型，理解起来还有点儿困难
         if (!self.ActorMessageHandlers.ContainsKey(type)) 
             self.ActorMessageHandlers.Add(type, new List<ActorMessageDispatcherInfo>());
         self.ActorMessageHandlers[type].Add(handler);
     }
     public static async ETTask Handle(this ActorMessageDispatcherComponent self, Entity entity, int fromProcess, object message) {
         List<ActorMessageDispatcherInfo> list;
-        if (!self.ActorMessageHandlers.TryGetValue(message.GetType(), out list)) 
+        if (!self.ActorMessageHandlers.TryGetValue(message.GetType(), out list)) // 根据消息的发送类型，来取所有可能的处理器包装链表 
             throw new Exception($"not found message handler: {message}");
-        SceneType sceneType = entity.DomainScene().SceneType;
-        foreach (ActorMessageDispatcherInfo actorMessageDispatcherInfo in list) {
-            if (actorMessageDispatcherInfo.SceneType != sceneType) 
+        SceneType sceneType = entity.DomainScene().SceneType; // 定位：当前消息的场景类型
+        foreach (ActorMessageDispatcherInfo actorMessageDispatcherInfo in list) { // 遍历：这个发送消息类型，所有存在注册过的消息处理器封装
+            if (actorMessageDispatcherInfo.SceneType != sceneType)  // 场景不符就跳过
                 continue;
+            // 定位：是当前特定场景下的消息处理器，那么，就调用这个处理器，要它去干事。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
             await actorMessageDispatcherInfo.IMActorHandler.Handle(entity, fromProcess, message);   
         }
     }
@@ -542,7 +564,7 @@ public static class ActorHandleHelper {
 }
    #+END_SRC
 
-
+ 
 * StartConfigComponent: 找【各种服】的起始初始化地址
 ** ConfigSingleton<T>: ProtoObject, ISingleton
 #+BEGIN_SRC java
@@ -1342,145 +1364,6 @@ public class ClientComponent : Component {
     public User LocalPlayer { get; set; }
     public void Awake() {
         Instance = this;
-    }
-}
-   #+END_SRC
-
-
-* 各种ActorXXX 或者非Actor 的消息处理器：上面总结 Actor 的时候，没能想到这些
-- 任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！
-** IMHandler: interface 消息处理器接口类
-#+BEGIN_SRC csharp
-public interface IMHandler {
-    void Handle(Session session, object message);
-    Type GetMessageType();
-    //Type GetResponseType(); // 暂时把这个去掉：不知道是否会引发其它问题
-}
-#+END_SRC
-** AMHandler<Message>: abstract 抽象基类
-   #+BEGIN_SRC csharp
-public abstract class AMHandler<Message>: IMHandler where Message : class {
-    // protected abstract ETTask Run(Session session, Message message);
-    protected abstract void Run(Session session, Message message); // 这里不知道，会不会被我改坏掉
-    public void Handle(Session session, object msg) {
-        Message message = msg as Message;
-        if (message == null) {
-            Log.Error($"消息类型转换错误: {msg.GetType().Name} to {typeof (Message).Name}");
-            return;
-        }
-        if (session.IsDisposed) {
-            Log.Error($"session disconnect {msg}");
-            return;
-        }
-        // this.Run(session, message).Coroutine();
-        this.Run(session, message);
-    }
-    public Type GetMessageType() {
-        return typeof (Message);
-    }
-    public Type GetResponseType() {
-        return null;
-    }
-}
-   #+END_SRC
-** abstract AMHandler<Message>: IMHandler
-#+BEGIN_SRC csharp
-public abstract class AMHandler<Message>: IMHandler where Message : class {
-    // protected abstract ETTask Run(Session session, Message message);
-    protected abstract void Run(Session session, Message message); // 这里不知道，会不会被我改坏掉
-
-    public void Handle(Session session, object msg) {
-        Message message = msg as Message;
-        if (message == null) {
-            Log.Error($"消息类型转换错误: {msg.GetType().Name} to {typeof (Message).Name}");
-            return;
-        }
-        if (session.IsDisposed) {
-            Log.Error($"session disconnect {msg}");
-            return;
-        }
-        // this.Run(session, message).Coroutine();
-        this.Run(session, message);
-    }
-    public Type GetMessageType() {
-        return typeof (Message);
-    }
-    public Type GetResponseType() {
-        return null;
-    }
-}
-#+END_SRC
-** AMActorLocationHandler: 源码被我改动了
-- 源码被我改动了，正确性与否没有关系，主要是帮助自己梳理一下几大不同的类型，到改编译错误的时候，能够边修改边弄明白。
-   #+BEGIN_SRC csharp
-[EnableClass]
-public abstract class AMActorLocationHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorLocationMessage {
-    // protected abstract ETTask Run(E entity, Message message);
-    protected abstract void Run(E entity, Message message);
-    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
-    public void Handle(Entity entity, int fromProcess, object actorMessage) {
-        if (actorMessage is not Message message) {
-            Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
-            return;
-        }
-        if (entity is not E e) {
-            Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
-            return;
-        }
-        ActorResponse response = new() {RpcId = message.RpcId};
-        ActorHandleHelper.Reply(fromProcess, response);
-        // await this.Run(e, message);
-        this.Run(e, message);
-    }
-    public Type GetRequestType() {
-        return typeof (Message);
-    }
-    public Type GetResponseType() {
-        return typeof (ActorResponse);
-    }
-}
-   #+END_SRC
-
-** AMActorLocationRpcHandler: Rpc 就是进程间消息（或是ET7 重构为SceneType 之后的多核间消息）
-   #+BEGIN_SRC csharp
-[EnableClass]
-public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
-    // protected abstract ETTask Run(E unit, Request request, Response response);
-    protected abstract void Run(E unit, Request request, Response response);
-    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
-    public void Handle(Entity entity, int fromProcess, object actorMessage) {
-        try {
-            if (actorMessage is not Request request) {
-                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
-                return;
-            }
-            if (entity is not E ee) {
-                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
-                return;
-            }
-            int rpcId = request.RpcId;
-            Response response = Activator.CreateInstance<Response>();
-            try {
-                //await this.Run(ee, request, response);
-                this.Run(ee, request, response);
-            }
-            catch (Exception exception) {
-                Log.Error(exception);
-                response.Error = ErrorCore.ERR_RpcFail;
-                response.Message = exception.ToString();
-            }
-            response.RpcId = rpcId;
-            ActorHandleHelper.Reply(fromProcess, response);
-        }
-        catch (Exception e) {
-            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
-        }
-    }
-    public Type GetRequestType() {
-        return typeof (Request);
-    }
-    public Type GetResponseType() {
-        return typeof (Response);
     }
 }
    #+END_SRC
