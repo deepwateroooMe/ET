@@ -1,12 +1,48 @@
-#+latex_class: cn-article
-#+title: ET 框架学习笔记（三）－－网络交互相关
-#+author: deepwaterooo 
+% Created 2023-06-09 Fri 11:33
+\documentclass[9pt, b5paper]{article}
+\usepackage{xeCJK}
+\usepackage[T1]{fontenc}
+\usepackage{bera}
+\usepackage[scaled]{beraserif}
+\usepackage[scaled]{berasans}
+\usepackage[scaled]{beramono}
+\usepackage[cache=false]{minted}
+\usepackage{xltxtra}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{textcomp}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{latexsym}
+\usepackage{natbib}
+\usepackage{geometry}
+\geometry{left=1.2cm,right=1.2cm,top=1.5cm,bottom=1.2cm}
+\usepackage[xetex,colorlinks=true,CJKbookmarks=true,linkcolor=blue,urlcolor=blue,menucolor=blue]{hyperref}
+\newminted{common-lisp}{fontsize=\footnotesize} 
+\author{deepwaterooo}
+\date{\today}
+\title{ET 框架学习笔记（三）－－网络交互相关}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
+\begin{document}
 
-* Actor 消息相关
-** ActorMessageSender: 知道对方的instanceId，使用这个类发actor消息
-- Tcs 成员变量：精华在这里：因为内部自带一个IActorResponse 的异步任务成员变量，可以帮助实现异步消息的自动回复
-- 正是因为内部成员自带一个异步任务，所以会多一个成员变量，就是标记是否要抛异常。这是异步任务成员变量带来的
-   #+BEGIN_SRC csharp
+\maketitle
+\tableofcontents
+
+
+\section{Actor 消息相关}
+\label{sec-1}
+\subsection{ActorMessageSender: 知道对方的instanceId，使用这个类发actor消息}
+\label{sec-1-1}
+\begin{itemize}
+\item Tcs 成员变量：精华在这里：因为内部自带一个IActorResponse 的异步任务成员变量，可以帮助实现异步消息的自动回复
+\item 正是因为内部成员自带一个异步任务，所以会多一个成员变量，就是标记是否要抛异常。这是异步任务成员变量带来的
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public readonly struct ActorMessageSender {
     public long ActorId { get; }
     public long CreateTime { get; } // 最近接收或者发送消息的时间
@@ -21,9 +57,11 @@ public readonly struct ActorMessageSender {
         this.NeedException = needException;
     }
 }
-   #+END_SRC
-** ActorMessageSenderComponent: 
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{ActorMessageSenderComponent:}
+\label{sec-1-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public const long TIMEOUT_TIME = 40 * 1000;
@@ -33,12 +71,14 @@ public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
     public long TimeoutCheckTimer;
     public List<int> TimeoutActorMessageSenders = new List<int>();
 }
-   #+END_SRC
-** ActorMessageSenderComponentSystem: 这个类ETTask 的细节，要再多看几遍
-- 这个类，可以看见ET7 框架更为系统化、消息机制的更为往底层或说更进一步的封装，就是今天下午看见的，以前的 handle() 或是 run() 方法，或回调实例 Action<T> reply, 现在的封装里，这些什么创建回复实例之类的，全部封装到了管理器或是帮助类
-- 比如这里， check() 方法里，返回消息的实例，已经是自动化系统化地封装了
-- 如果发向同一个进程，则直接处理，不需要通过网络层。内网组件处理内网消息：这个分支可以再跟一下源码，理解一下重构的事件机制流程
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorMessageSenderComponentSystem: 这个类ETTask 的细节，要再多看几遍}
+\label{sec-1-3}
+\begin{itemize}
+\item 这个类，可以看见ET7 框架更为系统化、消息机制的更为往底层或说更进一步的封装，就是今天下午看见的，以前的 handle() 或是 run() 方法，或回调实例 Action<T> reply, 现在的封装里，这些什么创建回复实例之类的，全部封装到了管理器或是帮助类
+\item 比如这里， check() 方法里，返回消息的实例，已经是自动化系统化地封装了
+\item 如果发向同一个进程，则直接处理，不需要通过网络层。内网组件处理内网消息：这个分支可以再跟一下源码，理解一下重构的事件机制流程
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(ActorMessageSenderComponent))]
 public static class ActorMessageSenderComponentSystem {
     [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系
@@ -151,19 +191,24 @@ public static class ActorMessageSenderComponentSystem {
         Run(actorMessageSender, response);
     }
 }
-   #+END_SRC
-** LocationProxyComponent: 这个代理，什么情况下会用到？
-- 就是有个启动类管理 StartSceneConfigCategory 类，它会分门别类地管理一些什么网关、注册登录服，地址服之类的东西。然后从这个里面拿位置服务器地址？大概意思是这样。
-- 这个类先前仔细读过。还记得小伙伴搬家吗？有的小伙伴搬得狠慢，要花狠久，它搬家过程中就要上锁。大致是这类位置转移管理，位置添加、更新等相关管理操作。
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{LocationProxyComponent: 这个代理，什么情况下会用到？}
+\label{sec-1-4}
+\begin{itemize}
+\item 就是有个启动类管理 StartSceneConfigCategory 类，它会分门别类地管理一些什么网关、注册登录服，地址服之类的东西。然后从这个里面拿位置服务器地址？大概意思是这样。
+\item 这个类先前仔细读过。还记得小伙伴搬家吗？有的小伙伴搬得狠慢，要花狠久，它搬家过程中就要上锁。大致是这类位置转移管理，位置添加、更新等相关管理操作。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class LocationProxyComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static LocationProxyComponent Instance;
 }
-   #+END_SRC
-** LocationProxyComponentSystem
-#+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{LocationProxyComponentSystem}
+\label{sec-1-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // [ObjectSystem] awake() etc
 public static class LocationProxyComponentSystem {
     private static long GetLocationSceneId(long key) {
@@ -205,27 +250,30 @@ public static class LocationProxyComponentSystem {
         await LocationProxyComponent.Instance.Remove(self.Id);
     }
 }
-#+END_SRC
-** ActorLocationSender: 知道对方的Id，使用这个类发actor消息
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorLocationSender: 知道对方的Id，使用这个类发actor消息}
+\label{sec-1-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(ActorLocationSenderComponent))]
 public class ActorLocationSender: Entity, IAwake, IDestroy {
     public long ActorId;
     public long LastSendOrRecvTime; // 最近接收或者发送消息的时间
     public int Error;
 }
-   #+END_SRC
-** ActorLocationSenderComponent: 位置发送组件
-   #+BEGIN_SRC csharp
-    [ComponentOf(typeof(Scene))]
-    public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
-        public const long TIMEOUT_TIME = 60 * 1000;
-        public static ActorLocationSenderComponent Instance { get; set; }
-        public long CheckTimer;
-    }
-   #+END_SRC
-** ActorLocationSenderComponentSystem: 这个类，也要明天上午再看一下
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorLocationSenderComponent: 位置发送组件}
+\label{sec-1-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+ [ComponentOf(typeof(Scene))]
+ public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
+     public const long TIMEOUT_TIME = 60 * 1000;
+     public static ActorLocationSenderComponent Instance { get; set; }
+     public long CheckTimer;
+ }
+\end{minted}
+\subsection{ActorLocationSenderComponentSystem: 这个类，也要明天上午再看一下}
+\label{sec-1-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke(TimerInvokeType.ActorLocationSenderChecker)]
 public class ActorLocationSenderChecker: ATimer<ActorLocationSenderComponent> {
     protected override void Run(ActorLocationSenderComponent self) {
@@ -340,9 +388,10 @@ public static class ActorLocationSenderComponentSystem {
         }
     }
 }
-   #+END_SRC
-** ActorHelper: 帮助创建IActorResponse 回复消息。狠简单
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorHelper: 帮助创建IActorResponse 回复消息。狠简单}
+\label{sec-1-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class ActorHelper {
     public static IActorResponse CreateResponse(IActorRequest iActorRequest, int error) {
         Type responseType = OpcodeTypeComponent.Instance.GetResponseType(iActorRequest.GetType());
@@ -352,9 +401,10 @@ public static class ActorHelper {
         return response;
     }
 }
-   #+END_SRC
-** ActorMessageDispatcherInfo | ActorMessageDispatcherComponent
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorMessageDispatcherInfo | ActorMessageDispatcherComponent}
+\label{sec-1-10}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ActorMessageDispatcherInfo {
     public SceneType SceneType { get; }
     public IMActorHandler IMActorHandler { get; }
@@ -369,11 +419,13 @@ public class ActorMessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
     public static ActorMessageDispatcherComponent Instance;
     public readonly Dictionary<Type, List<ActorMessageDispatcherInfo>> ActorMessageHandlers = new();
 }
-   #+END_SRC
-** ActorMessageDispatcherComponentHelper: 帮助类
-- Actor消息分发组件：对于管理器里的，对同一发送消息类型，不同场景下不同处理器的链表管理，多看几遍
-- 这里，对于同一发送消息类型, 是会、是可能存在【从不同的场景类型中返回，带不同的消息处理器】 以致于必须得链表管理同一发送消息类型的不同可能处理情况。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ActorMessageDispatcherComponentHelper: 帮助类}
+\label{sec-1-11}
+\begin{itemize}
+\item Actor消息分发组件：对于管理器里的，对同一发送消息类型，不同场景下不同处理器的链表管理，多看几遍
+\item 这里，对于同一发送消息类型, 是会、是可能存在【从不同的场景类型中返回，带不同的消息处理器】 以致于必须得链表管理同一发送消息类型的不同可能处理情况。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(ActorMessageDispatcherComponent))] // Actor消息分发组件：对于管理器里的，对同一发送消息类型，不同场景下不同处理器的链表管理，多看几遍
 public static class ActorMessageDispatcherComponentHelper {// Awake() Load() Destroy() 省略掉了
     private static void Load(this ActorMessageDispatcherComponent self) { // 加载：程序域回载的时候
@@ -424,19 +476,23 @@ public static class ActorMessageDispatcherComponentHelper {// Awake() Load() Des
         }
     }
 }
-   #+END_SRC
-** ActorMessageHandlerAttribute 标签系: 去找几个典型标签看看
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{ActorMessageHandlerAttribute 标签系: 去找几个典型标签看看}
+\label{sec-1-12}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ActorMessageHandlerAttribute: BaseAttribute {
     public SceneType SceneType { get; }
     public ActorMessageHandlerAttribute(SceneType sceneType) {
         this.SceneType = sceneType;
     }
 }
-   #+END_SRC
-** [ActorMessageHandler(SceneType.Gate)] 标签使用举例
-- 是以前框架中或是参考项目中的例子。标签使用申明说，这是【网关服】上的一个Actor 消息处理器定义类。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{[ActorMessageHandler(SceneType.Gate)] 标签使用举例}
+\label{sec-1-13}
+\begin{itemize}
+\item 是以前框架中或是参考项目中的例子。标签使用申明说，这是【网关服】上的一个Actor 消息处理器定义类。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ActorMessageHandler(SceneType.Gate)]
 public class Actor_MatchSucess_NttHandler : AMActorHandler<User, Actor_MatchSucess_Ntt> {
     protected override void Run(User user, Actor_MatchSucess_Ntt message) {
@@ -445,26 +501,30 @@ public class Actor_MatchSucess_NttHandler : AMActorHandler<User, Actor_MatchSuce
         Log.Info($"玩家{user.UserID}匹配成功");
     }
 }
-   #+END_SRC
-** MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理}
+\label{sec-1-14}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
 [ComponentOf]
 public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
     // Mailbox的类型
     public MailboxType MailboxType { get; set; }
 }
-   #+END_SRC
-** MailboxType
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{MailboxType}
+\label{sec-1-15}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public enum MailboxType {
     MessageDispatcher, // 消息分发器
     UnOrderMessageDispatcher,// 无序分发
     GateSession,// 网关？
 }
-   #+END_SRC
-** 【服务端】ActorHandleHelper 帮助类。【需要去深挖一下】
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{【服务端】ActorHandleHelper 帮助类。【需要去深挖一下】}
+\label{sec-1-16}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class ActorHandleHelper {
     public static void Reply(int fromProcess, IActorResponse response) {
         if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程
@@ -562,12 +622,14 @@ public static class ActorHandleHelper {
         }
     }
 }
-   #+END_SRC
+\end{minted}
 
 
-* StartConfigComponent: 找【各种服】的起始初始化地址
-** ConfigSingleton<T>: ProtoObject, ISingleton
-#+BEGIN_SRC java
+\section{StartConfigComponent: 找【各种服】的起始初始化地址}
+\label{sec-2}
+\subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
+\label{sec-2-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
         [StaticField]
         private static T instance;
@@ -593,9 +655,10 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
         public override void AfterEndInit() { }
         public virtual void Dispose() { }
     }
-#+END_SRC
-** SceneFactory 里可以给【匹配服】添加组件
-#+BEGIN_SRC java
+\end{minted}
+\subsection{SceneFactory 里可以给【匹配服】添加组件}
+\label{sec-2-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
         await ETTask.CompletedTask;
@@ -631,9 +694,10 @@ public static class SceneFactory {
         return scene;
     }
 }
-#+END_SRC
-** RouterAddressComponent: 路由器组件
-#+BEGIN_SRC java
+\end{minted}
+\subsection{RouterAddressComponent: 路由器组件}
+\label{sec-2-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ComponentOf(typeof(Scene))]
 public class RouterAddressComponent: Entity, IAwake<string, int> {
     public IPAddress RouterManagerIPAddress { get; set; }
@@ -642,9 +706,10 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
     public HttpGetRouterResponse Info;
     public int RouterIndex;
 }
-#+END_SRC
-** RouterAddressComponentSystem: 路由器的生成系
-#+BEGIN_SRC java
+\end{minted}
+\subsection{RouterAddressComponentSystem: 路由器的生成系}
+\label{sec-2-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(RouterAddressComponent))]
 public static class RouterAddressComponentSystem {
     public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
@@ -697,10 +762,11 @@ public static class RouterAddressComponentSystem {
         return new IPEndPoint(ipAddress, int.Parse(ss[1]));
     }
 }
-#+END_SRC
+\end{minted}
 
-** RouterHelper: 路由器帮助类，向路由器注册、申请？
-#+BEGIN_SRC java
+\subsection{RouterHelper: 路由器帮助类，向路由器注册、申请？}
+\label{sec-2-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class RouterHelper {
     // 注册router
     public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
@@ -772,10 +838,11 @@ public static class RouterHelper {
         }
     }
 }
-#+END_SRC
+\end{minted}
 
-** StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
-  #+BEGIN_SRC java
+\subsection{StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge: 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】}
+\label{sec-2-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ProtoContract]
 [Config]
 public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
@@ -827,9 +894,10 @@ public partial class StartProcessConfig: ProtoObject, IConfig {
     [ProtoMember(3)]
     public int InnerPort { get; set; }
 }
-  #+END_SRC
-** StartSceneConfig: ISupportInitialize 【各种服－配置，场景配置】
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{StartSceneConfig: ISupportInitialize 【各种服－配置，场景配置】}
+\label{sec-2-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public partial class StartSceneConfig: ISupportInitialize {
     public long InstanceId;
     public SceneType Type; // 场景类型
@@ -870,13 +938,16 @@ public partial class StartSceneConfig: ISupportInitialize {
         this.InstanceId = instanceIdStruct.ToLong();
     }
 }
-#+END_SRC
-** StartSceneConfigCategory : 【Matchs!】ConfigSingleton<StartSceneConfigCategory>, IMerge
-- 读里面的登录服，会知道它是如何管理登录服的（就是后面的例子，当它要拿登录服的地址的时候），它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
-- 那么这个配置管理里，因为我要用匹配服与地图服，也要对至少是匹配服进行管理。那么，我在申请匹配的时候，网关服才能拿到匹配服的地址。
-- 只在【服务端】存在。但是在双端模式、与服务端模式下，每种端有两个文件来定义这个类。。一个在【ProtoContract】里，可能可以进程间消息传递？一个在 ConfigPartial 文件夹里
-- 上面的文件重复，还不是很懂。【重构】：因为我现在还比较喜欢使用Unity 下自带的双端模式，可是暂时只改【双端模式 ClientServer】下的文件，另一个专职服务端可能晚点儿再补上去。不用昨天晚上一样每个文件都改。
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{StartSceneConfigCategory : 【Matchs!】ConfigSingleton<StartSceneConfigCategory>, IMerge}
+\label{sec-2-8}
+\begin{itemize}
+\item 读里面的登录服，会知道它是如何管理登录服的（就是后面的例子，当它要拿登录服的地址的时候），它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
+\item 那么这个配置管理里，因为我要用匹配服与地图服，也要对至少是匹配服进行管理。那么，我在申请匹配的时候，网关服才能拿到匹配服的地址。
+\item 只在【服务端】存在。但是在双端模式、与服务端模式下，每种端有两个文件来定义这个类。。一个在【ProtoContract】里，可能可以进程间消息传递？一个在 ConfigPartial 文件夹里
+\item 上面的文件重复，还不是很懂。【重构】：因为我现在还比较喜欢使用Unity 下自带的双端模式，可是暂时只改【双端模式 ClientServer】下的文件，另一个专职服务端可能晚点儿再补上去。不用昨天晚上一样每个文件都改。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 配置文件处理，或是服务器启动相关类，以前都没仔细读过
 public partial class StartSceneConfigCategory {
     public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
@@ -930,11 +1001,14 @@ public partial class StartSceneConfigCategory {
         }
     }
 }
-#+END_SRC
-** HttpGetRouterResponse: 这个 ProtoBuf 的消息类型
-- 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
-- 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
-#+BEGIN_SRC java
+\end{minted}
+\subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
+\label{sec-2-9}
+\begin{itemize}
+\item 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
+\item 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [Message(OuterMessage.HttpGetRouterResponse)]
 [ProtoContract]
 public partial class HttpGetRouterResponse: ProtoObject {
@@ -948,12 +1022,14 @@ message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
 	repeated string Routers = 2;
 	repeated string Matchs = 3;// 这行是我需要添加，和生成消息的
 }
-#+END_SRC
-** HttpGetRouterHandler : IHttpHandler: 获取各路由器的地址
-- 【匹配服】：因为我想拿这个服的地址，也需要这个帮助类里作相应的修改
-- StartSceneConfigCategory.Instance: 不明白这个实例是存放在哪里，因为可以 proto 消息进程间传递，那么可以试找，哪里调用这个帮助类拿东西？
-- 这个模块：现在还是理解不透。需要某个上午，把所有 RouterComponent 组件及其相关，再理一遍。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{HttpGetRouterHandler : IHttpHandler: 获取各路由器的地址}
+\label{sec-2-10}
+\begin{itemize}
+\item 【匹配服】：因为我想拿这个服的地址，也需要这个帮助类里作相应的修改
+\item StartSceneConfigCategory.Instance: 不明白这个实例是存放在哪里，因为可以 proto 消息进程间传递，那么可以试找，哪里调用这个帮助类拿东西？
+\item 这个模块：现在还是理解不透。需要某个上午，把所有 RouterComponent 组件及其相关，再理一遍。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [HttpHandler(SceneType.RouterManager, "/get_router")]
 public class HttpGetRouterHandler : IHttpHandler {
     public async ETTask Handle(Entity domain, HttpListenerContext context) {
@@ -975,9 +1051,11 @@ public class HttpGetRouterHandler : IHttpHandler {
         await ETTask.CompletedTask;
     }
 }
-   #+END_SRC
-** HttpHandler 标签系：标签自带场景类型
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{HttpHandler 标签系：标签自带场景类型}
+\label{sec-2-11}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class HttpHandlerAttribute: BaseAttribute {
     public SceneType SceneType { get; }
     public string Path { get; }
@@ -986,10 +1064,13 @@ public class HttpHandlerAttribute: BaseAttribute {
         this.Path = path;
     }
 }
-   #+END_SRC
-** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例
-- 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下，没什么奇怪的。
-#+BEGIN_SRC java
+\end{minted}
+\subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例}
+\label{sec-2-12}
+\begin{itemize}
+\item 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下，没什么奇怪的。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
         try {
@@ -1020,43 +1101,51 @@ public static class LoginHelper {
         }
     } 
 }
-#+END_SRC
-** GateSessionKeyComponent: 
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{GateSessionKeyComponent:}
+\label{sec-2-13}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class GateSessionKeyComponent : Entity, IAwake {
     public readonly Dictionary<long, string> sessionKey = new Dictionary<long, string>();
 }
-#+END_SRC
+\end{minted}
 
 
-* ET7 数据库相关【服务端】
-- 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
-- 这里不急着整理。现框架 *DB 放在服务端的Model* 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
-- 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
-** IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧
-#+BEGIN_SRC csharp
+\section{ET7 数据库相关【服务端】}
+\label{sec-3}
+\begin{itemize}
+\item 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
+\item 这里不急着整理。现框架 \textbf{DB 放在服务端的Model} 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
+\item 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
+\end{itemize}
+\subsection{IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧}
+\label{sec-3-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IDBCollection {}
-#+END_SRC
-** DBComponent: 带生成系。可以查表，查询数据
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBComponent: 带生成系。可以查表，查询数据}
+\label{sec-3-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
 public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
     public const int TaskCount = 32;
     public MongoClient mongoClient;
     public IMongoDatabase database;
 }
-#+END_SRC
-** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？}
+\label{sec-3-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class DBManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
     public static DBManagerComponent Instance;
     public DBComponent[] DBComponents = new DBComponent[IdGenerater.MaxZone]; // 没事吃饱了撑得，占一大堆空地
 }
-#+END_SRC
-** DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里}
+\label{sec-3-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(DBManagerComponent))]
 public static class DBManagerComponentSystem {
     [ObjectSystem]
@@ -1084,18 +1173,21 @@ public static class DBManagerComponentSystem {
         return dbComponent;
     }
 }
-#+END_SRC
-** DBProxyComponent: 【参考项目】里的。有生成系。
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{DBProxyComponent: 【参考项目】里的。有生成系。}
+\label{sec-3-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 用来与数据库操作代理
 public class DBProxyComponent: Component {
     public IPEndPoint dbAddress;
 }
-#+END_SRC
+\end{minted}
 
-** StartZoneConfigCategory: 单例区服配置管理类
-- 主要还是要把整个框架系统性的都弄懂了
-   #+BEGIN_SRC csharp
+\subsection{StartZoneConfigCategory: 单例区服配置管理类}
+\label{sec-3-6}
+\begin{itemize}
+\item 主要还是要把整个框架系统性的都弄懂了
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ProtoContract]
 [Config]
 public partial class StartZoneConfigCategory : ConfigSingleton<StartZoneConfigCategory>, IMerge {
@@ -1147,12 +1239,16 @@ public partial class StartZoneConfig: ProtoObject, IConfig {// 小区配置
     [ProtoMember(3)]
     public string DBName { get; set; }
 }
-   #+END_SRC
+\end{minted}
+\end{itemize}
 
 
-* 网关服：客户端信息发送的直接代理，中转站，组件分析 
-- SceneFactory: 【初始化】时，带如下几个组件
-#+BEGIN_SRC csharp
+\section{网关服：客户端信息发送的直接代理，中转站，组件分析}
+\label{sec-4}
+\begin{itemize}
+\item SceneFactory: 【初始化】时，带如下几个组件
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
         await ETTask.CompletedTask;
@@ -1176,9 +1272,10 @@ public static class SceneFactory {
                 scene.AddComponent<PlayerComponent>();
                 scene.AddComponent<GateSessionKeyComponent>();
                 break; // ...
-#+END_SRC
-** NetServerComponent: 
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{NetServerComponent:}
+\label{sec-4-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public struct NetServerComponentOnRead {
     public Session Session;
     public object Message;
@@ -1187,36 +1284,45 @@ public struct NetServerComponentOnRead {
 public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
     public int ServiceId;
 }
-   #+END_SRC
+\end{minted}
 
 
-* 服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）
-- Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。
-- Realm：对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址。内网组件NetInnerComponent，外网组件NetOuterComponent，Gate服务器随机分发组件。客户端登录时连接的第一个服务器，也可称为登录服务器。
-- Gate：对玩家进行管理，对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址，对Actor消息进程进行管理，对玩家ID登录后的Key进行管理。加载有玩家管理组件PlayerComponent，管理登陆时联网的Key组件GateSessionKeyComponent。
-- Location：连接内网，服务器进程状态集中管理（Actor消息IP管理服务器）。加载有内网组件NetInnerComponent，服务器消息处理状态存储组件LocationComponent。对客户端的登录信息进行验证和客户端登录后连接的服务器，登录后通过此服务器进行消息互动，也可称为验证服务器。
-- Map：连接内网，对ActorMessage消息进行管理（添加、移除、分发等），对场景内现在活动物体存储管理，对内网服务器进程进行操作，对Actor消息进程进行管理，对Actor消息进行管理（添加、移除、分发等），服务器帧率管理。服务器帧率管理组件ServerFrameComponent。
-- AllServer：将以上服务器功能集中合并成一个服务器。另外增加DB连接组件DBComponent
-- Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
+\section{服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）}
+\label{sec-5}
+\begin{itemize}
+\item Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。
+\item Realm：对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址。内网组件NetInnerComponent，外网组件NetOuterComponent，Gate服务器随机分发组件。客户端登录时连接的第一个服务器，也可称为登录服务器。
+\item Gate：对玩家进行管理，对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址，对Actor消息进程进行管理，对玩家ID登录后的Key进行管理。加载有玩家管理组件PlayerComponent，管理登陆时联网的Key组件GateSessionKeyComponent。
+\item Location：连接内网，服务器进程状态集中管理（Actor消息IP管理服务器）。加载有内网组件NetInnerComponent，服务器消息处理状态存储组件LocationComponent。对客户端的登录信息进行验证和客户端登录后连接的服务器，登录后通过此服务器进行消息互动，也可称为验证服务器。
+\item Map：连接内网，对ActorMessage消息进行管理（添加、移除、分发等），对场景内现在活动物体存储管理，对内网服务器进程进行操作，对Actor消息进程进行管理，对Actor消息进行管理（添加、移除、分发等），服务器帧率管理。服务器帧率管理组件ServerFrameComponent。
+\item AllServer：将以上服务器功能集中合并成一个服务器。另外增加DB连接组件DBComponent
+\item Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
+\end{itemize}
 
 
-* Session 会话框相关
-- 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
-- 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
+\section{Session 会话框相关}
+\label{sec-6}
+\begin{itemize}
+\item 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
+\item 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
+\end{itemize}
 
 
-* 不同的消息或是任务处理器类型
-** interface IMActorHandler 接口类
-   #+BEGIN_SRC csharp
+\section{不同的消息或是任务处理器类型}
+\label{sec-7}
+\subsection{interface IMActorHandler 接口类}
+\label{sec-7-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IMActorHandler {
     // ETTask Handle(Entity entity, int fromProcess, object actorMessage); 
     void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的：【返回类型
     Type GetRequestType();
     Type GetResponseType();
 }
-   #+END_SRC
-** AMHandler<Message>: IMHandler
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{AMHandler<Message>: IMHandler}
+\label{sec-7-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public abstract class AMHandler<Message>: IMHandler where Message : class {
     // protected abstract ETTask Run(Session session, Message message);
     protected abstract void Run(Session session, Message message);
@@ -1239,9 +1345,10 @@ public abstract class AMHandler<Message>: IMHandler where Message : class {
         return null;
     }
 }
-   #+END_SRC
-** AMActorRpcHandler<E, Request, Response>: IMActorHandler void|ETTask 分不清
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{AMActorRpcHandler<E, Request, Response>: IMActorHandler void|ETTask 分不清}
+\label{sec-7-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [EnableClass]
 public abstract class AMActorRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorRequest where Response : class, IActorResponse {
     // protected abstract ETTask Run(E unit, Request request, Response response);
@@ -1283,19 +1390,22 @@ public abstract class AMActorRpcHandler<E, Request, Response>: IMActorHandler wh
         return typeof (Response);
     }
 }
-   #+END_SRC
+\end{minted}
 
 
-* Unit: 
-** UnitGateComponent: 
-   #+BEGIN_SRC csharp
+\section{Unit:}
+\label{sec-8}
+\subsection{UnitGateComponent:}
+\label{sec-8-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Unit))]
 public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
     public long GateSessionActorId { get; set; }
 }
-   #+END_SRC
-** UnitGateComponentSystem
-#+BEGIN_SRC csharp
+\end{minted}
+\subsection{UnitGateComponentSystem}
+\label{sec-8-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitGateComponentSystem {
     public class UnitGateComponentAwakeSystem : AwakeSystem<UnitGateComponent, long> {
         protected override void Awake(UnitGateComponent self, long a) {
@@ -1303,15 +1413,20 @@ public static class UnitGateComponentSystem {
         }
     }
 }
-#+END_SRC
+\end{minted}
 
 
-* ET7 框架以及【参考项目】的ECS：小单元小类型的生成系，是怎么写的，找例子参考 
-- 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
-** IComponentSerialize: 
-- ET7 的重构里，系统框架比较强大，这些必要的接口，都变成了必要的标签系，狠多可以自动系统触发或是调用。必要时只需要必布必要事件就可以了
-- 这个接口的功能，与 Unity 自带的 ISerializationCallbackReceiver 功能类似。Unity 提供两个回调接口，通过实现该接口的两个方法OnBeforeSerialize 和 OnAfterDeserialize，使得原本不能被引擎正确序列化的类可以按照程序员的要求被加工成引擎能够序列化的类型。
-   #+BEGIN_SRC csharp
+\section{ET7 框架以及【参考项目】的ECS：小单元小类型的生成系，是怎么写的，找例子参考}
+\label{sec-9}
+\begin{itemize}
+\item 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
+\end{itemize}
+\subsection{IComponentSerialize:}
+\label{sec-9-1}
+\begin{itemize}
+\item ET7 的重构里，系统框架比较强大，这些必要的接口，都变成了必要的标签系，狠多可以自动系统触发或是调用。必要时只需要必布必要事件就可以了
+\item 这个接口的功能，与 Unity 自带的 ISerializationCallbackReceiver 功能类似。Unity 提供两个回调接口，通过实现该接口的两个方法OnBeforeSerialize 和 OnAfterDeserialize，使得原本不能被引擎正确序列化的类可以按照程序员的要求被加工成引擎能够序列化的类型。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 在序列化前或者反序列化之后需要做一些操作，可以实现该接口，该接口的方法需要手动调用
 // 相比ISupportInitialize接口，BeginSerialize在BeginInit之前调用，EndDeSerialize在EndInit之后调用
 // 并且需要手动调用，可以在反序列化之后，在次方法中将注册组件到EventSystem之中等等
@@ -1321,10 +1436,11 @@ public interface IComponentSerialize {
     // 反序列化之后调用
     void EndDeSerialize();
 }
-#+END_SRC
-- 可以去找：【ET7 框架】里，相关的接口与标签触发和发布逻辑。
-- ET7 提供了 ISerializeToEntity 接口和IDeserialize，但是并没有接到任何使用的地方。
-#+BEGIN_SRC csharp
+\end{minted}
+\item 可以去找：【ET7 框架】里，相关的接口与标签触发和发布逻辑。
+\item ET7 提供了 ISerializeToEntity 接口和IDeserialize，但是并没有接到任何使用的地方。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface ISerializeToEntity {  }
 
 public interface IDeserialize {
@@ -1349,11 +1465,13 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
     }
     protected abstract void Deserialize(T self);
 }
-#+END_SRC
+\end{minted}
 
-** ClientComponent:【参考项目】客户端组件，找个ET7 里的组件
-- 这个组件，感觉是客户端单例，帮助把本地玩家给绑定到客户端单例。
-   #+BEGIN_SRC csharp
+\subsection{ClientComponent:【参考项目】客户端组件，找个ET7 里的组件}
+\label{sec-9-2}
+\begin{itemize}
+\item 这个组件，感觉是客户端单例，帮助把本地玩家给绑定到客户端单例。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ObjectSystem]
 public class ClientComponentAwakeSystem : AwakeSystem<ClientComponent> {
     public override void Awake(ClientComponent self) {
@@ -1367,82 +1485,106 @@ public class ClientComponent : Component {
         Instance = this;
     }
 }
-   #+END_SRC
+\end{minted}
+\end{itemize}
 
 
-* Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】
-- 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
-- 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
-- 【三、】查找 protoc 命令下，如何C# 索引 Unity 第三方库。  
-- 【四、】repeated 逻辑没有处理好
-  #+BEGIN_SRC csharp
+\section{Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】}
+\label{sec-10}
+\begin{itemize}
+\item 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
+\item 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
+\item 【三、】查找 protoc 命令下，如何C\# 索引 Unity 第三方库。
+\item 【四、】repeated 逻辑没有处理好
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 message Actor_GamerPlayCard_Req // IActorRequest
 {
 	int32 RpcId = 90;
 	int64 ActorId = 91;
     repeated ET Card Cards = 1;
 }
-  #+END_SRC
-- 【Windows 下的 Protobuf 编译环境】：配置好，只是作为与ET 框架的Proto2CS.cs 所指挥的编译结果，作一个对比，两者应该效果是一样的，或是基本一样的，除了自定义里没有处理 enum.
-- Windows 下的命令行，就是用 protoc 来编译，可以参考如下. （这是 .cs 源码下的）
-    #+BEGIN_SRC csharp
+\end{minted}
+\item 【Windows 下的 Protobuf 编译环境】：配置好，只是作为与ET 框架的Proto2CS.cs 所指挥的编译结果，作一个对比，两者应该效果是一样的，或是基本一样的，除了自定义里没有处理 enum.
+\item Windows 下的命令行，就是用 protoc 来编译，可以参考如下. （这是 .cs 源码下的）
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{protoPath}\" {protoName}");
-    #+END_SRC
-- 现在的问题是， *Protobuf消息里面居然是有 unity 第三方库的索引* 。
-- 直接把 enum 生成的那三个 .cs 类分别复制进双端，服务器端与客户端。包括Card 类。那些编译错误会去天边。哈哈哈，除了一个Card 的两个变量之外（CardSuits, CardWeight）。
-- 【热更新库】：现在剩下的问题，就成为，判定是用了哪个热更新的库，ILRuntime, 还是 HybridCLR, 如果帮它连那两个变量。好像接的是 HybridCLR. 这个库是我之前还不曾真正用过的。
-  - 相比于ET6，彻底剔除了ILRuntime，使得代码简洁了不少，并且比较稳定
+\end{minted}
+\item 现在的问题是， \textbf{Protobuf消息里面居然是有 unity 第三方库的索引} 。
+\item 直接把 enum 生成的那三个 .cs 类分别复制进双端，服务器端与客户端。包括Card 类。那些编译错误会去天边。哈哈哈，除了一个Card 的两个变量之外（CardSuits, CardWeight）。
+\item 【热更新库】：现在剩下的问题，就成为，判定是用了哪个热更新的库，ILRuntime, 还是 HybridCLR, 如果帮它连那两个变量。好像接的是 HybridCLR. 这个库是我之前还不曾真正用过的。
+\begin{itemize}
+\item 相比于ET6，彻底剔除了ILRuntime，使得代码简洁了不少，并且比较稳定
+\end{itemize}
+\end{itemize}
 
 
-* ETTask 和 ETVoid: 第三方库的ETTask, 参考ET-EUI 框架
-- 特异包装：主要是实际了异步调用的流式写法。它方法定义的内部，是封装有协程异步状态机的？IAsyncStateMachine. 当要运行协程的下一步，也是调用和运行。NET 库里的 IAsyncStateMachine.moveNext()
-- .NET 还提供了 AsyncMethodBuilder 的 type trait 来让你自己实现这个状态机和你自己的 Task 类型，因此你可以最大程度发挥想象来编写你想控制的一切。ETTask|ETVoid 就是使用底层的这些方法来封装的结果。async/await 是一个纯编译器特性。
-- 这个框架里ET7 里，就有相关模块 *【具体说是，两个实体类，实际定义了两种不同返回值ETTask-ETVoid 的协程编译生成方法】* ，能够实现对这个包装的自动编译成协程的编译逻辑方法定义。理解上，感觉像是ET7 框架里，为了这个流式写法，定义了必要的标签系，和相关的协程生成方法，来帮助这个第三方库实现异步调用的流式写法。
-- 上面的，写得把自己都写昏了。就是ET7 框架是如何实现异步调用的流式写法的呢？它把异步调用封装成协程。面对ET7 框架里广泛用到的ETTask|ETVoid 两类稍带个性化异步任务，如同 ETTask 和 ETVoid 是框架自己的封装一样，这个框架，也使用 .NET 里的 IAsyncStateMachine 等底层接口API 等，自定义了异步协程任务的生成方法。
-- 这类方法里，都封装有一个ETTask, 因为自定义封装在这些自定义类里，就对可能会用到的操作提供了必要的API, 比如设置异常，拿取任务等等。
-- 上面的自定义方法生成器：有三类，分别是 AsyncETVoidMethodBuilder, AsyncETTaskMethodBuilder 和 AsyncETTaskCompletedMethodBuilder
-- 感觉因为这两大返回类型，我没有能看懂看透，所以上面一个部分的消息处理，两个函数Handle() 和 Run() 的返回类型，以及参数被我改得乱七八糟，是不应该的。
-- 磨刀不误砍柴工，我应该投入时间把这个第三方库一样的包装理解透彻，然后再去弄懂上面一个部分，再去改那些编译错误。
-- *【ET-EUI】里：* 原本类的定义什么的，也是一样的，那就是主要去看，他是怎么使用ETVoid, 为什么它使用ETVoid 不会报错，而我在ET7 里用就会。
-- *【多线程同步】* 关于多线程同步的理解：来自于网络： 
-  - ETTASK的由于没有开新线程，也没有使用线程池Task，所以肯定是在主线程运行的，那么游戏开始的SynchronizationContext.SetSynchronizationContext(OneThreadSynchronizationContext.Instance);这句代码有啥用呢？
-  - 个人理解为， *在ET中虽然主逻辑是单线程的，但是与IO设备，比如从socket读取数据，或者从TCP,KCP获取网络数据得时候，是多线程的获取数据的，所以当数据到达时，为了保证是单线程，所以在获取数据的地方，以回调得方式，将回调方法扔到OneThreadSynchronizationContext中执行* （ *async设置了同步上下文是线程安全的* ，说的应该也是这个 OneThreadSynchronizationContext() 什么的相关的）
-  - 白话多线程同步原理如下：下面的也是ET 框架中网络异步线程同步中干过的同步执行逻辑。那个类大概是 NetService.cs. 就是分主线程，异步线程，有队列，Update() 里同步的。
-    - ET是单线程的，所以不会管理线程
-    - 跨线程都是把委托投递到一个队列，主线程不停从队列中取出委托执行
-    - 你看看asynctool的代码，本质上就是把委托投递到主线程
-    - 每帧取完队列中的所有委托，执行完
-  - 这个细节，是自己第一个游戏里使用ET-EUI 作为服务端，非ET 框架的客户端与服务端连接时，自己曾经遇到过的。非ET 框架的客户端，是使用了一个其它的 UnityPlayer 里一个API 相关的第三方来同步异步线程的结果到主线程。所以这个细节还是印象深刻。
-- 首先要能把控得住多线程，才能谈性能。其次，et是服务端多进程，同样能利用多核。et是逻辑单线程，并不意味着只能单线程，你能把控得住，照样可以多线程，一般人是不行的。（这些，看不懂，感觉更像是避重就轻吹牛皮一样。。。）
-- *【ETTask-await 后面的执行线程：】*
-  - async await 如果用的Task, await后面的部分是不确定在哪个线程执行的,猫大以前4.0的做法就是把上下文抛到主线程,让主线程执行.
-  - 如果用的是ETTask, await后面的部分是一定在主线程执行的. 就完全相当于写了个回调方法了
-  - Task 实际上也是回调, 不过这个回调方法的执行原本可能不在主线程罢了
-- ETVoid是代替async void，意思是新开一个协程。ettask跟task一样。当然task不去await也相当于新开协程，但是编辑器会冒出提示，提示你await。所以新开协程最好用ETVoid。4.0用async void。使用场景，自己写写就明白啦. 协程就是回调.
-- *无GC ETTask*,其实是利用对象池，注意，必须小心使用，不懂不要乱用。无GC 的原理同自己写第一个游戏，使用资源池是一样的，就是说，当一个ETTask 使用完毕，不再使用的时候，不是要GC 来回收，而是程序的逻辑自己管理，回收到对象池管理器，对于应用程序来说，就是不释放，自己管理它的再使用。不释放就不会引起GC 回收，所以叫无GC.
-  - 请不要随便使用ETTask的对象池，除非你完全搞懂了ETTask!!!
-  - 假如开启了池,await之后不能再操作ETTask，否则可能操作到再次从池中分配出来的ETTask，产生灾难性的后果。（自己的理解， await 之后，再操作ETTask, 那么操作的极有可能是【当 boolean fromPool ＝ true】从对象池新取出的一个异步任务，不是预期行为，当然就会引起一片混乱。。。可是，框架里仍然有狠多对异步任务 SetResult() 的地方，尤其是各种服的消息处理器处理逻辑里。什么情境下可以安全地使用SetResult(), 需要自己去搞明白）
-  - SetResult的时候请现将tcs置空，避免多次对同一个ETTask SetResult. （这里，对一个异步任务，设置结果 SetResult(), 可能会设置多次吗？）
-  - 大部分情况可以用objectwait代替ettask，推荐使用，绝对不会出问题
-- 这里因为弄不明白，他们建议的学习方法是：
-  - ettask还要啥教程？
-  - 要搞懂ettask 下载一个jetbrain peek工具，反编译下看下生成的代码就行了。
-  - 参考Timercomponent，看懂就全明白了
-  - 看网上的文章看十年也不会明白，自己写一下timercomponet啥都懂了
-- 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
-** IAsyncStateMachine
-- 异步方法中，每遇见一个 await 调用，都会生成一个异步状态类，这个异步状态类会实现这个接口
-#+BEGIN_SRC csharp
+\section{ETTask 和 ETVoid: 第三方库的ETTask, 参考ET-EUI 框架}
+\label{sec-11}
+\begin{itemize}
+\item 特异包装：主要是实际了异步调用的流式写法。它方法定义的内部，是封装有协程异步状态机的？IAsyncStateMachine. 当要运行协程的下一步，也是调用和运行。NET 库里的 IAsyncStateMachine.moveNext()
+\item .NET 还提供了 AsyncMethodBuilder 的 type trait 来让你自己实现这个状态机和你自己的 Task 类型，因此你可以最大程度发挥想象来编写你想控制的一切。ETTask|ETVoid 就是使用底层的这些方法来封装的结果。async/await 是一个纯编译器特性。
+\item 这个框架里ET7 里，就有相关模块 \textbf{【具体说是，两个实体类，实际定义了两种不同返回值ETTask-ETVoid 的协程编译生成方法】} ，能够实现对这个包装的自动编译成协程的编译逻辑方法定义。理解上，感觉像是ET7 框架里，为了这个流式写法，定义了必要的标签系，和相关的协程生成方法，来帮助这个第三方库实现异步调用的流式写法。
+\item 上面的，写得把自己都写昏了。就是ET7 框架是如何实现异步调用的流式写法的呢？它把异步调用封装成协程。面对ET7 框架里广泛用到的ETTask|ETVoid 两类稍带个性化异步任务，如同 ETTask 和 ETVoid 是框架自己的封装一样，这个框架，也使用 .NET 里的 IAsyncStateMachine 等底层接口API 等，自定义了异步协程任务的生成方法。
+\item 这类方法里，都封装有一个ETTask, 因为自定义封装在这些自定义类里，就对可能会用到的操作提供了必要的API, 比如设置异常，拿取任务等等。
+\item 上面的自定义方法生成器：有三类，分别是 AsyncETVoidMethodBuilder, AsyncETTaskMethodBuilder 和 AsyncETTaskCompletedMethodBuilder
+\item 感觉因为这两大返回类型，我没有能看懂看透，所以上面一个部分的消息处理，两个函数Handle() 和 Run() 的返回类型，以及参数被我改得乱七八糟，是不应该的。
+\item 磨刀不误砍柴工，我应该投入时间把这个第三方库一样的包装理解透彻，然后再去弄懂上面一个部分，再去改那些编译错误。
+\item \textbf{【ET-EUI】里：} 原本类的定义什么的，也是一样的，那就是主要去看，他是怎么使用ETVoid, 为什么它使用ETVoid 不会报错，而我在ET7 里用就会。
+\item \textbf{【多线程同步】} 关于多线程同步的理解：来自于网络： 
+\begin{itemize}
+\item ETTASK的由于没有开新线程，也没有使用线程池Task，所以肯定是在主线程运行的，那么游戏开始的SynchronizationContext.SetSynchronizationContext(OneThreadSynchronizationContext.Instance);这句代码有啥用呢？
+\item 个人理解为， \textbf{在ET中虽然主逻辑是单线程的，但是与IO设备，比如从socket读取数据，或者从TCP,KCP获取网络数据得时候，是多线程的获取数据的，所以当数据到达时，为了保证是单线程，所以在获取数据的地方，以回调得方式，将回调方法扔到OneThreadSynchronizationContext中执行} （ \textbf{async设置了同步上下文是线程安全的} ，说的应该也是这个 OneThreadSynchronizationContext() 什么的相关的）
+\item 白话多线程同步原理如下：下面的也是ET 框架中网络异步线程同步中干过的同步执行逻辑。那个类大概是 NetService.cs. 就是分主线程，异步线程，有队列，Update() 里同步的。
+\begin{itemize}
+\item ET是单线程的，所以不会管理线程
+\item 跨线程都是把委托投递到一个队列，主线程不停从队列中取出委托执行
+\item 你看看asynctool的代码，本质上就是把委托投递到主线程
+\item 每帧取完队列中的所有委托，执行完
+\end{itemize}
+\item 这个细节，是自己第一个游戏里使用ET-EUI 作为服务端，非ET 框架的客户端与服务端连接时，自己曾经遇到过的。非ET 框架的客户端，是使用了一个其它的 UnityPlayer 里一个API 相关的第三方来同步异步线程的结果到主线程。所以这个细节还是印象深刻。
+\end{itemize}
+\item 首先要能把控得住多线程，才能谈性能。其次，et是服务端多进程，同样能利用多核。et是逻辑单线程，并不意味着只能单线程，你能把控得住，照样可以多线程，一般人是不行的。（这些，看不懂，感觉更像是避重就轻吹牛皮一样。。。）
+\item \textbf{【ETTask-await 后面的执行线程：】}
+\begin{itemize}
+\item async await 如果用的Task, await后面的部分是不确定在哪个线程执行的,猫大以前4.0的做法就是把上下文抛到主线程,让主线程执行.
+\item 如果用的是ETTask, await后面的部分是一定在主线程执行的. 就完全相当于写了个回调方法了
+\item Task 实际上也是回调, 不过这个回调方法的执行原本可能不在主线程罢了
+\end{itemize}
+\item ETVoid是代替async void，意思是新开一个协程。ettask跟task一样。当然task不去await也相当于新开协程，但是编辑器会冒出提示，提示你await。所以新开协程最好用ETVoid。4.0用async void。使用场景，自己写写就明白啦. 协程就是回调.
+\item \textbf{无GC ETTask},其实是利用对象池，注意，必须小心使用，不懂不要乱用。无GC 的原理同自己写第一个游戏，使用资源池是一样的，就是说，当一个ETTask 使用完毕，不再使用的时候，不是要GC 来回收，而是程序的逻辑自己管理，回收到对象池管理器，对于应用程序来说，就是不释放，自己管理它的再使用。不释放就不会引起GC 回收，所以叫无GC.
+\begin{itemize}
+\item 请不要随便使用ETTask的对象池，除非你完全搞懂了ETTask!!!
+\item 假如开启了池,await之后不能再操作ETTask，否则可能操作到再次从池中分配出来的ETTask，产生灾难性的后果。（自己的理解， await 之后，再操作ETTask, 那么操作的极有可能是【当 boolean fromPool ＝ true】从对象池新取出的一个异步任务，不是预期行为，当然就会引起一片混乱。。。可是，框架里仍然有狠多对异步任务 SetResult() 的地方，尤其是各种服的消息处理器处理逻辑里。什么情境下可以安全地使用SetResult(), 需要自己去搞明白）
+\item SetResult的时候请现将tcs置空，避免多次对同一个ETTask SetResult. （这里，对一个异步任务，设置结果 SetResult(), 可能会设置多次吗？）
+\item 大部分情况可以用objectwait代替ettask，推荐使用，绝对不会出问题
+\end{itemize}
+\item 这里因为弄不明白，他们建议的学习方法是：
+\begin{itemize}
+\item ettask还要啥教程？
+\item 要搞懂ettask 下载一个jetbrain peek工具，反编译下看下生成的代码就行了。
+\item 参考Timercomponent，看懂就全明白了
+\item 看网上的文章看十年也不会明白，自己写一下timercomponet啥都懂了
+\end{itemize}
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！】
+\end{itemize}
+\subsection{IAsyncStateMachine}
+\label{sec-11-1}
+\begin{itemize}
+\item 异步方法中，每遇见一个 await 调用，都会生成一个异步状态类，这个异步状态类会实现这个接口
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace System.Runtime.CompilerServices {
     public interface IAsyncStateMachine {
         void MoveNext();
         void SetStateMachine(IAsyncStateMachine stateMachine);
     }
 }
-#+END_SRC
-** enum AwaiterStatus: IAwaiter.cs 文件里. 理解为异步任务的现执行进展状态
-- 现框架里，扩展 IAwaiter, 自定义的现框架 ETTask 所可能有的三种不同状态。
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{enum AwaiterStatus: IAwaiter.cs 文件里. 理解为异步任务的现执行进展状态}
+\label{sec-11-2}
+\begin{itemize}
+\item 现框架里，扩展 IAwaiter, 自定义的现框架 ETTask 所可能有的三种不同状态。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public enum AwaiterStatus: byte {
     // The operation has not yet completed.
     Pending = 0,// 这个用在判断语句里比较多，主要用它来判断：异步任务是否已经完成 
@@ -1451,12 +1593,15 @@ public enum AwaiterStatus: byte {
     // The operation completed with an error.
     Faulted = 2,
 }
-   #+END_SRC
-** ETTaskCompleted: 已经完成了的异步任务。比较特殊：可以简单进行写结果？等等的必要回收工作，就可以返回异步任务对象池回收再利用？
-- 因为我把 AsyncMethodBuilder 理解成为：异步任务的协程编译器编译逻辑。
-- 所以这个类就是定义，异步任务协程中的一个特殊状态：异步任务结束了，但是还没能写、返回结果时的IAsyncStateMachine|IAwater 状态
-- 因为它是协程异步状态机中的一个相对特殊状态，本质上是异步状态机中的一个状态，也提供了必要的API, 比较写结果。
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{ETTaskCompleted: 已经完成了的异步任务。比较特殊：可以简单进行写结果？等等的必要回收工作，就可以返回异步任务对象池回收再利用？}
+\label{sec-11-3}
+\begin{itemize}
+\item 因为我把 AsyncMethodBuilder 理解成为：异步任务的协程编译器编译逻辑。
+\item 所以这个类就是定义，异步任务协程中的一个特殊状态：异步任务结束了，但是还没能写、返回结果时的IAsyncStateMachine|IAwater 状态
+\item 因为它是协程异步状态机中的一个相对特殊状态，本质上是异步状态机中的一个状态，也提供了必要的API, 比较写结果。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [AsyncMethodBuilder(typeof (AsyncETTaskCompletedMethodBuilder))]
 public struct ETTaskCompleted: ICriticalNotifyCompletion {
     [DebuggerHidden]
@@ -1477,9 +1622,11 @@ public struct ETTaskCompleted: ICriticalNotifyCompletion {
     public void UnsafeOnCompleted(Action continuation) {  
     }
 }
-   #+END_SRC
-** struct ETVoid: ICriticalNotifyCompletion. 这里涉及协程的分阶段的执行相关逻辑的生成方法自动化相关的标签 
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{struct ETVoid: ICriticalNotifyCompletion. 这里涉及协程的分阶段的执行相关逻辑的生成方法自动化相关的标签}
+\label{sec-11-4}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [AsyncMethodBuilder(typeof (AsyncETVoidMethodBuilder))]// 【异步方法生成标签】：是。NET CompilerService里的属性标签。自动生成协程相关方法的标签？今天晚上也可以细看一下
 internal struct ETVoid: ICriticalNotifyCompletion {
     [DebuggerHidden]
@@ -1491,10 +1638,12 @@ internal struct ETVoid: ICriticalNotifyCompletion {
     [DebuggerHidden]
         public void UnsafeOnCompleted(Action continuation) { }
 }
-   #+END_SRC
-** ETTask: ICriticalNotifyCompletion:
-- 这个类的定义比较大，分普通类，和泛型类。我的笔记需要记在同一个地方。今天早上这个类又记错地方记到ET-EUI 上去了
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ETTask: ICriticalNotifyCompletion:}
+\label{sec-11-5}
+\begin{itemize}
+\item 这个类的定义比较大，分普通类，和泛型类。我的笔记需要记在同一个地方。今天早上这个类又记错地方记到ET-EUI 上去了
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [AsyncMethodBuilder(typeof (ETAsyncTaskMethodBuilder))]
 public class ETTask: ICriticalNotifyCompletion {
     public static Action<Exception> ExceptionHandler;// 异常回调
@@ -1695,9 +1844,11 @@ public class ETTask<T>: ICriticalNotifyCompletion {
         c?.Invoke();
     }
 }
-   #+END_SRC
-** ETCancellationToken: 管理所有的取消？回调：因为可能不止一个取消回调，所以 HashSet 管理 
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{ETCancellationToken: 管理所有的取消？回调：因为可能不止一个取消回调，所以 HashSet 管理}
+\label{sec-11-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ETCancellationToken {// 管理所有的【取消】回调：因为可能不止一个取消回调，所以 HashSet 管理 
     private HashSet<Action> actions = new HashSet<Action>();
     public void Add(Action callback) {
@@ -1730,9 +1881,10 @@ public class ETCancellationToken {// 管理所有的【取消】回调：因为�
         }
     }
 }
-   #+END_SRC
-** ETTaskHelper: 有个类中类 CoroutineBlocker 看不懂
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ETTaskHelper: 有个类中类 CoroutineBlocker 看不懂}
+\label{sec-11-7}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class ETTaskHelper {
     public static bool IsCancel(this ETCancellationToken self) {
         if (self == null) 
@@ -1803,9 +1955,10 @@ public static class ETTaskHelper {
         await coroutineBlocker.WaitAsync();
     }
 }
-   #+END_SRC
-** ETAsyncTaskMethodBuilder: 同样是换汤不换药的两个部分：普通类与泛型类
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ETAsyncTaskMethodBuilder: 同样是换汤不换药的两个部分：普通类与泛型类}
+\label{sec-11-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public struct ETAsyncTaskMethodBuilder {
     private ETTask tcs;
     // 1. Static Create method.
@@ -1890,9 +2043,10 @@ public struct ETAsyncTaskMethodBuilder<T> {
     public void SetStateMachine(IAsyncStateMachine stateMachine) {
     }
 }
-   #+END_SRC
-** AsyncETTaskCompletedMethodBuilder: 
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{AsyncETTaskCompletedMethodBuilder:}
+\label{sec-11-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public struct AsyncETTaskCompletedMethodBuilder {
     // 1. Static Create method.
     [DebuggerHidden]
@@ -1932,9 +2086,10 @@ public struct AsyncETTaskCompletedMethodBuilder {
     public void SetStateMachine(IAsyncStateMachine stateMachine) {
     }
 }
-   #+END_SRC
-** AsyncETVoidMethodBuilder: 定义的是 async ETVoid 的编译方法 ?
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{AsyncETVoidMethodBuilder: 定义的是 async ETVoid 的编译方法 ?}
+\label{sec-11-10}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 异步ETVoid 内部生成方法：
 internal struct AsyncETVoidMethodBuilder {
     // 1. Static Create method.
@@ -1977,9 +2132,10 @@ internal struct AsyncETVoidMethodBuilder {
     public void SetStateMachine(IAsyncStateMachine stateMachine) {
     }
 }
-   #+END_SRC
-** ICriticalNotifyCompletion: 
-   #+BEGIN_SRC csharp
+\end{minted}
+\subsection{ICriticalNotifyCompletion:}
+\label{sec-11-11}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace System.Runtime.CompilerServices {
 // 接口类：提供了一个，任务完成后的回调接口
     public interface ICriticalNotifyCompletion : INotifyCompletion {
@@ -1987,25 +2143,30 @@ namespace System.Runtime.CompilerServices {
         void UnsafeOnCompleted(Action continuation);
     }
 }
-   #+END_SRC
+\end{minted}
 
-** AsyncMethodBuilderAttribute:.NET 系统的标签
-- 自己先前没能理解，为什么标记了【AsyncMethodBuilder(typeof(className))】就能标记某个类的协程生成方法 
-- 是因为这个系统标签，它申明了 AttributeUsage 属性，申明了适用类型，可以是(AttributeTargets.Class | AttributeTargets.Struct) 等等
-- 所以，当ETTask 异步库自定义了ETTask, ETVoid, 和ETTaskCompleted 三个类，就可以使用上面的系统标签，来标注申明：这个类是以上三个中特定指定此类的协程编译生成方法。
-   #+BEGIN_SRC csharp
+\subsection{AsyncMethodBuilderAttribute:.NET 系统的标签}
+\label{sec-11-12}
+\begin{itemize}
+\item 自己先前没能理解，为什么标记了【AsyncMethodBuilder(typeof(className))】就能标记某个类的协程生成方法
+\item 是因为这个系统标签，它申明了 AttributeUsage 属性，申明了适用类型，可以是(AttributeTargets.Class | AttributeTargets.Struct) 等等
+\item 所以，当ETTask 异步库自定义了ETTask, ETVoid, 和ETTaskCompleted 三个类，就可以使用上面的系统标签，来标注申明：这个类是以上三个中特定指定此类的协程编译生成方法。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Interface | AttributeTargets.Delegate, Inherited = false, AllowMultiple = false)]
 public sealed class AsyncMethodBuilderAttribute : Attribute {
     public AsyncMethodBuilderAttribute(Type builderType);
 
     public Type BuilderType { get; }
 }
-#+END_SRC
-** ETVoid C# Net-async|await 编程更底层一点儿的原理
-- 就是不懂底层的原理是什么，方法定义是什么，返回的是什么，在有 await 等关键字的时候，返回的内容等是如何变换的，以及它背后的那个异步状态机，就是想不明白。
-- 现在参考网上的一个例子，记一下异步任务C# 幕后封装的那些执行步骤什么的，把 async await 之类的关键字，背后的逻辑理解明白。
-- 就是，可能也可以在异步任务的这个模块，添加无数的日志，通过读日志来把这块儿弄明白。下面就截图网上的这个参考例子。
-   #+BEGIN_SRC csharp
+\end{minted}
+\end{itemize}
+\subsection{ETVoid C\# Net-async|await 编程更底层一点儿的原理}
+\label{sec-11-13}
+\begin{itemize}
+\item 就是不懂底层的原理是什么，方法定义是什么，返回的是什么，在有 await 等关键字的时候，返回的内容等是如何变换的，以及它背后的那个异步状态机，就是想不明白。
+\item 现在参考网上的一个例子，记一下异步任务C\# 幕后封装的那些执行步骤什么的，把 async await 之类的关键字，背后的逻辑理解明白。
+\item 就是，可能也可以在异步任务的这个模块，添加无数的日志，通过读日志来把这块儿弄明白。下面就截图网上的这个参考例子。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [AsyncMethodBuilder(typeof (AsyncETVoidMethodBuilder))]
 internal struct ETVoid: ICriticalNotifyCompletion {
     [DebuggerHidden]
@@ -2017,52 +2178,66 @@ internal struct ETVoid: ICriticalNotifyCompletion {
     [DebuggerHidden]
     public void UnsafeOnCompleted(Action continuation) { }
 }
-   #+END_SRC
-- 上面是找了一个最短小的类ETVoid, 网上例子自己构建一个类，这个类麻雀虽小五脏俱全的 *几个【缺一不可】的方法* （所以知道ETTask|ETVoid 自定义封装，这几个方法也是一定不能少的，只是多了Coroutine() 方法不知道是怎么回事儿？）如上如下：
-  
-[[./pic/et3_20230609_105627.png]]
-- 它的测试用例是这么写的：注意它传入的参数类型是 int. 后面的编译码里，和它的讲解里会用到提到。
-  
-[[./pic/et3_20230609_105927.png]]
-- 看它编译出来的码（那堆编译出来的状态机的码），就是看不懂
+\end{minted}
+\item 上面是找了一个最短小的类ETVoid, 网上例子自己构建一个类，这个类麻雀虽小五脏俱全的 \textbf{几个【缺一不可】的方法} （所以知道ETTask|ETVoid 自定义封装，这几个方法也是一定不能少的，只是多了Coroutine() 方法不知道是怎么回事儿？）如上如下：
+\end{itemize}
 
-[[./pic/et3_20230609_112727.png]]
-- 结果分析： *【异步方法状态机，背后的执行顺序与逻辑：】*
-  - 先检查IsCompleted标志位，如果已经完成，则调用GetResult作为await的返回值返回。
-  - 如果未完成，经过AsyncTaskMethodBuilder的AwaitUnsafeOnCompleted方法之后,最后进入UnsafeOnCompleted（nextAction），并且把完成后的下一步回调传进来。
-  - 当我们获得nextAction之后，说明该调用由我们自己来控制，这里我在等待1s之后，执行nextAction（），下一步GetResult返回。
-- *【Async 关键字方法的编译原理：】*
-  
-[[./pic/et3_20230609_110634.png]]
-- 这个 async 关键字所标记的异步方法，主要两个点儿： 
-  - 编译器，把这个异步方法，编译成了一个类 class <asyncMethod>d__1;
-  - 这个类 class, 它实现了 IAsyncStateMachine 接口，（ *实现了这个接口，返回的是什么类型呢？* 这个要想明白？）
-  - 这个类 class, 的内部，有几个成员变量 .field-sss.
-  - 这个类 class, 的内部，有个特别重要的状态机执行函数 MoveNext() 来指挥指导，异步函数内不同节点如 await 节点等的执行逻辑。
-  - 上面的逻辑，其实是就是扫描异步方法内，不同的 await 调用，每到一个这个关键字申明的异步调用，就是切换一个状态（背后有可能是线程的切换, 不一定每个分支都用不同的线程，但线程的切换可能是，必要的时候需要切换的？）分段执行。
-- 网络上的分析者还给出了下机的截图：不是狠懂，这个截图是什么意思？因为不懂，要把编译码的方法名带上，方便以后再读和理解。
+\includegraphics[width=.9\linewidth]{./pic/et3_20230609_105627.png}
+\begin{itemize}
+\item 它的测试用例是这么写的：注意它传入的参数类型是 int. 后面的编译码里，和它的讲解里会用到提到。
+\end{itemize}
 
-[[./pic/et3_20230609_112757.png]]
-- 上面的异步方法，所生成的异步状态机类 class 里，有几个主要的方法：
-  - 构造器方法 ctor()： 
-  - Create() 方法：
-  - Start() 方法： 
-  - get_Task() 方法：
-- 可是上面的几个方法是谁，哪个接口定义的呢？
-- 网络上的分析者，对上面两个截图的分析如下： *【它讲解的这部分，我可能还是得自己编译一下，去具体看一下。】因为它的截图不完整，看不懂*
-  - 签名为async Task asyncMethod()的方法里，先创建一个继承自IAsyncStateMachine的asyncMethod类
-  - 创建一个AsyncTaskMethodBuilder，然后赋值给Machine. （不知道，它这句，说的是哪里？第一个图的最后 SetStateMachine()?）
-  - 初始化Machine的state = -1. （两个截图里看不见，找不到）
-  - 调用AsyncTaskMethodBuilder.Start方法，start里面会进入Machine的moveNext（）方法，详见问题1。
-  - AsyncTaskMethodBuilder.get_Task（） 作为该方法的返回值返回。
-- 多线程问题： Task一定是多线程吗？
-  - 不一定，在上述例子中，我们定义的 async static Task<int> aa()，里面就是在同一个线程执行的。只有调用Task.Start 或者Task.Run 里面自动启用多线程的时候，才是多线程。
+\includegraphics[width=.9\linewidth]{./pic/et3_20230609_105927.png}
+\begin{itemize}
+\item 看它编译出来的码（那堆编译出来的状态机的码），就是看不懂
+\end{itemize}
 
+\includegraphics[width=.9\linewidth]{./pic/et3_20230609_112727.png}
+\begin{itemize}
+\item 结果分析： \textbf{【异步方法状态机，背后的执行顺序与逻辑：】}
+\begin{itemize}
+\item 先检查IsCompleted标志位，如果已经完成，则调用GetResult作为await的返回值返回。
+\item 如果未完成，经过AsyncTaskMethodBuilder的AwaitUnsafeOnCompleted方法之后,最后进入UnsafeOnCompleted（nextAction），并且把完成后的下一步回调传进来。
+\item 当我们获得nextAction之后，说明该调用由我们自己来控制，这里我在等待1s之后，执行nextAction（），下一步GetResult返回。
+\end{itemize}
+\item \textbf{【Async 关键字方法的编译原理：】}
+\end{itemize}
 
+\includegraphics[width=.9\linewidth]{./pic/et3_20230609_110634.png}
+\begin{itemize}
+\item 这个 async 关键字所标记的异步方法，主要两个点儿： 
+\begin{itemize}
+\item 编译器，把这个异步方法，编译成了一个类 class <asyncMethod>d\_\_1;
+\item 这个类 class, 它实现了 IAsyncStateMachine 接口，（ \textbf{实现了这个接口，返回的是什么类型呢？} 这个要想明白？）
+\item 这个类 class, 的内部，有几个成员变量 .field-sss.
+\item 这个类 class, 的内部，有个特别重要的状态机执行函数 MoveNext() 来指挥指导，异步函数内不同节点如 await 节点等的执行逻辑。
+\item 上面的逻辑，其实是就是扫描异步方法内，不同的 await 调用，每到一个这个关键字申明的异步调用，就是切换一个状态（背后有可能是线程的切换, 不一定每个分支都用不同的线程，但线程的切换可能是，必要的时候需要切换的？）分段执行。
+\end{itemize}
+\item 网络上的分析者还给出了下机的截图：不是狠懂，这个截图是什么意思？因为不懂，要把编译码的方法名带上，方便以后再读和理解。
+\end{itemize}
 
-
-
-
-
-
-
+\includegraphics[width=.9\linewidth]{./pic/et3_20230609_112757.png}
+\begin{itemize}
+\item 上面的异步方法，所生成的异步状态机类 class 里，有几个主要的方法：
+\begin{itemize}
+\item 构造器方法 ctor()：
+\item Create() 方法：
+\item Start() 方法：
+\item get\_Task() 方法：
+\end{itemize}
+\item 可是上面的几个方法是谁，哪个接口定义的呢？
+\item 网络上的分析者，对上面两个截图的分析如下： \textbf{【它讲解的这部分，我可能还是得自己编译一下，去具体看一下。】因为它的截图不完整，看不懂}
+\begin{itemize}
+\item 签名为async Task asyncMethod()的方法里，先创建一个继承自IAsyncStateMachine的asyncMethod类
+\item 创建一个AsyncTaskMethodBuilder，然后赋值给Machine. （不知道，它这句，说的是哪里？第一个图的最后 SetStateMachine()?）
+\item 初始化Machine的state = -1. （两个截图里看不见，找不到）
+\item 调用AsyncTaskMethodBuilder.Start方法，start里面会进入Machine的moveNext（）方法，详见问题1。
+\item AsyncTaskMethodBuilder.get\_Task（） 作为该方法的返回值返回。
+\end{itemize}
+\item 多线程问题： Task一定是多线程吗？
+\begin{itemize}
+\item 不一定，在上述例子中，我们定义的 async static Task<int> aa()，里面就是在同一个线程执行的。只有调用Task.Start 或者Task.Run 里面自动启用多线程的时候，才是多线程。
+\end{itemize}
+\end{itemize}
+% Emacs 28.2 (Org mode 8.2.7c)
+\end{document}

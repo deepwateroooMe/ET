@@ -1045,49 +1045,6 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 
 
 
-* 消息处理器： AMActorHandler<E, Message> 继承类的返回类型，全改成了 void 
-** AMActorHandler<E, Message>: 基类的抽象方法 Run 的返回类型被固定死了，报了狠多错
-- 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
-   #+BEGIN_SRC java
-[EnableClass]
-public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage {
-
-    // protected abstract ETTask Run(E entity, Message message);  // <<<<<<<<<<<<<<<<<<<< 
-    protected abstract void Run(E entity, Message message);  // 可以改成是自己想要的，返回类型，因为只有自已的继承类在使用，不影响其它 
-
-    public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
-        if (actorMessage is not Message msg) {
-            Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
-            return;
-        }
-        if (entity is not E e) {
-            Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
-            return;
-        }
-        await this.Run(e, msg);
-    }
-    public Type GetRequestType() {
-        if (typeof (IActorLocationMessage).IsAssignableFrom(typeof (Message))) {
-            Log.Error($"message is IActorLocationMessage but handler is AMActorHandler: {typeof (Message)}");
-        }
-        return typeof (Message);
-    }
-    public Type GetResponseType() {
-        return null;
-    }
-}
-   #+END_SRC
-** IMActorHandler: 接口类的定义，同样要改
-   #+BEGIN_SRC java
-public interface IMActorHandler {
-    // ETTask Handle(Entity entity, int fromProcess, object actorMessage);
-    void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的
-    Type GetRequestType();
-    Type GetResponseType();
-}
-   #+END_SRC
-
-
 * Protobuf 里的 enum: 【Identity】【Suits】【Weight】
 ** OuterMessage_C_10001.proto 里三四个类的定义
 - 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。

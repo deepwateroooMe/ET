@@ -1,4 +1,4 @@
-% Created 2023-06-07 Wed 11:34
+% Created 2023-06-07 Wed 14:30
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1138,58 +1138,10 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 
 
 
-\section{消息处理器： AMActorHandler<E, Message> 继承类的返回类型，全改成了 void}
-\label{sec-4}
-\subsection{AMActorHandler<E, Message>: 基类的抽象方法 Run 的返回类型被固定死了，报了狠多错}
-\label{sec-4-1}
-\begin{itemize}
-\item 这样，可以把所有自己继承类的报错去掉。可是因为还没能理解透彻，不知道先前的ETVoid 是为什么，现在会不会产生什么其它意外的错。作个记号。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[EnableClass]
-public abstract class AMActorHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorMessage {
-
-    // protected abstract ETTask Run(E entity, Message message);  // <<<<<<<<<<<<<<<<<<<< 
-    protected abstract void Run(E entity, Message message);  // 可以改成是自己想要的，返回类型，因为只有自已的继承类在使用，不影响其它 
-
-    public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
-        if (actorMessage is not Message msg) {
-            Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
-            return;
-        }
-        if (entity is not E e) {
-            Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
-            return;
-        }
-        await this.Run(e, msg);
-    }
-    public Type GetRequestType() {
-        if (typeof (IActorLocationMessage).IsAssignableFrom(typeof (Message))) {
-            Log.Error($"message is IActorLocationMessage but handler is AMActorHandler: {typeof (Message)}");
-        }
-        return typeof (Message);
-    }
-    public Type GetResponseType() {
-        return null;
-    }
-}
-\end{minted}
-\end{itemize}
-\subsection{IMActorHandler: 接口类的定义，同样要改}
-\label{sec-4-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public interface IMActorHandler {
-    // ETTask Handle(Entity entity, int fromProcess, object actorMessage);
-    void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的
-    Type GetRequestType();
-    Type GetResponseType();
-}
-\end{minted}
-
-
 \section{Protobuf 里的 enum: 【Identity】【Suits】【Weight】}
-\label{sec-5}
+\label{sec-4}
 \subsection{OuterMessage\_C\_10001.proto 里三四个类的定义}
-\label{sec-5-1}
+\label{sec-4-1}
 \begin{itemize}
 \item 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1229,7 +1181,7 @@ message Card {
 \end{minted}
 \end{itemize}
 \subsection{【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见}
-\label{sec-5-2}
+\label{sec-4-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 namespace ETModel {
 #region Enums
@@ -1266,7 +1218,7 @@ namespace ETModel {
 #region Messages
 \end{minted}
 \subsection{ET7 框架里， enum 完全找不到}
-\label{sec-5-3}
+\label{sec-4-3}
 \begin{itemize}
 \item 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
 \item 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】
@@ -1291,7 +1243,7 @@ message SearchRequest {
 \item 觉得这个，是目前最主要的 compile-error 的来源，但不是自己重构项目的重点，还是去看其它的。看如何重构现项目。这个晚上再弄。
 \end{itemize}
 \subsection{ETModel\_Card\_Binding: 奇异点，ILRuntime 热更新里，似乎对 Card 类的两个成员变量作了辅助链接}
-\label{sec-5-4}
+\label{sec-4-4}
 \begin{itemize}
 \item 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1319,19 +1271,19 @@ unsafe class ETModel_Card_Binding {
 
 
 \section{ET7 数据库相关【服务端】}
-\label{sec-6}
+\label{sec-5}
 \begin{itemize}
 \item 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
 \item 这里不急着整理。现框架 \textbf{DB 放在服务端的Model} 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
 \item 因为找不到任何参考使用的例子。我觉得需要搜索一下。在理解了参考项目数据库模块之后，根据搜索，决定是使用原参考项目总服务器代理系，还是这种相对改装了的管理区服系统？
 \end{itemize}
 \subsection{IDBCollection: 主要是方便写两个不同的数据库（好像是GeekServer 里两个数据库）。反正方便扩展吧}
-\label{sec-6-1}
+\label{sec-5-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IDBCollection {}
 \end{minted}
 \subsection{DBComponent: 带生成系。可以查表，查询数据}
-\label{sec-6-2}
+\label{sec-5-2}
 \begin{itemize}
 \item 它的生成系就是解决对数据库的CRUD 必要操作，单条信息的，或是批量处理的
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
@@ -1344,7 +1296,7 @@ public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
 \end{minted}
 \end{itemize}
 \subsection{DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？}
-\label{sec-6-3}
+\label{sec-5-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public class DBManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]
@@ -1353,7 +1305,7 @@ public class DBManagerComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{DBManagerComponentSystem: 主是要查询某个区服的数据库，从数组里}
-\label{sec-6-4}
+\label{sec-5-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(DBManagerComponent))]
 public static class DBManagerComponentSystem {
@@ -1383,7 +1335,7 @@ public static class DBManagerComponentSystem {
 }
 \end{minted}
 \subsection{DBProxyComponent: 【参考项目】里的。有生成系。}
-\label{sec-6-5}
+\label{sec-5-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 用来与数据库操作代理
 public class DBProxyComponent: Component {
@@ -1393,12 +1345,12 @@ public class DBProxyComponent: Component {
 
 
 \section{StartConfigComponent: 找【各种服】的起始初始化地址}
-\label{sec-7}
+\label{sec-6}
 \begin{itemize}
 \item 这些组群服务器的起始被全部重构了，重构成配置单例了
 \end{itemize}
 \subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
-\label{sec-7-1}
+\label{sec-6-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
     [StaticField]
@@ -1427,7 +1379,7 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
 }
 \end{minted}
 \subsection{StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge:}
-\label{sec-7-2}
+\label{sec-6-2}
 \begin{itemize}
 \item 当数据库集群成区服的形式，这里各服务器的配置，成了 ProtoBuf 里进程间可传的消息模式？。。。
 \item 这里配置是从哪里来的呢？仍然是从各种配置文件里
@@ -1486,7 +1438,7 @@ public partial class StartProcessConfig: ProtoObject, IConfig {
 \end{minted}
 \end{itemize}
 \subsection{SceneFactory 里可以给【匹配服】添加组件}
-\label{sec-7-3}
+\label{sec-6-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -1525,7 +1477,7 @@ public static class SceneFactory {
 }
 \end{minted}
 \subsection{RouterAddressComponent: 路由器组件}
-\label{sec-7-4}
+\label{sec-6-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [ComponentOf(typeof(Scene))]
 public class RouterAddressComponent: Entity, IAwake<string, int> {
@@ -1537,7 +1489,7 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
 }
 \end{minted}
 \subsection{RouterAddressComponentSystem: 路由器的生成系}
-\label{sec-7-5}
+\label{sec-6-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [FriendOf(typeof(RouterAddressComponent))]
 public static class RouterAddressComponentSystem {
@@ -1594,7 +1546,7 @@ public static class RouterAddressComponentSystem {
 \end{minted}
 
 \subsection{RouterHelper: 路由器帮助类，向路由器注册、申请？}
-\label{sec-7-6}
+\label{sec-6-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class RouterHelper {
     // 注册router
@@ -1669,7 +1621,7 @@ public static class RouterHelper {
 }
 \end{minted}
 \subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例}
-\label{sec-7-7}
+\label{sec-6-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class LoginHelper {
     public static async ETTask Login(Scene clientScene, string account, string password) {
@@ -1703,7 +1655,7 @@ public static class LoginHelper {
 }
 \end{minted}
 \subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
-\label{sec-7-8}
+\label{sec-6-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 [Message(OuterMessage.HttpGetRouterResponse)]
 [ProtoContract]
@@ -1717,9 +1669,9 @@ public partial class HttpGetRouterResponse: ProtoObject {
 
 
 \section{组件定义，再澄明，与去重}
-\label{sec-8}
+\label{sec-7}
 \subsection{OnlineComponent: 参考项目里的，现框架里查找一下}
-\label{sec-8-1}
+\label{sec-7-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 在线组件，用于记录在线玩家
 public class OnlineComponent : Entity {
@@ -1741,7 +1693,7 @@ public class OnlineComponent : Entity {
 }
 \end{minted}
 \subsection{框架Game 类：是单例的管理类，与服务端或是客户端的总、根场景无关}
-\label{sec-8-2}
+\label{sec-7-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class Game { // 框架的Game 类
     [StaticField]
@@ -1828,12 +1780,12 @@ public static class Game { // 框架的Game 类
 }
 \end{minted}
 \subsection{ET7 的重构，将数据库相关全部去掉了？找不到数据库的踪影？}
-\label{sec-8-3}
+\label{sec-7-3}
 \begin{itemize}
 \item 扔进什么狗屁的 AI 相关里去了。不用管，可以添加自己需要用到的
 \end{itemize}
 \subsection{GamerFactory: 【加工厂】全部移除掉}
-\label{sec-8-4}
+\label{sec-7-4}
 \begin{itemize}
 \item 工厂的逻辑，重构以后，全部放进了AUIEvent 的实例继承类里。全部移除掉
 \item 有个 Factory 的文件夹，是会全部移除掉的
@@ -1851,7 +1803,7 @@ public static class GamerFactory {
 
 
 \section{写在最后：反而是自己每天查看一再更新的}
-\label{sec-9}
+\label{sec-8}
 \begin{itemize}
 \item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 \item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
@@ -1863,7 +1815,7 @@ public static class GamerFactory {
 
 
 \section{现在的修改内容，记忆}
-\label{sec-10}
+\label{sec-9}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
@@ -1871,7 +1823,7 @@ public static class GamerFactory {
 
 
 \section{{\bfseries\sffamily TODO} }
-\label{sec-11}
+\label{sec-10}
 \begin{itemize}
 \item \textbf{Windows 下 org-mode 有几个【BUG：】} 1.org-mode 不能自动识别模式，除第一次加载可以正确，其它再加载不识别 org-mode; 2.org-export-to-pdf 在我换成为 msys64 里的 emacs 后就坏掉了。因为要花时间修，暂时还放着
 \item \textbf{【IStartSystem:】} 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 \textbf{【晚点儿再检查一遍】}
@@ -1890,7 +1842,7 @@ public static class GamerFactory {
 
 
 \section{拖拉机游戏：【重构OOP/OOD 设计思路】}
-\label{sec-12}
+\label{sec-11}
 \begin{itemize}
 \item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 \item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。
