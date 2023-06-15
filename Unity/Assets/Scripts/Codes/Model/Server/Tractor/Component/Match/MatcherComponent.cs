@@ -1,14 +1,12 @@
 ﻿using System.Linq;
 using System.Collections.Generic;
 namespace ET.Server {
-
     // 匹配对象管理组件
+    [ComponentOf(typeof(Scene))]
     public class MatcherComponent : Entity, IAwake {
-
         public Dictionary<long, Matcher> matchers = new Dictionary<long, Matcher>();
         // // 匹配对象数量
         // public int Count { get { return matchers.Count; } }
-
         // // 添加匹配对象
         // public void Add(Matcher matcher) {
         //     this.matchers.Add(matcher.UserID, matcher);

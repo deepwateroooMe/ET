@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 namespace ET.Server {
+
     [FriendOf(typeof(ActorMessageDispatcherComponent))] // Actor消息分发组件：对于管理器里的，对同一发送消息类型，不同场景下不同处理器的链表管理，多看几遍
     public static class ActorMessageDispatcherComponentHelper {
         [ObjectSystem]
@@ -32,10 +33,8 @@ namespace ET.Server {
             foreach (Type type in types) {
                 object obj = Activator.CreateInstance(type); // 加载时：框架封装，自动创建【消息处理器】实例
                 IMActorHandler imHandler = obj as IMActorHandler;
-                if (imHandler == null) {
+                if (imHandler == null) 
                     throw new Exception($"message handler not inherit IMActorHandler abstract class: {obj.GetType().FullName}");
-                }
-                
                 object[] attrs = type.GetCustomAttributes(typeof(ActorMessageHandlerAttribute), false);
                 foreach (object attr in attrs) {
                     ActorMessageHandlerAttribute actorMessageHandlerAttribute = attr as ActorMessageHandlerAttribute;
@@ -43,9 +42,8 @@ namespace ET.Server {
                     Type handleResponseType = imHandler.GetResponseType();// 因为消息处理接口的封装：可以拿到返回消息的类型
                     if (handleResponseType != null) {
                         Type responseType = OpcodeTypeComponent.Instance.GetResponseType(messageType);
-                        if (handleResponseType != responseType) {
+                        if (handleResponseType != responseType) 
                             throw new Exception($"message handler response type error: {messageType.FullName}");
-                        }
                     }
                     // 将必要的消息【发送类型】【返回类型】存起来，统一管理，备用
                     // 这里，对于同一发送消息类型, 是会、是可能存在【从不同的场景类型中返回，带不同的消息处理器】 以致于必须得链表管理
@@ -71,8 +69,12 @@ namespace ET.Server {
                 if (actorMessageDispatcherInfo.SceneType != sceneType)  // 场景不符就跳过
                     continue;
                 // 定位：是当前特定场景下的消息处理器，那么，就调用这个处理器，要它去干事。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
-                await actorMessageDispatcherInfo.IMActorHandler.Handle(entity, fromProcess, message);   
+                actorMessageDispatcherInfo.IMActorHandler.Handle(entity, fromProcess, message);   
             }
+            await ETTask.CompletedTask;
         }
     }
 }
+
+
+

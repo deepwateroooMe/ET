@@ -7,7 +7,7 @@ namespace ET.Server {
 		protected override async ETTask Run(Session session, C2G_LoginGate request, G2C_LoginGate response) {
             // G2C_LoginGate response = new G2C_LoginGate();
             // try {
-                string account = Root.Instance.Scene.GetComponent<GateSessionKeyComponent>().Get(message.Key);
+                string account = Root.Instance.Scene.GetComponent<GateSessionKeyComponent>().Get(request.Key);
                 if (account == null) {
                     response.Error = ErrorCore.ERR_ConnectGateKeyError;
                     response.Message = "Gate key验证失败!";

@@ -15,7 +15,7 @@ namespace ET.Server {
                 }
                 // 查询用户信息: 【数据库相关的部分】：是自己还没能弄懂、没能整合进来的模块。查找一下原版本，是否有此类。我自己添加的游戏逻辑
                 DBProxyComponent dbProxyComponent = Root.Instance.Scene.GetComponent<DBProxyComponent>(); // 组件的场景，可能没写对。。。
-                UserInfo userInfo = await dbProxyComponent.Query<UserInfo>(message.UserID, false); // 重复文件？ UserInfo
+                UserInfo userInfo = await dbProxyComponent.Query<UserInfo>(request.UserID, false); // 重复文件？ UserInfo
                 response.NickName = userInfo.NickName;
                 response.Wins = userInfo.Wins;
                 response.Loses = userInfo.Loses;

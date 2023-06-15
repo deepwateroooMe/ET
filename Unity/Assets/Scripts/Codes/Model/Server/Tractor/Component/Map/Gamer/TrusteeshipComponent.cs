@@ -1,6 +1,6 @@
 ﻿namespace ET.Server {
-
     // 托管组件，逻辑在TrusteeshipComponentSystem扩展
+    [ComponentOf(typeof(Gamer))]
     public class TrusteeshipComponent : Entity, IAwake, IStart {
         public bool Playing { get; set; }
 

@@ -2,9 +2,9 @@
 using ET;
 namespace ET.Server {
     [MessageHandler(SceneType.Match)]
+    [FriendOfAttribute(typeof(ET.Server.MatchComponent))]
     public class MP2MH_PlayerExitRoom_ReqHandler : AMRpcHandler<MP2MH_PlayerExitRoom_Req, MH2MP_PlayerExitRoom_Ack> {
-
-		protected override ETTask Run(Session session, MP2MH_PlayerExitRoom_Req request, MH2MP_PlayerExitRoom_Ack response) {
+        protected override ETTask Run(Session session, MP2MH_PlayerExitRoom_Req request, MH2MP_PlayerExitRoom_Ack response) {
             MatchRoomComponent matchRoomComponent = Root.Instance.Scene.GetComponent<MatchRoomComponent>();
             Room room = matchRoomComponent.Get(message.RoomID);
             // 移除玩家对象
@@ -18,5 +18,5 @@ namespace ET.Server {
                 Log.Info($"回收房间{room.Id}");
             }
         }
-	}
+    }
 }
