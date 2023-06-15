@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 namespace ET {
-    public enum TimerClass {
-        None,
-        OnceTimer,
-        OnceWaitTimer,
-        RepeatedTimer,
+    // 计时器：所涉及的方方面面
+    public enum TimerClass { // 类型：
+        None,      // 无
+        OnceTimer, // 一次性
+        OnceWaitTimer,  // 一次性要等待的计时器
+        RepeatedTimer,  // 重复性、周期性计时器
     }
     public class TimerAction {
         public static TimerAction Create(long id, TimerClass timerClass, long startTime, long time, int type, object obj) {
@@ -18,13 +19,11 @@ namespace ET {
             return timerAction;
         }
         public long Id;
-        
         public TimerClass TimerClass;
         public object Object;
         public long StartTime;
         public long Time;
         public int Type;
-        
         public void Recycle() {
             this.Id = 0;
             this.Object = null;
@@ -35,10 +34,10 @@ namespace ET {
             ObjectPool.Instance.Recycle(this);
         }
     }
-    public struct TimerCallback {
+    public struct TimerCallback { // 在标签系中会用到计时器的回调
         public object Args;
     }
-    public class TimerComponent: Singleton<TimerComponent>, ISingletonUpdate {
+    public class TimerComponent: Singleton<TimerComponent>, ISingletonUpdate { // 单例计时组件，使用时，拿单例的 Instance: TimerComponent.Instance.方法名
         // key: time, value: timer id
         private readonly MultiMap<long, long> TimeId = new();
         private readonly Queue<long> timeOutTime = new();
@@ -89,24 +88,24 @@ namespace ET {
         }
         private void Run(TimerAction timerAction) {
             switch (timerAction.TimerClass) {
-            case TimerClass.OnceTimer: {
-                EventSystem.Instance.Invoke(timerAction.Type, new TimerCallback() { Args = timerAction.Object });
-                timerAction.Recycle();
-                break;
-            }
-            case TimerClass.OnceWaitTimer: {
-                ETTask tcs = timerAction.Object as ETTask;
-                tcs.SetResult();
-                timerAction.Recycle();
-                break;
-            }
-            case TimerClass.RepeatedTimer: {                    
-                long timeNow = GetNow();
-                timerAction.StartTime = timeNow;
-                this.AddTimer(timerAction);
-                EventSystem.Instance.Invoke(timerAction.Type, new TimerCallback() { Args = timerAction.Object });
-                break;
-            }
+                case TimerClass.OnceTimer: {
+                    EventSystem.Instance.Invoke(timerAction.Type, new TimerCallback() { Args = timerAction.Object });
+                    timerAction.Recycle();
+                    break;
+                }
+                case TimerClass.OnceWaitTimer: {
+                    ETTask tcs = timerAction.Object as ETTask;
+                    tcs.SetResult();
+                    timerAction.Recycle();
+                    break;
+                }
+                case TimerClass.RepeatedTimer: {                    
+                    long timeNow = GetNow();
+                    timerAction.StartTime = timeNow;
+                    this.AddTimer(timerAction);
+                    EventSystem.Instance.Invoke(timerAction.Type, new TimerCallback() { Args = timerAction.Object });
+                    break;
+                }
             }
         }
         private void AddTimer(TimerAction timer) {

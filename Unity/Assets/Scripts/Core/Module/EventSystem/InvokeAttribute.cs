@@ -1,11 +1,7 @@
-﻿namespace ET
-{
-    public class InvokeAttribute: BaseAttribute
-    {
+﻿namespace ET {
+    public class InvokeAttribute: BaseAttribute {
         public int Type { get; }
-
-        public InvokeAttribute(int type = 0)
-        {
+        public InvokeAttribute(int type = 0) {
             this.Type = type;
         }
     }

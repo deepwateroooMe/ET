@@ -1,4 +1,4 @@
-% Created 2023-06-10 Sat 14:30
+% Created 2023-06-15 Thu 11:37
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -45,8 +45,8 @@
 public readonly struct ActorMessageSender {
     public long ActorId { get; }
     public long CreateTime { get; } // 最近接收或者发送消息的时间
-    public IActorRequest Request { get; }
-    public bool NeedException { get; }
+    public IActorRequest Request { get; }      // 结构体，也自动封装了，发送的消息
+    public bool NeedException { get; }         // 这上下三行：就帮助实现，返回消息的自动回复的结构包装
     public ETTask<IActorResponse> Tcs { get; } // <<<<<<<<<<<<<<<<<<<< 精华在这里：因为内部自带一个IActorResponse 的异步任务成员变量，可以帮助实现异步消息的自动回复
     public ActorMessageSender(long actorId, IActorRequest iActorRequest, ETTask<IActorResponse> tcs, bool needException) { // tv ... 
         this.ActorId = actorId;
@@ -58,67 +58,90 @@ public readonly struct ActorMessageSender {
 }
 \end{minted}
 \end{itemize}
-\subsection{ActorMessageSenderComponent:}
+\subsection{ActorMessageSenderComponent: 这个组件里有个计时器自动计时的超时时段、特定超时类型的超时时长成员变量}
 \label{sec-1-2}
+\begin{itemize}
+\item 超时时间：这个组件有计时器自动计时和超时激活的逻辑，这里定义了这个组件类型的超时时长，在ActorMessageSenderComponentSystem.cs 文件的 \textbf{【Invoke(TimerInvokeType.ActorMessageSenderChecker)】} 标注的ActorMessageSenderChecker 里会用到，检测超时与否
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
-    public const long TIMEOUT_TIME = 40 * 1000;
+// 超时时间：这个组件有计时器自动计时和超时激活的逻辑，这里定义了这个组件类型的超时时长，在【Invoke(TimerInvokeType.ActorMessageSenderChecker)】标注的ActorMessageSenderChecker 里会用到，检测超时与否
+    public const long TIMEOUT_TIME = 40 * 1000; 
     public static ActorMessageSenderComponent Instance { get; set; }
     public int RpcId;
+// 下面：这么理解： ET7 里是组件就是一个管理类，管理了对所有：不同 rpc-id 的消息发送器，所以有序字典管理，方便添加与移除
     public readonly SortedDictionary<int, ActorMessageSender> requestCallback = new SortedDictionary<int, ActorMessageSender>();
     public long TimeoutCheckTimer;
     public List<int> TimeoutActorMessageSenders = new List<int>();
 }
 \end{minted}
+\end{itemize}
 \subsection{ActorMessageSenderComponentSystem: 这个类ETTask 的细节，要再多看几遍}
 \label{sec-1-3}
 \begin{itemize}
 \item 这个类，可以看见ET7 框架更为系统化、消息机制的更为往底层或说更进一步的封装，就是今天下午看见的，以前的 handle() 或是 run() 方法，或回调实例 Action<T> reply, 现在的封装里，这些什么创建回复实例之类的，全部封装到了管理器或是帮助类
 \item 比如这里， check() 方法里，返回消息的实例，已经是自动化系统化地封装了
 \item 如果发向同一个进程，则直接处理，不需要通过网络层。内网组件处理内网消息：这个分支可以再跟一下源码，理解一下重构的事件机制流程
+\item 这个生成系，前半部分的计时器消息超时检测，看懂了；后半部分，还没看懂连能。今天上午能连多少连多少
+\item 后产部分：是消息发送组件的相对底层逻辑。上层逻辑连通内外网消息，消息处理器，和读到消息发布事件后的触发调用等几个类。要把它们的连通流通原理弄懂。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(ActorMessageSenderComponent))]
 public static class ActorMessageSenderComponentSystem {
-    [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系
+    // 要怎么理解这个消息发送超时检测中间过程步骤呢？
+    // 它自带个计时器，就是说，当服务器繁忙处理不过来，它就极有可能会自动超时，若是超时了，就返回个超时消息回去发送者告知一下，必要时它可以重发。而不超时，就正常基本流程处理了
+    // 那么，它就是一个服务端超负载下的自动减压逻辑
+    [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系: 它标记说，这个激活系类，是 XXX 类型；紧跟着，就定义这个 XXX 类型的激活系类
     public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
-        protected override void Run(ActorMessageSenderComponent self) {
+        protected override void Run(ActorMessageSenderComponent self) { // 申明方法的接口是：ATimer<T> 抽象实现类，它实现了 AInvokeHandler<TimerCallback>
             try {
-                self.Check();
-            }
-            catch (Exception e) {
+                self.Check(); // 调用组件自己的方法
+             } catch (Exception e) {
                 Log.Error($"move timer error: {self.Id}\n{e}");
             }
         }
     }
-    // [ObjectSystem]// 这里把Awake() Destroy() 方法跳过，不是重点
-// 下面的方法是：帮助发送回复消息？好像不对，感觉异步任务结果已经出来了，只差最后写结果的步骤。结果是什么时候执行的？
-    private static void Run(ActorMessageSender self, IActorResponse response) { // 传进来的参数：是一个IActorResponse 实例 
-        if (response.Error == ErrorCore.ERR_ActorTimeout) {
+// 下面的方法是：帮助发送回复消息？好像不对，感觉异步任务结果已经出来了，只差最后写结果的步骤。
+// 下面的方法是：回复消息是怎么发回去的？回复消息，只有最小初始化？从来不会有任何特异性？ 
+// 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量）、【写了个半好】的结果。结果还没写进异步任务里，待写；返回消息，待发送
+    private static void Run(ActorMessageSender self, IActorResponse response) { 
+        // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout, 所以会从发送消息超时异常里抛出异常，不用发送错误码【消息】回去，是抛异常
+        if (response.Error == ErrorCore.ERR_ActorTimeout) { // 写：发送消息超时异常。因为同步到异步任务 ETTask 里，所以异步任务模块 ETTask会自动抛出异常
             self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
             return;
         }
-        // ActorMessageSenderComponent 一个组件，一次只执行一个（返回）消息发送任务，成员变量永远只管当前任务，也是因为Actor 机制是并行的，一个使者一次只能发一个消息 ...
-        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常，就先抛异常
+        // ETTask 模块的自动抛出异常：与当前发送消息超时过滤器里的异常逻辑相互独立？
+        // 【没想明白：】这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用。什么情况下的调用，会走到下面的分支？
+        // ActorMessageSenderComponent 一个组件，一次只执行一个（返回）消息发送任务，成员变量永远只管当前任务，
+        // 也是因为Actor 机制是并行的，一个使者一次只能发一个消息 ...
+        // 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？这里没懂
+        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常（判断条件：消息要抛异常否？是否真有异常？），就先抛异常
             self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
             return;
         }
-        self.Tcs.SetResult(response); // 写结果：把异步任务的状态设置为完成，并触发必要的非空回调订阅者
+        self.Tcs.SetResult(response); // 【写结果】：将【写了个半好】的消息，写进同步到异步任务的结果里；把异步任务的状态设置为完成；并触发必要的非空回调到发送者
+        // 上面【异步任务 ETTask.SetResult()】，会调用注册过的一个回调，所以ETTask 封装，设置结果这一步，会自动触发调用注册过的一个回调（如果没有设置回调，因为空，就不会调用）
+        // 【掉线的是】：ETTask.SetResult() 异步任务写结果了，非空回调是会调用。非空回调是什么，是把返回消息发回去吗？整个流程没能连通。
+        // 再去想 IMHandler: 它是消息处理器。问题就变成是，当返回消息写好了，写好了一个完整的可以发送、待发送的消息，谁来处理的？
+        // 这个服，这个自带计时器减压装配装置自带的消息处理器逻辑会处理？【这个逻辑在哪里，要找出来！！！】要不然，就没理解透彻。
     }
     private static void Check(this ActorMessageSenderComponent self) {
         long timeNow = TimeHelper.ServerNow();
         foreach ((int key, ActorMessageSender value) in self.requestCallback) {
             // 因为是顺序发送的，所以，检测到第一个不超时的就退出
+            // 超时触发的激活逻辑：是有至少一个超时的消息，才会【激活触发检测】；而检测到第一个不超时的，就退出下面的循环。
             if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
                 break;
             self.TimeoutActorMessageSenders.Add(key);
         }
-        foreach (int rpcId in self.TimeoutActorMessageSenders) {
+// 超时触发的激活逻辑：是有至少一个超时的消息，才会【激活触发检测】；而检测到第一个不超时的，就退出上面的循环。
+// 检测到第一个不超时的，理论上说，一旦有一个超时消息就会触发超时检测，但实际使用上，可能存在当检测逻辑被触发走到这里，实际中存在两个或是再多一点儿的超时消息？
+        foreach (int rpcId in self.TimeoutActorMessageSenders) { // 一一遍历【超时了的消息】 :
             ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
             self.requestCallback.Remove(rpcId);
-            try {
+            try { // ActorHelper.CreateResponse() 框架系统性的封装：也是通过对消息的发送类型与对应的回复类型的管理，使用帮助类，自动根据类型统一创建回复消息的实例
+                // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout
                 IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
-                Run(actorMessageSender, response);
+                Run(actorMessageSender, response); // 猜测：方法逻辑是，把回复消息发送给对应的接收消息的 rpcId
             }
             catch (Exception e) {
                 Log.Error(e.ToString());
@@ -126,6 +149,15 @@ public static class ActorMessageSenderComponentSystem {
         }
         self.TimeoutActorMessageSenders.Clear();
     }
+    // public static class ActorHelper {// 接上面 ActorHelper.CreateResponse() 用作参考
+    //     public static IActorResponse CreateResponse(IActorRequest iActorRequest, int error) {
+    //         Type responseType = OpcodeTypeComponent.Instance.GetResponseType(iActorRequest.GetType()); // 框架系统管理里，去拿返回消息的类型
+    //         IActorResponse response = (IActorResponse)Activator.CreateInstance(responseType); // 创建一个返回消息的实例 instance 
+    //         response.Error = error; // 写实例的出错结果、类型
+    //         response.RpcId = iActorRequest.RpcId; // 返回消息的接收者 RpcId: 实际就是，消息是谁发来的，就返回消息给谁呀
+    //         return response; // 返回这个最小初始化过的特定类型消息实例
+    //     }
+    // }
     public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息 
         if (actorId == 0) {
             throw new Exception($"actor id is 0: {message}");
@@ -179,18 +211,21 @@ public static class ActorMessageSenderComponentSystem {
         }
         return response;
     }
-    // 下面方法：处理IActorResponse 消息，也就是，发回复消息给收消息的人XX, 那么谁发，怎么发，就是这个方法的定义
-    public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
-        ActorMessageSender actorMessageSender;
+// 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？去搜索下面调用 Run() 方法的正常结果消息的调用处理频率。。。
+// 【ActorHandleHelper 帮助类】：老是调用这里的方法，要去查那个文件。【本质：内网消息处理器的处理逻辑，一旦是返回消息，就会调用 ActorHandleHelper, 会调用这个方法来处理返回消息】        
+// 下面方法：处理IActorResponse 消息，也就是，发回复消息给收消息的人XX, 那么谁发，怎么发，就是这个方法的定义
+        public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
+            ActorMessageSender actorMessageSender;
 // 下面取、实例化 ActorMessageSender 来看，感觉收消息的 rpcId, 与消息发送者 ActorMessageSender 成一一对应关系。上面的Call() 方法里，创建实例化消息发送者就是这么创始垢 
-        if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) { // 这里取不到，是说，这个返回消息的发送已经被处理了？
-            return;
+            if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) { // 这里取不到，是说，这个返回消息的发送已经被处理了？
+                return;
+            }
+            self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除
+            Run(actorMessageSender, response); // <<<<<<<<<<<<<<<<<<<< 
         }
-        self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除
-        Run(actorMessageSender, response);
     }
-}
 \end{minted}
+\item 几个类弄懂： ActorHandleHelper, 以及再上面的，NetInnerComponentOnReadEvent 事件发布等，上层调用的几座桥连通了，才算把整个流程弄懂了。
 \end{itemize}
 \subsection{LocationProxyComponent: 这个代理，什么情况下会用到？}
 \label{sec-1-4}
@@ -523,6 +558,11 @@ public enum MailboxType {
 \end{minted}
 \subsection{【服务端】ActorHandleHelper 帮助类。【需要去深挖一下】}
 \label{sec-1-16}
+\begin{itemize}
+\item 读了ActorMessageSenderComponentSystem.cs 的具体的消息内容处理、发送，以及计时器消息的超时自动抛超时错误码过滤等底层逻辑处理，
+\item 读上下面的顶层的 NetInnerComponentOnReadEvent.cs 的顶层某个某些服，读到消息后的消息处理逻辑
+\item 知道，当前帮助类，就是衔接上面的两条顶层调用，与底层具体处理逻辑的桥，把框架上中下层连接连通起来。
+\item 分析这个类，应该可以理解底层不同逻辑方法的前后调用关系，消息处理的逻辑模块先后顺序，以及必要的可能的调用频率，或调用上下文情境等。明天上午再看一下
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class ActorHandleHelper {
     public static void Reply(int fromProcess, IActorResponse response) {
@@ -619,6 +659,44 @@ public static class ActorHandleHelper {
         default:
             throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
         }
+    }
+}
+\end{minted}
+\end{itemize}
+\subsection{NetInnerComponentOnReadEvent:}
+\label{sec-1-17}
+\begin{itemize}
+\item 框架相对顶层的：某个某些服，读到消息后，发布读到消息事件后，触发的消息处理逻辑
+\item 这个，应该是服务端发布读事件后，触发的订阅者处理读到消息的回调逻辑：分消息类型，进行不同的处理
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 这个，应该是服务端发布读事件后，触发的订阅者处理读到消息的回调逻辑：分消息类型，进行不同的处理
+[Event(SceneType.Process)]
+public class NetInnerComponentOnReadEvent: AEvent<NetInnerComponentOnRead> {
+    protected override async ETTask Run(Scene scene, NetInnerComponentOnRead args) {
+        try {
+            long actorId = args.ActorId;
+            object message = args.Message;
+            // 收到actor消息,放入actor队列
+            switch (message) { // 分不同的消息类型，借助 ActorHandleHelper 帮助类，对消息进行处理。既处理【请求消息】，也处理【返回消息】，还【普通消息】
+                case IActorResponse iActorResponse: {
+                    ActorHandleHelper.HandleIActorResponse(iActorResponse);
+                    break;
+                }
+                case IActorRequest iActorRequest: {
+                    await ActorHandleHelper.HandleIActorRequest(actorId, iActorRequest);
+                    break;
+                }
+                case IActorMessage iActorMessage: {
+                    await ActorHandleHelper.HandleIActorMessage(actorId, iActorMessage);
+                    break;
+                }
+            }
+        }
+        catch (Exception e) {
+            Log.Error($"InnerMessageDispatcher error: {args.Message.GetType().Name}\n{e}");
+        }
+        await ETTask.CompletedTask;
     }
 }
 \end{minted}
@@ -1301,94 +1379,10 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 \item 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
 \end{itemize}
 
-\section{不同的消息或是任务处理器类型}
-\label{sec-7}
-\subsection{interface IMActorHandler 接口类}
-\label{sec-7-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-public interface IMActorHandler {
-    // ETTask Handle(Entity entity, int fromProcess, object actorMessage); 
-    void Handle(Entity entity, int fromProcess, object actorMessage); // 自已改成这样的：【返回类型
-    Type GetRequestType();
-    Type GetResponseType();
-}
-\end{minted}
-\subsection{AMHandler<Message>: IMHandler}
-\label{sec-7-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-public abstract class AMHandler<Message>: IMHandler where Message : class {
-    // protected abstract ETTask Run(Session session, Message message);
-    protected abstract void Run(Session session, Message message);
-    public void Handle(Session session, object msg) {
-        Message message = msg as Message;
-        if (message == null) {
-            Log.Error($"消息类型转换错误: {msg.GetType().Name} to {typeof (Message).Name}");
-            return;
-        }
-        if (session.IsDisposed) {
-            Log.Error($"session disconnect {msg}");
-            return;
-        }
-        this.Run(session, message).Coroutine();
-    }
-    public Type GetMessageType() {
-        return typeof (Message);
-    }
-    public Type GetResponseType() {
-        return null;
-    }
-}
-\end{minted}
-\subsection{AMActorRpcHandler<E, Request, Response>: IMActorHandler void|ETTask 分不清}
-\label{sec-7-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[EnableClass]
-public abstract class AMActorRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorRequest where Response : class, IActorResponse {
-    // protected abstract ETTask Run(E unit, Request request, Response response);
-    protected abstract void Run(E unit, Request request, Response response);
-    public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
-        try {
-            if (actorMessage is not Request request) {
-                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
-                return;
-            }
-            if (entity is not E ee) {
-                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
-                return;
-            }
-            int rpcId = request.RpcId;
-            Response response = Activator.CreateInstance<Response>();
-            try {
-                // await this.Run(ee, request, response);
-                this.Run(ee, request, response);
-            }
-            catch (Exception exception) {
-                Log.Error(exception);
-                response.Error = ErrorCore.ERR_RpcFail;
-                response.Message = exception.ToString();
-            }
-            response.RpcId = rpcId;
-            ActorHandleHelper.Reply(fromProcess, response);
-        }
-        catch (Exception e) {
-            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
-        }
-    }
-    public Type GetRequestType() {
-        if (typeof (IActorLocationRequest).IsAssignableFrom(typeof (Request)))
-            Log.Error($"message is IActorLocationMessage but handler is AMActorRpcHandler: {typeof (Request)}");
-        return typeof (Request);
-    }
-    public Type GetResponseType() {
-        return typeof (Response);
-    }
-}
-\end{minted}
-
 \section{Unit:}
-\label{sec-8}
+\label{sec-7}
 \subsection{UnitGateComponent:}
-\label{sec-8-1}
+\label{sec-7-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Unit))]
 public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
@@ -1396,7 +1390,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
 }
 \end{minted}
 \subsection{UnitGateComponentSystem}
-\label{sec-8-2}
+\label{sec-7-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitGateComponentSystem {
     public class UnitGateComponentAwakeSystem : AwakeSystem<UnitGateComponent, long> {
@@ -1408,12 +1402,12 @@ public static class UnitGateComponentSystem {
 \end{minted}
 
 \section{ET7 框架以及【参考项目】的ECS：小单元小类型的生成系，是怎么写的，找例子参考}
-\label{sec-9}
+\label{sec-8}
 \begin{itemize}
 \item 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
 \end{itemize}
 \subsection{IComponentSerialize:}
-\label{sec-9-1}
+\label{sec-8-1}
 \begin{itemize}
 \item ET7 的重构里，系统框架比较强大，这些必要的接口，都变成了必要的标签系，狠多可以自动系统触发或是调用。必要时只需要必布必要事件就可以了
 \item 这个接口的功能，与 Unity 自带的 ISerializationCallbackReceiver 功能类似。Unity 提供两个回调接口，通过实现该接口的两个方法OnBeforeSerialize 和 OnAfterDeserialize，使得原本不能被引擎正确序列化的类可以按照程序员的要求被加工成引擎能够序列化的类型。
@@ -1459,7 +1453,7 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
 \end{minted}
 
 \subsection{ClientComponent:【参考项目】客户端组件，找个ET7 里的组件}
-\label{sec-9-2}
+\label{sec-8-2}
 \begin{itemize}
 \item 这个组件，感觉是客户端单例，帮助把本地玩家给绑定到客户端单例。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -1480,7 +1474,7 @@ public class ClientComponent : Component {
 \end{itemize}
 
 \section{Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】}
-\label{sec-10}
+\label{sec-9}
 \begin{itemize}
 \item 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
 \item 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
