@@ -3,9 +3,10 @@ using ET;
 namespace ET.Server {
     [MessageHandler(SceneType.Gate)]
     public class C2G_LoginGateHandler : AMRpcHandler<C2G_LoginGate, G2C_LoginGate> {
-        protected override void Run(Session session, C2G_LoginGate message, Action<G2C_LoginGate> reply) {
-            G2C_LoginGate response = new G2C_LoginGate();
-            try {
+        // protected override void Run(Session session, C2G_LoginGate message, Action<G2C_LoginGate> reply) { // 真是哭死：又是自己先前不懂，改坏掉的。。改的时候为什么没想一下？
+		protected override async ETTask Run(Session session, C2G_LoginGate request, G2C_LoginGate response) {
+            // G2C_LoginGate response = new G2C_LoginGate();
+            // try {
                 string account = Root.Instance.Scene.GetComponent<GateSessionKeyComponent>().Get(message.Key);
                 if (account == null) {
                     response.Error = ErrorCore.ERR_ConnectGateKeyError;
@@ -19,13 +20,13 @@ Player player = playerComponent.AddChild<Player, string>(account);
                 session.AddComponent<SessionPlayerComponent>().PlayerId = player.Id;
                 session.AddComponent<MailBoxComponent, MailboxType>(MailboxType.GateSession);
                 response.PlayerId = player.Id;
-                // await ETTask.CompletedTask;
-                reply(response);
-                session.Send(new G2C_TestHotfixMessage() { Info = "recv hotfix message success" });
-            }
-            catch (Exception e) {
-                ReplyError(response, e, reply);
-            }
+                await ETTask.CompletedTask;
+            //     reply(response);
+            //     session.Send(new G2C_TestHotfixMessage() { Info = "recv hotfix message success" });
+            // }
+            // catch (Exception e) {
+            //     ReplyError(response, e, reply);
+            // }
         }
-    }
+	}
 }

@@ -1,7 +1,8 @@
 ﻿namespace ET.Server {
     // 【没弄明白：】为什么现框架，把它精减到这么小了，只带一个变量。也就是说，只有这一个变量是必要的
     // 这里，我不能再照模仿原参考项目的，因为新的封装里，把消息的发送等封装到了底层。若我要拿 ActorMessageSender, 我是需要去 ActorMessageSenderComponent 组件里去拿的，不必加方法？
-    // [ComponentOf(typeof(Unit))]
+
+    // [ComponentOf(typeof(Unit))]// 意思说：我还没能找到一个方法，可以定义这个 UnitGateComponent 成为多个不同Entity 的元件？
     [ComponentOf(typeof(Gamer))]
     public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
 

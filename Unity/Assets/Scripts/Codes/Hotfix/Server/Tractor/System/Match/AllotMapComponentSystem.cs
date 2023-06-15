@@ -9,7 +9,7 @@ namespace ET.Server {
     [FriendOf(typeof(AllotMapComponent))]
     public static class AllotMapComponentSystem {
         public static void Start(this AllotMapComponent self) {
-            StartConfig[] startConfigs = self.GetParent<Entity>().GetComponent<StartConfigComponent>().GetAll();
+            StartConfig[] startConfigs = self.GetParent<Entity>().GetComponent<StartConfigComponent>().GetAll();// 这个组件被改了。。。
             foreach (StartConfig config in startConfigs) {
                 if (!config.AppType.Is(AppType.Map)) {
                     continue;

@@ -1,11 +1,11 @@
 ﻿using System;
 namespace ET.Server {
-    [EnableClass]
+    [EnableClass] // 接口仍被自己弄得乱七八糟的。。。
     public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
         // protected abstract ETTask Run(E unit, Request request, Response response);
         protected abstract void Run(E unit, Request request, Response response);
-        // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
         public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        // public void Handle(Entity entity, int fromProcess, object actorMessage) {
             try {
                 if (actorMessage is not Request request) {
                     Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
@@ -19,7 +19,7 @@ namespace ET.Server {
                 Response response = Activator.CreateInstance<Response>();
                 try {
                     //await this.Run(ee, request, response);
-                    this.Run(ee, request, response);
+                    this.Run(ee, request, response); // 这里是，不对呀。。。
                 }
                 catch (Exception exception) {
                     Log.Error(exception);

@@ -3,8 +3,7 @@ using System.Net;
 namespace ET.Server {
     [MessageHandler(SceneType.Gate)] // 玩家申请什么进房间出厅全是与【地图服】交互
     public class C2G_ReturnLobby_NttHandler : AMHandler<C2G_ReturnLobby_Ntt> {
-
-        protected override async void Run(Session session, C2G_ReturnLobby_Ntt message) {
+        protected override async ETTask Run(Session session, C2G_ReturnLobby_Ntt message) {
             // 验证Session
             if (!GateHelper.SignSession(session)) {
                 return;

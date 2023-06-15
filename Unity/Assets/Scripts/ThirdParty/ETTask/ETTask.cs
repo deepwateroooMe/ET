@@ -105,7 +105,8 @@ namespace ET {
             this.callback = ExceptionDispatchInfo.Capture(e);
             c?.Invoke();
         }
-    }
+		// public static ETTask CompletedTask() => throw new NotImplementedException();// 这种，一定查自己不小心干的！！！
+	}
     [AsyncMethodBuilder(typeof (ETAsyncTaskMethodBuilder<>))]
     public class ETTask<T>: ICriticalNotifyCompletion {
         private static readonly Queue<ETTask<T>> queue = new Queue<ETTask<T>>();

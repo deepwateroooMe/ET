@@ -8,10 +8,10 @@ namespace ET.Server {
     public class Actor_GamerPlayCard_ReqHandler : AMActorRpcHandler<Gamer, Actor_GamerPlayCard_Req, Actor_GamerPlayCard_Ack> {
     // protected override void Run(Gamer unit, Actor_GamerPlayCard_Req request, Actor_GamerPlayCard_Ack response) => throw new NotImplementedException();
         // protected override async Task Run(Gamer gamer, Actor_GamerPlayCard_Req message, Action<Actor_GamerPlayCard_Ack> reply) {
-		protected override void Run(Gamer gamer, Actor_GamerPlayCard_Req request, Actor_GamerPlayCard_Ack reply) {
+		protected override async ETTask Run(Gamer gamer, Actor_GamerPlayCard_Req request, Actor_GamerPlayCard_Ack response) {
         // protected override void Run(Gamer gamer, Actor_GamerPlayCard_Req request, Action<Actor_GamerPlayCard_Ack> reply) {
-            Actor_GamerPlayCard_Ack response = new Actor_GamerPlayCard_Ack();
-            try {
+            // Actor_GamerPlayCard_Ack response = new Actor_GamerPlayCard_Ack();
+            // try {
                 // Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID); // 它这里，RoomComponent 与RoomSystem 是相互生成系。。
                 Room room = RoomComponentSystem.Get(gamer.RoomID); // 这里有点儿不知道怎么改，先放一下
                 GameControllerComponent gameController = room.GetComponent<GameControllerComponent>();
@@ -47,12 +47,12 @@ namespace ET.Server {
                         }
                     } else {
                         response.Error = ErrorCode.ERR_PlayCardError;
-                        reply(response);
+                        // reply(response);
                         return;
                     }
                 } else {
                     response.Error = ErrorCode.ERR_PlayCardError;
-                    reply(response);
+                    // reply(response);
                     return;
                 }
                 // 如果符合将牌从手牌移到出牌缓存区
@@ -63,15 +63,16 @@ namespace ET.Server {
                     handCards.PopCard(card);
                     deskCardsCache.AddCard(card);
                 }
-                reply(response);
+                // reply(response);
                 // 转发玩家出牌消息
                 room.Broadcast(new Actor_GamerPlayCard_Ntt() { UserID = gamer.UserID, Cards = request.Cards });
                 // 游戏控制器继续游戏
                 gameController.Continue(gamer);
-            }
-            catch (Exception e) {
-                ReplyError(response, e, reply);
-            }
+                await ETTask.CompletedTask; // 这里返回什么消编译错误
+            // }
+            // catch (Exception e) {
+            //     ReplyError(response, e, reply);
+            // }
         }
 	}
 }

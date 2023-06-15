@@ -4,7 +4,7 @@ namespace ET.Server {
     public abstract class AMActorLocationHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorLocationMessage {
         // protected abstract ETTask Run(E entity, Message message);
         // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
-        protected abstract void Run(E entity, Message message);
+        protected abstract ETTask Run(E entity, Message message);
         public void Handle(Entity entity, int fromProcess, object actorMessage) {
             if (actorMessage is not Message message) {
                 Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
@@ -16,8 +16,8 @@ namespace ET.Server {
             }
             ActorResponse response = new() {RpcId = message.RpcId};
             ActorHandleHelper.Reply(fromProcess, response);
-            // await this.Run(e, message);
-            this.Run(e, message);
+           //await this.Run(e, message);
+            this.Run(e, message).Coroutine(); // 不知道这里，被自己改得对不对？
         }
         public Type GetRequestType() {
             return typeof (Message);

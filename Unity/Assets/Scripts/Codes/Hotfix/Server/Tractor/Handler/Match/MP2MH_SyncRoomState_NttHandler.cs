@@ -6,7 +6,7 @@ namespace ET.Server {
     [MessageHandler(SceneType.Match)]
     public class MP2MH_SyncRoomState_NttHandler : AMHandler<MP2MH_SyncRoomState_Ntt> {
 
-        protected override void Run(Session session, MP2MH_SyncRoomState_Ntt message) {
+        protected override async ETTask Run(Session session, MP2MH_SyncRoomState_Ntt message) {
             MatchRoomComponent matchRoomComponent = Root.Instance.Scene.GetComponent<MatchRoomComponent>();
             Room room = matchRoomComponent.Get(message.RoomID);
             // 同步房间状态
@@ -20,6 +20,7 @@ namespace ET.Server {
                     matchRoomComponent.RoomEndGame(room.Id);
                     break;
             }
+            await ETTask.CompletedTask;
         }
     }
 }

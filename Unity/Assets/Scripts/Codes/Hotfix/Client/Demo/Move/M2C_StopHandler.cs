@@ -2,9 +2,8 @@
 namespace ET.Client {
     [MessageHandler(SceneType.Client)]
     public class M2C_StopHandler : AMHandler<M2C_Stop> {
-
-        // protected override async ETTask Run(Session session, M2C_Stop message) {
-        protected override void Run(Session session, M2C_Stop message) {
+        // protected override void Run(Session session, M2C_Stop message) { // 怎么就被自己改成这样的了呢？。。。
+        protected override async ETTask Run(Session session, M2C_Stop message) {
             Unit unit = session.DomainScene().CurrentScene().GetComponent<UnitComponent>().Get(message.Id);
             if (unit == null) {
                 return;
@@ -14,7 +13,7 @@ namespace ET.Client {
             unit.Position = message.Position;
             unit.Rotation = message.Rotation;
             unit.GetComponent<ObjectWait>()?.Notify(new Wait_UnitStop() {Error = message.Error});
-            // await ETTask.CompletedTask;
+            await ETTask.CompletedTask;
         }
     }
 }
