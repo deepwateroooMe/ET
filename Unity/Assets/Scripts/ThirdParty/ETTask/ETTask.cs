@@ -35,7 +35,7 @@ namespace ET {
         }
         private bool fromPool;
         private AwaiterStatus state;
-        private object callback; // Action or ExceptionDispatchInfo
+        private object callback; // Action or ExceptionDispatchInfo:private 是什么情况下可以设置回调呢？
         private ETTask() {  }
 
         [DebuggerHidden]
@@ -57,7 +57,7 @@ namespace ET {
             }
         }
         [DebuggerHidden]
-        public void UnsafeOnCompleted(Action action) {
+        public void UnsafeOnCompleted(Action action) { // 有谁会调用这个方法吗？
             if (this.state != AwaiterStatus.Pending) { // 如果当前异步任务执行结束，就触发非空回调
                 action?.Invoke();
                 return;
@@ -65,7 +65,7 @@ namespace ET {
             this.callback = action; // 任务还没有结束，就纪录回调备用
         }
         [DebuggerHidden]
-        public void OnCompleted(Action action) {
+        public void OnCompleted(Action action) { // 有谁会调用这个方法吗？会传回调进来？
             this.UnsafeOnCompleted(action);
         }
         [DebuggerHidden]

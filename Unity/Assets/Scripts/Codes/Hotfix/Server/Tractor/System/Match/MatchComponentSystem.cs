@@ -63,7 +63,7 @@ namespace ET.Server {
             // 玩家加入房间，移除匹配队列
             self.Playing[matcher.UserID] = room.Id;
             self.MatchSuccessQueue.Enqueue(matcher);
-            // 向房间服务器发送玩家进入请求
+            // 向房间服务器发送玩家进入请求: ET7 重构后，不再每条消息去拿发送器，找例子，找重构后框架里，是如何发送消息的？
             ActorMessageSender actorProxy = Root.Instance.Scene.GetComponent<ActorMessageSenderComponent>().Get(room.Id);
             IResponse response = await actorProxy.Call(new Actor_PlayerEnterRoom_Req() {
                     PlayerID = matcher.PlayerID,

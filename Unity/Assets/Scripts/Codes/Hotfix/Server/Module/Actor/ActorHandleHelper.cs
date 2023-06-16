@@ -2,12 +2,13 @@
 namespace ET.Server {
     public static class ActorHandleHelper {
         public static void Reply(int fromProcess, IActorResponse response) {
-            if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程
+            if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程：没明白，这里为什么就断定是同一进程的消息了？直接处理
                 // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
-                ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
+                ActorMessageSenderComponent.Instance.HandleIActorResponse(response); // 【没读懂：】同一个进程内的消息，不走网络层，直接处理。什么情况下会是发给同一个进程的？ET7 重构后，同一进程下可能会有不同的先前小服：Realm 注册登录服，Gate 服等；如果不同的SceneType.Map-etc 先前场景小服只要在同一进程，就可以不走网络层吗？
                 return;
             }
-            Session replySession = NetInnerComponent.Instance.Get(fromProcess);
+            // 【不同进程的消息处理：】走网络层，逻辑晚点儿有必要再细看一下
+            Session replySession = NetInnerComponent.Instance.Get(fromProcess); // 从内网组件单例中去拿会话框：不同进程消息，一定走网络，通过会话框把返回消息发回去
             replySession.Send(response);
         }
         public static void HandleIActorResponse(IActorResponse response) {

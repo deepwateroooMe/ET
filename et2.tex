@@ -1,4 +1,4 @@
-% Created 2023-06-15 Thu 10:54
+% Created 2023-06-16 Fri 11:20
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -50,6 +50,10 @@
 NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【这是它给出来的例子】
 // 上面这种，就必须组件里，而非生成系里，已经申明了公用方法，否则用下面的
 Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
+// 下面再添加自己新改的方法，用作自己修改后面的参考：
+// Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID);
+// 现在会改热更域里的静态方法的调用了，就可以再消掉一大堆的编译错误了。。。
 \end{minted}
 \subsection{NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件}
 \label{sec-1-1}
@@ -390,145 +394,13 @@ unit.ClientScene().GetComponent<SessionComponent>().Session.Send(msg);
 \label{sec-1-11}
 
 
-\section{Protobuf 里的 enum: 【Identity】【Suits】【Weight】}
-\label{sec-2}
-\subsection{OuterMessage\_C\_10001.proto 里三四个类的定义}
-\label{sec-2-1}
-\begin{itemize}
-\item 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-enum Identity { // 身份
-    IdentityNone = 0;
-    Farmer = 1;     // 平民
-    Landlord = 2;   // 地主
-}
-enum Suits { // 花色
-    Club = 0;    // 梅花
-    Diamond = 1; // 方块
-    Heart = 2;   // 红心
-    Spade = 3;   // 黑桃
-    None = 4;
-}
-enum Weight { // 权重
-    Three = 0;      // 3
-    Four = 1;       // 4
-    Five = 2;       // 5
-    Six = 3;        // 6
-    Seven = 4;      // 7
-    Eight = 5;      // 8
-    Nine = 6;       // 9
-    Ten = 7;        // 10
-    Jack = 8;       // J
-    Queen = 9;      // Q
-    King = 10;       // K
-    One = 11;        // A
-    Two = 12;        // 2
-    SJoker = 13;     // 小王
-    LJoker = 14;     // 大王
-}
-message Card {
-    Weight CardWeight = 1;
-    Suits CardSuits = 2;
-}
-\end{minted}
-\end{itemize}
-\subsection{【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见}
-\label{sec-2-2}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-namespace ETModel {
-#region Enums
-    public enum Suits {
-        Club = 0,
-        Diamond = 1,
-        Heart = 2,
-        Spade = 3,
-        None = 4,
-    }
-    public enum Weight {
-        Three = 0,
-        Four = 1,
-        Five = 2,
-        Six = 3,
-        Seven = 4,
-        Eight = 5,
-        Nine = 6,
-        Ten = 7,
-        Jack = 8,
-        Queen = 9,
-        King = 10,
-        One = 11,
-        Two = 12,
-        Sjoker = 13,
-        Ljoker = 14,
-    }
-    public enum Identity {
-        None = 0,
-        Farmer = 1,
-        Landlord = 2,
-    }
-#endregion
-#region Messages
-\end{minted}
-\subsection{ET7 框架里， enum 完全找不到}
-\label{sec-2-3}
-\begin{itemize}
-\item 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
-\item 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】
-\end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-message SearchRequest {
-    string query = 1;
-    int32 page_number = 2;
-    enum Corpus { // enum 成员变量一定义嵌套
-        UNIVERSAL = 0;
-        WEB = 1;
-        IMAGES = 2;
-        LOCAL = 3;
-        NEWS = 4;
-        PRODUCTS = 5;
-        VIDEO = 6;
-    }
-    Corpus corpus = 4; // enum 成员变量一定义赋值
-}
-\end{minted}
-\begin{itemize}
-\item 觉得这个，是目前最主要的 compile-error 的来源，但不是自己重构项目的重点，还是去看其它的。看如何重构现项目。这个晚上再弄。
-\end{itemize}
-\subsection{ETModel\_Card\_Binding: 奇异点，ILRuntime 热更新里，似乎对 Card 类的两个成员变量作了辅助链接}
-\label{sec-2-4}
-\begin{itemize}
-\item 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-unsafe class ETModel_Card_Binding {
-    public static void Register(ILRuntime.Runtime.Enviorment.AppDomain app) {
-        BindingFlags flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
-        MethodBase method;
-        Type[] args;
-        Type type = typeof(ETModel.Card);
-        args = new Type[]{};
-        method = type.GetMethod("GetName", flag, null, args, null);
-        app.RegisterCLRMethodRedirection(method, GetName_0);
-        args = new Type[]{};
-        method = type.GetMethod("get_CardWeight", flag, null, args, null);
-        app.RegisterCLRMethodRedirection(method, get_CardWeight_1);
-        args = new Type[]{};
-        method = type.GetMethod("get_CardSuits", flag, null, args, null);
-        app.RegisterCLRMethodRedirection(method, get_CardSuits_2);
-        args = new Type[]{};
-        method = type.GetMethod("get_Parser", flag, null, args, null);
-        app.RegisterCLRMethodRedirection(method, get_Parser_3);
-    }
-\end{minted}
-\end{itemize}
-
-
 \section{IAwake 接口类系统，IStart 重构丢了}
-\label{sec-3}
+\label{sec-2}
 \begin{itemize}
 \item 感觉还比较直接，就是帮助搭建热更新域与Unity 常规工程域生命周期回调的桥，搭桥连线，连能就可以了。应该可以扩散出个IStart 接口类
 \end{itemize}
 \subsection{IMessage,IRequest,IResponse: 进程内？消息类}
-\label{sec-3-1}
+\label{sec-2-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IMessage {}
 public interface IRequest: IMessage {
@@ -541,7 +413,7 @@ public interface IResponse: IMessage {
 }
 \end{minted}
 \subsection{IActorMessage,IActorRequest,IActorResponse: 进程间的？消息类}
-\label{sec-3-2}
+\label{sec-2-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 不需要返回消息
 public interface IActorMessage: IMessage {}
@@ -549,14 +421,14 @@ public interface IActorRequest: IRequest {}
 public interface IActorResponse: IResponse {}
 \end{minted}
 \subsection{IActorLocationMessage: 进程间的位置消息相关}
-\label{sec-3-3}
+\label{sec-2-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IActorLocationMessage: IActorRequest {}
 public interface IActorLocationRequest: IActorRequest {}
 public interface IActorLocationResponse: IActorResponse {}
 \end{minted}
 \subsection{IMHandler,IMActorHandler: 消息处理器口类【傻傻分不清楚】}
-\label{sec-3-4}
+\label{sec-2-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IMHandler { // 同进程内的
     void Handle(Session session, object message);
@@ -571,7 +443,7 @@ public interface IMActorHandler { // 进程间的？
 }
 \end{minted}
 \subsection{ILoad,ISystemType: 加载系}
-\label{sec-3-5}
+\label{sec-2-5}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISystemType {
     Type Type();
@@ -602,7 +474,7 @@ public abstract class LoadSystem<T> : ILoadSystem where T: Entity, ILoad {
 }
 \end{minted}
 \subsection{IAwake: 最多可以带四个参数}
-\label{sec-3-6}
+\label{sec-2-6}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
  public interface IAwake {}
  public interface IAwake<A> {}
@@ -611,7 +483,7 @@ public abstract class LoadSystem<T> : ILoadSystem where T: Entity, ILoad {
  public interface IAwake<A, B, C, D> {}
 \end{minted}
 \subsection{IStartSystem,StartSystem<T>: 自己加的。【还有问题】系统找不到}
-\label{sec-3-7}
+\label{sec-2-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IStart { }
 public interface IStartSystem : ISystemType {
@@ -645,10 +517,11 @@ public enum InstanceQueueIndex {
 \end{minted}
 \begin{itemize}
 \item 参考项目：除了原文件放在ET 域。也【复制了一份到客户端的热更新域里】。可是感觉不应该。因为其它所有的回调都不用复制就可以用。我哪里可能还是没能设置对
-\item 改天再检查一下。但是否，对于非系统框架扩展接口，不得不这样？仍然感觉不应该，因为系统框架里其它的生命周期回调函数都不需要复制。改天再做。
+\item 改天再检查一下。但是否，对于非系统框架扩展接口，不得不这样？仍然感觉不应该，因为系统框架里其它的生命周期回调函数都不需要复制。
+\item \textbf{【编译报错：】} 热更新程序域里面，只能申明含有BaseAttribute 的子类特性的类或静态类。那么也就是说，我上面的，我哪怕是把同名文件复制到热更新程序域，也是不对的，因为框架不允许这么做。我就必须去找前面，模仿它的框架系统扩展的这个方法，哪里没能连通好，为什么它的系统方法只存在Model 域，就能运行好，而我添加的不可以？
 \end{itemize}
 \subsection{IUpdateSystem:}
-\label{sec-3-8}
+\label{sec-2-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IUpdate {
 }
@@ -673,7 +546,7 @@ public abstract class UpdateSystem<T> : IUpdateSystem where T: Entity, IUpdate {
 }
 \end{minted}
 \subsection{ILateUpdate: 好像是用于物理引擎，或是相机什么的更新，生命周期回调}
-\label{sec-3-9}
+\label{sec-2-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ILateUpdate {
 }
@@ -698,7 +571,7 @@ public abstract class LateUpdateSystem<T> : ILateUpdateSystem where T: Entity, I
 }
 \end{minted}
 \subsection{ISingletonAwake|Update|LateUpdate: Singleton 生命周期回调}
-\label{sec-3-10}
+\label{sec-2-10}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISingletonAwake {
     void Awake();
@@ -711,7 +584,7 @@ public interface ISingletonLateUpdate {
 }
 \end{minted}
 \subsection{ISingleton,Singleton<T>: 单例}
-\label{sec-3-11}
+\label{sec-2-11}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISingleton: IDisposable {
     void Register();
@@ -750,7 +623,7 @@ public abstract class Singleton<T>: ISingleton where T: Singleton<T>, new() {
 }
 \end{minted}
 \subsection{IDestroy,IDestroySystem,DestroySystem<T>: 销毁系}
-\label{sec-3-12}
+\label{sec-2-12}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IDestroy {
 }
@@ -775,7 +648,7 @@ public abstract class DestroySystem<T> : IDestroySystem where T: Entity, IDestro
 }
 \end{minted}
 \subsection{IEvent,AEvent<A>: 事件}
-\label{sec-3-13}
+\label{sec-2-13}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IEvent {
     Type Type { get; }
@@ -798,7 +671,7 @@ public abstract class AEvent<A>: IEvent where A: struct {
 }
 \end{minted}
 \subsection{IAddComponent: 添加组件系}
-\label{sec-3-14}
+\label{sec-2-14}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
  public interface IAddComponent { }
  public interface IAddComponentSystem: ISystemType {
@@ -822,7 +695,7 @@ public abstract class AEvent<A>: IEvent where A: struct {
  }
 \end{minted}
 \subsection{IGetComponent: 获取组件系。【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<<}
-\label{sec-3-15}
+\label{sec-2-15}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
  // GetComponentSystem有巨大作用，比如每次保存Unit的数据不需要所有组件都保存，只需要保存Unit变化过的组件
  // 是否变化可以通过判断该组件是否GetComponent，Get了就记录该组件【这里没有看明白】：再去找细节  // <<<<<<<<<<<<<<<<<<<< 
@@ -851,7 +724,7 @@ public abstract class AEvent<A>: IEvent where A: struct {
  }
 \end{minted}
 \subsection{ISerializeToEntity,IDeserialize,IDeserializeSystem,DeserializeSystem<T>: 序列化，反序列化}
-\label{sec-3-16}
+\label{sec-2-16}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface ISerializeToEntity {
 }
@@ -879,9 +752,9 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
 }
 \end{minted}
 \subsection{IInvoke,AInvokeHandler<A>,AInvokeHandler<A, T>: 激活类}
-\label{sec-3-17}
+\label{sec-2-17}
 \begin{itemize}
-\item 这个以前没有细看。但是现在，框架里有狠多细节的地方，有计时器来触发必要的超时等。所以现在把这一块儿捡一下
+\item 这个以前没有细看。现在修改编译错误的过程中，框架里有狠多细节的地方，需要修改的编译错误会一再崩出来，框架里出有狠多，有计时器来触发必要的超时等。所以今天，就把这类自带计时器，自动超时检测的激活系，这个功能模块理解一下。【半懂，大半懂，需要再多看几遍】
 \item 在以前理解了诸多标签，比如【ComponentOf(typeof())] 事件机制等，但是这个自动的激活系，一般与计时器联接紧密，要把这块儿理解透彻。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public interface IInvoke {
@@ -906,7 +779,7 @@ public abstract class AInvokeHandler<A, T>: IInvoke where A: struct {
 \end{minted}
 \end{itemize}
 \subsection{TimerInvokeType: 计时器可以自动触发的类型分类。}
-\label{sec-3-18}
+\label{sec-2-18}
 \begin{itemize}
 \item 框架里有很多标签自动标记的标记系统。
 \item 这里类似。说，申明定义了这如下几类可以计时器自动触发的类型；当某个组件标记了可以计时器自动激活的标签，那么它申明的时间到，就会自动激活：某些某个特定的激活方法与逻辑，
@@ -927,7 +800,7 @@ public static class TimerInvokeType {
 }
 \end{minted}
 \subsection{struct TimerCallback:}
-\label{sec-3-19}
+\label{sec-2-19}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 计时器：所涉及的方方面面
 public enum TimerClass { // 类型：
@@ -968,7 +841,7 @@ public struct TimerCallback { // 在标签系中会用到计时器的回调
 }
 \end{minted}
 \subsection{ATimer<T>: AInvokeHandler<TimerCallback>: 抽象类}
-\label{sec-3-20}
+\label{sec-2-20}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public abstract class ATimer<T>: AInvokeHandler<TimerCallback> where T: class {
     public override void Handle(TimerCallback a) {
@@ -978,7 +851,7 @@ public abstract class ATimer<T>: AInvokeHandler<TimerCallback> where T: class {
 }
 \end{minted}
 \subsection{InvokeAttribute: BaseAttribute, 【Invoke(type)】标签属性}
-\label{sec-3-21}
+\label{sec-2-21}
 \begin{itemize}
 \item 这里仍然还没连通：先前只是定义了几个可以计时器定时到时激活的类型；这里只是属性标明激活类型
 \item 类型的幕后：怎么通过不同的类型，来区分不同长短的计时时间，并在特定的激活时间点，激活的？
@@ -997,95 +870,152 @@ public class InvokeAttribute: BaseAttribute {
 }
 \end{minted}
 \subsection{ActorMessageSenderComponentSystem::ActorMessageSenderChecker 类中类，计时器自动计时标签激活系【诲涩难懂，多看几遍】}
-\label{sec-3-22}
+\label{sec-2-22}
 \begin{itemize}
 \item 上面只是计时器的类型。不同类型内部自带计时器超时的特定类型所规定的超时时间。类型的内部自定义超时处理逻辑。用激活标签标明计时器超时的类型，以便与超时时长，和超时后的处理逻辑一一对应。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 再找一个激活标签的实体类，作参考，把流程理解透彻。
 \item 【例子：计时器计时超时消息过滤器过滤超时消息原理】：过滤器里，一旦有某个消息超时，就会自动触发检测：是否有一批消息超时，检测到第一个不超时的，就退出循环检测；把所有超时的消息，一一返回超时错误码给消息发送者，提醒它们出错，必要时它们可以重发。。。
 \item 【还没连通的地方是：】写好错误码的返回消息，结果写到了ETTask 异步任务的异常里，错误码抛出异常，ETTask 会同步异常、写入异常、并抛出异常。
 \begin{itemize}
-\item 又想到一点，ActorMessageSender, 既可以是发送消息者发送消息的发送器，也可以是，错误码返回消息的发送器。那么就是说，ActorMessageSenderComponent 的循环逻辑某处，是可以发返回消息的。
-\item 发送消息超时异常，不走发返回消息路径，而是直接由ETTask 抛异常，不需要发返回消息。Run() 方法被其它情境下调用，才会发返回消息，系统的后半部分，有发送消息的逻辑，今天不看那块儿了，改天再看那部分。
+\item 又想到一点，ActorMessageSender, 既可以是发送消息者发送消息的发送器，也可以是，错误码返回消息的发送器。那么就是说，ActorMessageSenderComponent 的循环逻辑某处，是可以发返回消息的。【上面想的不对。 \textbf{在框架的相对上层，当内网NetInnerComponent 读到消息，发布读到消息事件，会自动触发读到消息事件的订阅者——NetInnerComponentOnReadEvent 来，借助消息处理器帮助类 ActorHandleHelper 类，对不同类型的消息进行分发处理。而帮助类的内部，就是调用这里的底层方法定义。帮助类应该可以更好地区分消息处理的逻辑流程先后顺序。} 】
+\item 发送消息超时异常，不走发返回消息路径，而是直接由ETTask 抛异常，不需要发返回消息。Run() 方法被其它情境下调用（被读到消息事件的订阅者，借助消息处理器帮助类，来调用这里的底层方法，处理正常的返回消息），才会发返回消息，系统的后半部分，有发送消息的逻辑。今天上午把这块读懂，下午回去改这块儿的重构与编译错误。
 \end{itemize}
 \item 亲爱的表哥，感觉你活宝妹努力认真去读懂一个艰深诲涩难懂的模块或是功能逻辑的时候，活宝妹的小鼠标，还是会偶尔落到不小心落到永远不想去落的位置。敬请他们大可不必发疯犯贱，把人都烦死了。活宝妹永远只问：活宝妹嫁给亲爱的表哥了吗？活宝妹被他们的国际贱鸡折磨致死了吗？都还没有，他们就大可不必发疯犯贱。任何时候，亲爱的表哥的活宝妹，就是都是一定要嫁给亲爱的表哥的！！！爱表哥，爱生活！！！
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 要怎么理解这个消息发送超时检测中间过程步骤呢？
-// 它自带个计时器，就是说，当服务器繁忙处理不过来，它就极有可能会自动超时，若是超时了，就返回个超时消息回去发送者告知一下，必要时它可以重发。而不超时，就正常基本流程处理了
-// 那么，它就是一个服务端超负载下的自动减压逻辑
-[Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系: 它标记说，这个激活系类，是 XXX 类型；紧跟着，就定义这个 XXX 类型的激活系类
-public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
-    protected override void Run(ActorMessageSenderComponent self) { // 申明方法的接口是：ATimer<T> 抽象实现类，它实现了 AInvokeHandler<TimerCallback>
-        try {
-            self.Check(); // 调用组件自己的方法
-         } catch (Exception e) {
-            Log.Error($"move timer error: {self.Id}\n{e}");
+[FriendOf(typeof(ActorMessageSenderComponent))]
+public static class ActorMessageSenderComponentSystem {
+    // 它自带个计时器，就是说，当服务器繁忙处理不过来，它就极有可能会自动超时，若是超时了，就返回个超时消息回去发送者告知一下，必要时它可以重发。而不超时，就正常基本流程处理了.那么，它就是一个服务端超负载下的自动减压逻辑
+    [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系: 它标记说，这个激活系类，是 XXX 类型；紧跟着，就定义这个 XXX 类型的激活系类
+    public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
+        protected override void Run(ActorMessageSenderComponent self) { // 申明方法的接口是：ATimer<T> 抽象实现类，它实现了 AInvokeHandler<TimerCallback>
+            try {
+                self.Check(); // 调用组件自己的方法
+             } catch (Exception e) {
+                Log.Error($"move timer error: {self.Id}\n{e}");
+            }
         }
+    }//...
+// Run() 方法：通过同步异常到ETTask, 通过ETTask 封装的抛异常方式抛出两类异常并返回；和对正常非异常返回消息，同步结果到ETTask, ETTask() 用触发调用注册过的非空回调
+// 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量：异常类型）、【写了个半好】的结果（异常）。结果还没同步到异步任务，待写；返回消息，待发送
+    private static void Run(ActorMessageSender self, IActorResponse response) { 
+        // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout, 所以会从发送消息超时异常里抛出异常，不用发送错误码【消息】回去，是抛异常
+        if (response.Error == ErrorCore.ERR_ActorTimeout) { // 写：发送消息超时异常。因为同步到异步任务 ETTask 里，所以异步任务模块 ETTask会自动抛出异常
+            self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
+            return;
+        }
+// 这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用。什么情况下的调用，会走到下面的分支？文件尾，有正常消息同步结果到ETTask 的调用 
+// ActorMessageSenderComponent 一个组件，一次只执行一个（返回）消息发送任务，成员变量永远只管当前任务，
+// 也是因为Actor 机制是并行的，一个使者一次只能发一个消息 ...
+// 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？去搜索下面调用 Run() 方法的正常结果消息的调用处理频率。。。
+        if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常（判断条件：消息要抛异常否？是否真有异常？），就先抛异常
+            self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
+            return;
+        }
+        self.Tcs.SetResult(response); // 【写结果】：将【写了个半好】的消息，写进同步到异步任务的结果里；把异步任务的状态设置为完成；并触发必要的非空回调到发送者
+        // 上面【异步任务 ETTask.SetResult()】，会调用注册过的一个回调，所以ETTask 封装，设置结果这一步，会自动触发调用注册过的一个回调（如果没有设置回调，因为空，就不会调用）
+        // ETTask.SetResult() 异步任务写结果了，非空回调是会调用。非空回调是什么，是把返回消息发回去吗？不是。因为有独立的发送逻辑。
+        // 再去想 IMHandler: 它是消息处理器。问题就变成是，当返回消息写好了，写好了一个完整的可以发送、待发送的消息，谁来处理的？有某个更底层的封装会调用这个类的发送逻辑。去把这个更底层的封装找出来，就是框架封装里，调用这个生成类Send() 方法的地方。
+        // 这个服，这个自带计时器减压装配装置自带的消息处理器逻辑会处理？不是这个。减压装置，有发送消息超时，只触发最小检测，并抛发送消息超时异常给发送者告知，不写任何结果消息 
     }
-}
-// 下面的方法是：帮助发送回复消息？好像不对，感觉异步任务结果已经出来了，只差最后写结果的步骤。
-// 下面的方法是：回复消息是怎么发回去的？回复消息，只有最小初始化？从来不会有任何特异性？ 
-// 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量）、【写了个半好】的结果。结果还没写进异步任务里，待写；返回消息，待发送
-private static void Run(ActorMessageSender self, IActorResponse response) { 
-    // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout, 所以会从发送消息超时异常里抛出异常，不用发送错误码【消息】回去，是抛异常
-    if (response.Error == ErrorCore.ERR_ActorTimeout) { // 写：发送消息超时异常。因为同步到异步任务 ETTask 里，所以异步任务模块 ETTask会自动抛出异常
-        self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
-        return;
-    }
-    // ETTask 模块的自动抛出异常：与当前发送消息超时过滤器里的异常逻辑相互独立？
-    // 【没想明白：】这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用。什么情况下的调用，会走到下面的分支？
-    // ActorMessageSenderComponent 一个组件，一次只执行一个（返回）消息发送任务，成员变量永远只管当前任务，
-    // 也是因为Actor 机制是并行的，一个使者一次只能发一个消息 ...
-    // 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？这里没懂
-    if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常（判断条件：消息要抛异常否？是否真有异常？），就先抛异常
-        self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
-        return;
-    }
-    self.Tcs.SetResult(response); // 【写结果】：将【写了个半好】的消息，写进同步到异步任务的结果里；把异步任务的状态设置为完成；并触发必要的非空回调到发送者
-    // 上面【异步任务 ETTask.SetResult()】，会调用注册过的一个回调，所以ETTask 封装，设置结果这一步，会自动触发调用注册过的一个回调（如果没有设置回调，因为空，就不会调用）
-    // 【掉线的是】：ETTask.SetResult() 异步任务写结果了，非空回调是会调用。非空回调是什么，是把返回消息发回去吗？整个流程没能连通。
-    // 再去想 IMHandler: 它是消息处理器。问题就变成是，当返回消息写好了，写好了一个完整的可以发送、待发送的消息，谁来处理的？
-    // 这个服，这个自带计时器减压装配装置自带的消息处理器逻辑会处理？【这个逻辑在哪里，要找出来！！！】要不然，就没理解透彻。
-}
-private static void Check(this ActorMessageSenderComponent self) {
-    long timeNow = TimeHelper.ServerNow();
-    foreach ((int key, ActorMessageSender value) in self.requestCallback) {
-        // 因为是顺序发送的，所以，检测到第一个不超时的就退出
-        // 超时触发的激活逻辑：是有至少一个超时的消息，才会【激活触发检测】；而检测到第一个不超时的，就退出下面的循环。
-        if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
-            break;
-        self.TimeoutActorMessageSenders.Add(key);
-    }
+    private static void Check(this ActorMessageSenderComponent self) {
+        long timeNow = TimeHelper.ServerNow();
+        foreach ((int key, ActorMessageSender value) in self.requestCallback) {
+            // 因为是顺序发送的，所以，检测到第一个不超时的就退出
+            // 超时触发的激活逻辑：是有至少一个超时的消息，才会【激活触发检测】；而检测到第一个不超时的，就退出下面的循环。
+            if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
+                break;
+            self.TimeoutActorMessageSenders.Add(key);
+        }
 // 超时触发的激活逻辑：是有至少一个超时的消息，才会【激活触发检测】；而检测到第一个不超时的，就退出上面的循环。
 // 检测到第一个不超时的，理论上说，一旦有一个超时消息就会触发超时检测，但实际使用上，可能存在当检测逻辑被触发走到这里，实际中存在两个或是再多一点儿的超时消息？
-    foreach (int rpcId in self.TimeoutActorMessageSenders) { // 一一遍历【超时了的消息】 :
-        ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
-        self.requestCallback.Remove(rpcId);
-        try { // ActorHelper.CreateResponse() 框架系统性的封装：也是通过对消息的发送类型与对应的回复类型的管理，使用帮助类，自动根据类型统一创建回复消息的实例
-            // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout
-            IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
-            Run(actorMessageSender, response); // 猜测：方法逻辑是，把回复消息发送给对应的接收消息的 rpcId
+        foreach (int rpcId in self.TimeoutActorMessageSenders) { // 一一遍历【超时了的消息】 :
+            ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
+            self.requestCallback.Remove(rpcId);
+            try { // ActorHelper.CreateResponse() 框架系统性的封装：也是通过对消息的发送类型与对应的回复类型的管理，使用帮助类，自动根据类型统一创建回复消息的实例
+                // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout. 也就是，是个异常消息的回复消息实例生成帮助类
+                IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
+                Run(actorMessageSender, response); // 猜测：方法逻辑是，把回复消息发送给对应的接收消息的 rpcId
+            } catch (Exception e) {
+                Log.Error(e.ToString());
+            }
         }
-        catch (Exception e) {
-            Log.Error(e.ToString());
-        }
+        self.TimeoutActorMessageSenders.Clear();
     }
-    self.TimeoutActorMessageSenders.Clear();
+
+    public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息：这个方法，发所有类型的消息，最基接口
+        if (actorId == 0) 
+            throw new Exception($"actor id is 0: {message}");
+        ProcessActorId processActorId = new(actorId);
+        // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
+        if (processActorId.Process == Options.Instance.Process) { // 没看懂：这里怎么就说，消息是发向同一进程的了？
+            NetInnerComponent.Instance.HandleMessage(actorId, message); // 原理清楚：本进程消息，直接交由本进程内网组件处理
+            return;
+        }
+        Session session = NetInnerComponent.Instance.Get(processActorId.Process); // 非本进程消息，去走网络层
+        session.Send(processActorId.ActorId, message);
+    }
+    public static int GetRpcId(this ActorMessageSenderComponent self) {
+        return ++self.RpcId;
+    }
+// 这个方法：只对当前进程的发送要求IActorResponse 的消息，封装自家进程的 rpcId, 也就是标明本进程发的消息，来自其它进程的返回消息，到时发到本进程。是特殊使用
+    public static async ETTask<IActorResponse> Call(
+        this ActorMessageSenderComponent self,
+        long actorId,
+        IActorRequest request,
+        bool needException = true
+        ) {
+        request.RpcId = self.GetRpcId(); // 封装本进程的 rpcId 
+        if (actorId == 0) throw new Exception($"actor id is 0: {request}");
+        return await self.Call(actorId, request.RpcId, request, needException);
+    }
+// 【艰森诲涩难懂！！】是更底层的实现细节，它封装帮助实现ET7 里消息超时自动过滤抛异常、返回消息的底层封装自动回复、封装了异步任务和必要成员变量来实现这些辅助过滤器等功能 
+    public static async ETTask<IActorResponse> Call( // 跨进程发请求消息（要求回复）：返回跨进程异步调用结果。是 await 关键字调用，用在异步方法里
+        this ActorMessageSenderComponent self,
+        long actorId,
+        int rpcId,
+        IActorRequest iActorRequest,
+        bool needException = true
+        ) {
+        if (actorId == 0) 
+            throw new Exception($"actor id is 0: {iActorRequest}");
+// 对象池里：取一个异步任务。用这个异步作务实例，去创建下面的消息发送器实例。这里的 IActorResponse T 应该只是一个索引。因为前面看见系统扫描标签系创建返回实例，套到这个索引
+        var tcs = ETTask<IActorResponse>.Create(true);
+        // 下面，封装好消息发送器，交由消息发送组件管理；交由其管理，就自带消息发送计时超时过滤机制，实现服务器超负荷时的自动分压减压处理。一旦超时自动报废。。。
+        self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException)); 
+        self.Send(actorId, iActorRequest); // 把请求消息发出去：所有消息，都调用这个 
+        long beginTime = TimeHelper.ServerFrameTime();
+// 自己想一下的话：异步消息发出去，某个服会处理，有返回消息的话，这个服处理后会返回一个返回消息。
+// 那么下面一行，不是等待创建 Create() 异步任务（同步方法狠快），而是等待这个处理发送消息的服，处理并返回来返回消息（是说，那个服，把处理结果同步到异步任务）
+// 不是等异步任务的创建完成（同步方法狠快），实际是等处理发送消息的服，处理完并写好返回消息，同步到异步任务。
+// 那个ETTask 里的回调 callback，是怎么回调的？这里Tcs 没有设置任何回调。ETTask 里所谓回调，是执行异步状态机的下一步，没有实际应用层面的回调意义
+// 或说把返回消息的内容填好，【应该还没发回到消息发送者？？？】返回消息填好了，ETTask 异步任务的结果同步到位了，底层会自动发回来
+// 【异步任务结果是怎么回来的？】是前面看过的IMHandler 的底层封装（AMRpcHandler 的抽象逻辑里）发送回来的。ET7 IMHandler 不是重构实现了返回消息的自动发送回复给发送者吗？再去看一遍。
+        IActorResponse response = await tcs;  // 等待消息处理服处理完，写好同步好结果到异步任务、异步任务执行完成，状态为 Succeed
+        long endTime = TimeHelper.ServerFrameTime();
+        long costTime = endTime - beginTime;
+        if (costTime > 200) 
+            Log.Warning($"actor rpc time > 200: {costTime} {iActorRequest}");
+        return response; // 返回：异步网络调用的结果
+    }
+// 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？去搜索下面调用 Run() 方法的正常结果消息的调用处理频率。。。
+// 【ActorHandleHelper 帮助类】：老是调用这里的方法，要去查那个文件。【本质：内网消息处理器的处理逻辑，一旦是返回消息，就会调用 ActorHandleHelper, 会调用这个方法来处理返回消息】        
+// 下面方法：处理IActorResponse 消息，也就是，发回复消息给收消息的人XX, 那么谁发，怎么发，就是这个方法的定义
+    // 当是处理【同一进程的消息】：拿到的消息发送器就是当前组件自己，那么只要把结果同步到当前组件的Tcs 异步任务结果里，异步任务结果就会自动触发调用注册过的回调。全部流程结束
+    public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
+        ActorMessageSender actorMessageSender;
+// 下面取、实例化 ActorMessageSender 来看，感觉收消息的 rpcId, 与消息发送者 ActorMessageSender 成一一对应关系。上面的Call() 方法里，创建实例化消息发送者就是这么创始垢 
+        if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) // 这里取不到，是说，这个返回消息的发送已经被处理了？
+            return;
+        self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除
+        Run(actorMessageSender, response); // <<<<<<<<<<<<<<<<<<<< 
+    }
 }
-// public static class ActorHelper {// 接上面 ActorHelper.CreateResponse() 用作参考
-//     public static IActorResponse CreateResponse(IActorRequest iActorRequest, int error) {
-//         Type responseType = OpcodeTypeComponent.Instance.GetResponseType(iActorRequest.GetType()); // 框架系统管理里，去拿返回消息的类型
-    //         IActorResponse response = (IActorResponse)Activator.CreateInstance(responseType); // 创建一个返回消息的实例 instance 
-    //         response.Error = error; // 写实例的出错结果、类型
-    //         response.RpcId = iActorRequest.RpcId; // 返回消息的接收者 RpcId: 实际就是，消息是谁发来的，就返回消息给谁呀
-    //         return response; // 返回这个最小初始化过的特定类型消息实例
-    //     }
-    // }
 \end{minted}
 \subsection{ProtoBuf 相关：IExtensible,IExtension,IProtoOutput<TOutput>,IMeasuredProtoOutput<TOutput>,MeasureState<T>: 看不懂}
-\label{sec-3-23}
+\label{sec-2-23}
 \subsubsection{IExtensible}
-\label{sec-3-23-1}
+\label{sec-2-23-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // Indicates that the implementing type has support for protocol-buffer
 // <see cref="IExtension">extensions</see>.
@@ -1103,7 +1033,7 @@ public interface IExtensible {
 }
 \end{minted}
 \subsubsection{IExtension}
-\label{sec-3-23-2}
+\label{sec-2-23-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // Provides addition capability for supporting unexpected fields during
 // protocol-buffer serialization/deserialization. This allows for loss-less
@@ -1136,7 +1066,7 @@ public interface IExtensionResettable : IExtension {
 }
 \end{minted}
 \subsubsection{IProtoOutput<TOutput>,IMeasuredProtoOutput<TOutput>,MeasureState<T>: 看得头大}
-\label{sec-3-23-3}
+\label{sec-2-23-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // Represents the ability to serialize values to an output of type <typeparamref name="TOutput"/>
 public interface IProtoOutput<TOutput> {
@@ -1164,6 +1094,138 @@ public struct MeasureState<T> : IDisposable {
     public long Length => throw new NotImplementedException();
 }
 \end{minted}
+
+
+\section{Protobuf 里的 enum: 【Identity】【Suits】【Weight】}
+\label{sec-3}
+\subsection{OuterMessage\_C\_10001.proto 里三四个类的定义}
+\label{sec-3-1}
+\begin{itemize}
+\item 感觉更多的是命名空间没能弄对。同一份源码一式三份，分别放在【客户端】【双端】【服务端】下只有【客户端】下可以通过读 Card 类的定义，可以知道能自动识别，并且 Protobuf 里的 enum 生成的 .cs 与参考项目不同。不知道是否是 Protobuf 版本问题，还是我没注意到的细节。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+enum Identity { // 身份
+    IdentityNone = 0;
+    Farmer = 1;     // 平民
+    Landlord = 2;   // 地主
+}
+enum Suits { // 花色
+    Club = 0;    // 梅花
+    Diamond = 1; // 方块
+    Heart = 2;   // 红心
+    Spade = 3;   // 黑桃
+    None = 4;
+}
+enum Weight { // 权重
+    Three = 0;      // 3
+    Four = 1;       // 4
+    Five = 2;       // 5
+    Six = 3;        // 6
+    Seven = 4;      // 7
+    Eight = 5;      // 8
+    Nine = 6;       // 9
+    Ten = 7;        // 10
+    Jack = 8;       // J
+    Queen = 9;      // Q
+    King = 10;       // K
+    One = 11;        // A
+    Two = 12;        // 2
+    SJoker = 13;     // 小王
+    LJoker = 14;     // 大王
+}
+message Card {
+    Weight CardWeight = 1;
+    Suits CardSuits = 2;
+}
+\end{minted}
+\end{itemize}
+\subsection{【参考项目】里： enum 是可以顺利写进 ETModel 申明的命名空间，并且源码可见}
+\label{sec-3-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+namespace ETModel {
+#region Enums
+    public enum Suits {
+        Club = 0,
+        Diamond = 1,
+        Heart = 2,
+        Spade = 3,
+        None = 4,
+    }
+    public enum Weight {
+        Three = 0,
+        Four = 1,
+        Five = 2,
+        Six = 3,
+        Seven = 4,
+        Eight = 5,
+        Nine = 6,
+        Ten = 7,
+        Jack = 8,
+        Queen = 9,
+        King = 10,
+        One = 11,
+        Two = 12,
+        Sjoker = 13,
+        Ljoker = 14,
+    }
+    public enum Identity {
+        None = 0,
+        Farmer = 1,
+        Landlord = 2,
+    }
+#endregion
+#region Messages
+\end{minted}
+\subsection{ET7 框架里， enum 完全找不到}
+\label{sec-3-3}
+\begin{itemize}
+\item 一种网络上没能理解透彻的可能是：我不能把三个 enum 类单独列出来，而是把三个类嵌套在必要的需要使用这些 enum 的 message 的定义里，举例如下：
+\item 如下，对于Card 类应该是行得通的。可是问题是，我的 card 本来也没有问题。有问题的是，三个 enum 类找不到。那么也就是，我大概还是需要手动定义这三个类在程序的某些域某些地方。【确认一下】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+message SearchRequest {
+    string query = 1;
+    int32 page_number = 2;
+    enum Corpus { // enum 成员变量一定义嵌套
+        UNIVERSAL = 0;
+        WEB = 1;
+        IMAGES = 2;
+        LOCAL = 3;
+        NEWS = 4;
+        PRODUCTS = 5;
+        VIDEO = 6;
+    }
+    Corpus corpus = 4; // enum 成员变量一定义赋值
+}
+\end{minted}
+\begin{itemize}
+\item 觉得这个，是目前最主要的 compile-error 的来源，但不是自己重构项目的重点，还是去看其它的。看如何重构现项目。这个晚上再弄。
+\end{itemize}
+\subsection{ETModel\_Card\_Binding: 奇异点，ILRuntime 热更新里，似乎对 Card 类的两个成员变量作了辅助链接}
+\label{sec-3-4}
+\begin{itemize}
+\item 还没有细看，不是狠懂这里的原理。但在解决上面的问题之后，如果这两个变量仍不通，会参考这里
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+unsafe class ETModel_Card_Binding {
+    public static void Register(ILRuntime.Runtime.Enviorment.AppDomain app) {
+        BindingFlags flag = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+        MethodBase method;
+        Type[] args;
+        Type type = typeof(ETModel.Card);
+        args = new Type[]{};
+        method = type.GetMethod("GetName", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, GetName_0);
+        args = new Type[]{};
+        method = type.GetMethod("get_CardWeight", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, get_CardWeight_1);
+        args = new Type[]{};
+        method = type.GetMethod("get_CardSuits", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, get_CardSuits_2);
+        args = new Type[]{};
+        method = type.GetMethod("get_Parser", flag, null, args, null);
+        app.RegisterCLRMethodRedirection(method, get_Parser_3);
+    }
+\end{minted}
+\end{itemize}
 
 
 \section{【拖拉机游戏房间】组件: 分析}
@@ -1332,7 +1394,7 @@ public class GamerUIComponent : Entity, IStart { // 玩家UI组件
         this.prompt = this.Panel.Get<GameObject>("Prompt").GetComponent<Text>();
         this.name = this.Panel.Get<GameObject>("Name").GetComponent<Text>();
         this.money = this.Panel.Get<GameObject>("Money").GetComponent<Text>();
-        this.headPhoto = this.Panel.Get<GameObject>("HeadPhoto").GetComponent<Image>();
+   p     this.headPhoto = this.Panel.Get<GameObject>("HeadPhoto").GetComponent<Image>();
         UpdatePanel();
     }
     // 更新面板
