@@ -7,11 +7,10 @@ namespace ET.Server {
 
             SessionUserComponent sessionUser = session.GetComponent<SessionUserComponent>();
             // UserComponent: 是从  Program.cs 里添加的服务器端的用户？服务器端用户远不止一个
-            if (sessionUser == null || Game.Scene.GetComponent<UserComponent>().Get(sessionUser.User.UserID) == null) {
+            if (sessionUser == null || UserComponentSystem.Get(Root.Instance.Scene.GetComponent<UserComponent>(), sessionUser.User.UserID) == null) {
                 return false;
             }
             return true;
         }
     }
 }
-

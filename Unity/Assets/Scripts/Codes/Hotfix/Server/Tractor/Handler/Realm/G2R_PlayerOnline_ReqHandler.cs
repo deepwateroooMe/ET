@@ -9,7 +9,7 @@ namespace ET.Server {
             // 将已在线玩家踢下线
             await RealmHelper.KickOutPlayer(message.UserID);
             // 玩家上线
-            onlineComponent.Add(message.UserID, message.GateAppID);
+            OnlineComponentSystem.Add(onlineComponent, message.UserID, message.GateAppID);
             Log.Info($"玩家{message.UserID}上线");
         }
     }

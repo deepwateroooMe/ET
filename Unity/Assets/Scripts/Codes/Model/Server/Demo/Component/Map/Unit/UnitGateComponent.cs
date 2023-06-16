@@ -3,7 +3,8 @@
     // 这里，我不能再照模仿原参考项目的，因为新的封装里，把消息的发送等封装到了底层。若我要拿 ActorMessageSender, 我是需要去 ActorMessageSenderComponent 组件里去拿的，不必加方法？
 
     [ComponentOf(typeof(Gamer))]
-    // [ComponentOf(typeof(User))]  // 被自己笔误写坏的。。。
+    // [ComponentOf(typeof(User))]  // 这里为什么会成为：同一个组件只能为一个什么XX 的子组件组成部分？
+        // [ComponentOf(typeof(Unit))]
     public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
 
         public long GateSessionActorId { get; set; }

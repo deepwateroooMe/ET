@@ -1089,6 +1089,8 @@ public sealed class Player : Entity, IAwake<string> {
    #+END_SRC
 ** PlayerSystem: 这不就是昨天在找要找的，小单元的生成系吗？一个服务端的例子。
 - 这里可以看见，即使是说，只传一个参数，帐户名进来，新的ET7 框架里，因为移除了 ECS 中的Component 最小组件，这种即便感觉永远不需要热更新，可以Model 层固定不变的，也都热更新到了热更新层，不得不给他们弄成是【生成系】。
+- 【小单元生成系】：目前还存在几个连通不通的问题。比如热更新层、域的生成系方法不被系统识到。不识别的原因大概是不曾 Awake(). 要去测试和添加这些系统，看能否消掉那一大堆一大堆的编译错误。
+- 【小单元生成系】：另外的问题是，热更域中的方法全是静态方法，怎么调用呢？记得pdf 里，哪里记过两种不同的调用方法，找不到。记在 et2.pdf 里的Net 网络交互相关部分。
 #+BEGIN_SRC csharp
 [FriendOf(typeof(Player))]
 public static class PlayerSystem {
@@ -1099,6 +1101,16 @@ public static class PlayerSystem {
         }
     }
 }
+#+END_SRC
+- 【小单元生成系】：热更域静态方法的调用方法，列这里供自己查询参考。
+#+BEGIN_SRC java
+NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【这是它给出来的例子】
+// 上面这种，就必须组件里，而非生成系里，已经申明了公用方法，否则用下面的
+Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
+// 下面再添加自己新改的方法，用作自己修改后面的参考：
+// Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID);
+// 现在会改热更域里的静态方法的调用了，就可以再消掉一大堆的编译错误了。。。
 #+END_SRC
 ** PlayerComponent:【客户端】为什么来个这样的客户端呢？不是我干的，想想它为什么要在客户端加个这个东西，什么情况下可以用到？
    #+BEGIN_SRC csharp

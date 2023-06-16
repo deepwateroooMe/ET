@@ -12,7 +12,7 @@ namespace ET.Server
             {
                 foreach (long id in self.Scenes)
                 {
-                    ClientSceneManagerComponent.Instance.Remove(id);
+                    ClientSceneManagerComponent.Instance.Remove(id).Coroutine(); // 鬼知道这里算是怎么回事？
                 }
             }
         }

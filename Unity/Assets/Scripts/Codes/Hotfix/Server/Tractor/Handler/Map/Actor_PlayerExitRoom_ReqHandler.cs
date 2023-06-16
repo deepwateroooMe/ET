@@ -8,7 +8,8 @@ namespace ET.Server {
 
         // protected override async Task Run(Gamer gamer, Actor_PlayerExitRoom_Req message, Action<Actor_PlayerExitRoom_Ack> reply) {
         protected override async ETTask Run(Gamer gamer, Actor_PlayerExitRoom_Req message, Actor_PlayerExitRoom_Ack response) {
-            Room room = await Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            // Room room = await Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID);
             if (room.State == RoomState.Game) {
                 gamer.isOffline = true;
                 // 玩家断开添加自动出牌组件

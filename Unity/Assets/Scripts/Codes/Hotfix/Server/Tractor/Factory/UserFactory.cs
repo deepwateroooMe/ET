@@ -5,7 +5,7 @@ namespace ET.Server {
         public static User Create(long userId, long sessionId) {
             User user = ComponentFactory.Create<User, long>(userId);
             user.AddComponent<UnitGateComponent, long>(sessionId);
-            Game.Scene.GetComponent<UserComponent>().Add(user);
+            UserComponentSystem.Add(Root.Instance.Scene.GetComponent<UserComponent>(), user);
             return user;
         }
     }

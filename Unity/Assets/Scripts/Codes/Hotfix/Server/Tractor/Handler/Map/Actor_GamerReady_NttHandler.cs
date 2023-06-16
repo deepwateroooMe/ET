@@ -9,7 +9,7 @@ namespace ET.Server {
 
         protected override void Run(Gamer gamer, Actor_GamerReady_Ntt message) {
             gamer.IsReady = true;
-            Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID);
             // 转发玩家准备消息
             Actor_GamerReady_Ntt transpond = new Actor_GamerReady_Ntt();
             transpond.UserID = gamer.UserID;

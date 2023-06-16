@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using ET;
 namespace ET.Server {
+
     [ObjectSystem]
     public class DeckComponentAwakeSystem : AwakeSystem<DeckComponent> {
         protected override void Awake(DeckComponent self) {
             self.Awake();
         }
     }
+    [FriendOfAttribute(typeof(ET.DeckComponent))]
     public static class DeckComponentSystem {
         public static void Awake(this DeckComponent self) {
             self.CreateDeck();

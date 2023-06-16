@@ -9,7 +9,7 @@ namespace ET.Server {
             matcher.PlayerID = playerId;
             matcher.GateSessionID = sessionId;
             // 加入匹配队列
-            Game.Scene.GetComponent<MatcherComponent>().Add(matcher);
+            MatcherComponentSystem.Add(Root.Instance.Scene.GetComponent<MatcherComponent>(), matcher);
             Log.Info($"玩家{userId}加入匹配队列");
             return matcher;
         }

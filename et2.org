@@ -12,6 +12,10 @@
 NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【这是它给出来的例子】
 // 上面这种，就必须组件里，而非生成系里，已经申明了公用方法，否则用下面的
 Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
+// 下面再添加自己新改的方法，用作自己修改后面的参考：
+// Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID);
+// 现在会改热更域里的静态方法的调用了，就可以再消掉一大堆的编译错误了。。。
 #+END_SRC
 ** NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件
 #+BEGIN_SRC java
@@ -568,7 +572,8 @@ public enum InstanceQueueIndex {
 }
    #+END_SRC
 - 参考项目：除了原文件放在ET 域。也【复制了一份到客户端的热更新域里】。可是感觉不应该。因为其它所有的回调都不用复制就可以用。我哪里可能还是没能设置对
-- 改天再检查一下。但是否，对于非系统框架扩展接口，不得不这样？仍然感觉不应该，因为系统框架里其它的生命周期回调函数都不需要复制。改天再做。
+- 改天再检查一下。但是否，对于非系统框架扩展接口，不得不这样？仍然感觉不应该，因为系统框架里其它的生命周期回调函数都不需要复制。
+- *【编译报错：】* 热更新程序域里面，只能申明含有BaseAttribute 的子类特性的类或静态类。那么也就是说，我上面的，我哪怕是把同名文件复制到热更新程序域，也是不对的，因为框架不允许这么做。我就必须去找前面，模仿它的框架系统扩展的这个方法，哪里没能连通好，为什么它的系统方法只存在Model 域，就能运行好，而我添加的不可以？
 ** IUpdateSystem:
    #+BEGIN_SRC java
 public interface IUpdate {

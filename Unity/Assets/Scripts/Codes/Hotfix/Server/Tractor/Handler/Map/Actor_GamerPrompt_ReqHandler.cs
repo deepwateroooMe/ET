@@ -8,8 +8,7 @@ namespace ET.Server {
     public class Actor_GamerPrompt_ReqHandler : AMActorRpcHandler<Gamer, Actor_GamerPrompt_Req, Actor_GamerPrompt_Ack> {
 
 		protected override async ETTask Run(Gamer gamer, Actor_GamerPrompt_Req request, Actor_GamerPrompt_Ack response) {
-            // 再去看一遍：Root 根场景，是什么时候创建，并添加了哪些组件？
-            Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID);
             OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
             DeskCardsCacheComponent deskCardsCache = room.GetComponent<DeskCardsCacheComponent>();
             List<Card> handCards = new List<Card>(gamer.GetComponent<HandCardsComponent>().GetAll());
@@ -20,7 +19,7 @@ namespace ET.Server {
             else {
                 List<IList<Card>> result = await CardsHelper.GetPrompt(handCards, deskCardsCache, deskCardsCache.Rule);
                 if (result.Count > 0) {
-                    response.Cards.AddRange(result[RandomHelper.RandomNumber(0, result.Count)]);
+                    response.Cards.AddRange(result[RandomGenerator.RandomNumber(0, result.Count)]);
                 }
             }
         }

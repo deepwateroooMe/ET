@@ -8,7 +8,8 @@ namespace ET.Server {
 
         protected override void Run(Gamer gamer, Actor_GamerDontPlay_Ntt message) { 
             // 【去确认RoomComponent】到底是在哪里添加的，哪个场景下什么时候添加的？在Programs.cs 全服下添加的房间管理组件；当没有全服，要怎么办呢？是不是全服，自己加一个全服不就可以了吗？
-            Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID);
+            // Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID); // 这里需要去找一个小生成系的例子作参考
+            Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID); // 这里需要去找一个小生成系的例子作参考
             OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
             if (orderController.CurrentAuthority == gamer.UserID) {
                 // 转发玩家不出牌消息

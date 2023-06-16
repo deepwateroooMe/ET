@@ -2,9 +2,15 @@ using System.Collections.Generic;
 namespace ET.Server {
 
     // 房间管理组件
-    [ComponentOf(typeof(Scene))] // 
+    [ComponentOf(typeof(Scene))] 
+    [FriendOfAttribute(typeof(ET.Server.RoomComponent))]
     public static class RoomComponentSystem {
-        // private readonly Dictionary<long, Room> rooms = new Dictionary<long, Room>();
+        // 用这个作自己的测试的例子，给它添加 Awake() 方法，来尝试唤醒它的热更新层的生成系统？找个例子来看。。。
+        [ObjectSystem]
+        public class AwakeSystem: AwakeSystem<RoomComponent> {
+            protected override void Awake(RoomComponent self) {
+            }
+        }
         // 添加房间
         public static void Add(RoomComponent self, Room room) {
             self.rooms.Add(room.InstanceId, room);
@@ -21,14 +27,5 @@ namespace ET.Server {
             self.rooms.Remove(id);
             return room;
         }
-        // public static override void Dispose() {
-        //     if (self.IsDisposed) {
-        //         return;
-        //     }
-        //     base.Dispose();
-        //     foreach (var room in self.rooms.Values) {
-        //         room.Dispose();
-        //     }
-        // }
     }
 }

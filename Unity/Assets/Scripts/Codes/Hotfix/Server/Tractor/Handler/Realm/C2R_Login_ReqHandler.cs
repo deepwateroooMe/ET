@@ -6,7 +6,7 @@ namespace ET.Server {
     public class C2R_Login_ReqHandler : AMRpcHandler<C2R_Login_Req, R2C_Login_Ack> {
         protected override async ETTask Run(Session session, C2R_Login_Req message, R2C_Login_Ack response) {
             // 数据库操作对象
-            DBProxyComponent dbProxy = Game.Scene.GetComponent<DBProxyComponent>();
+            DBProxyComponent dbProxy = Root.Instance.Scene.GetComponent<DBProxyComponent>();
             Log.Info($"登录请求：{{Account:'{message.Account}',Password:'{message.Password}'}}");
             // 验证账号密码是否正确
             List<ComponentWithId> result = await dbProxy.Query<AccountInfo>(_account => _account.Account == message.Account && _account.Password == message.Password);

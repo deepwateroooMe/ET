@@ -405,7 +405,7 @@ namespace ET.Server {
                         groupCards[0] = cards[i - 2];
                         groupCards[1] = cards[i - 1];
                         groupCards[2] = cards[i];
-                        groupCards[3] = other[RandomHelper.RandomNumber(0, other.Count)];
+                        groupCards[3] = other[RandomGenerator.RandomNumber(0, other.Count)];
                         if (IsThreeAndOne(groupCards) && GetWeight(groupCards, type) > weight)
                         {
                             result.Add(groupCards);

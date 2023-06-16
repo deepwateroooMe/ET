@@ -11,9 +11,8 @@ namespace ET.Server {
         public static void Start(this AllotMapComponent self) {
             StartConfig[] startConfigs = self.GetParent<Entity>().GetComponent<StartConfigComponent>().GetAll();// 这个组件被改了。。。
             foreach (StartConfig config in startConfigs) {
-                if (!config.AppType.Is(AppType.Map)) {
+                if (config.AppType != AppType.Map) 
                     continue;
-                }
                 self.MapAddress.Add(config);
             }
         }

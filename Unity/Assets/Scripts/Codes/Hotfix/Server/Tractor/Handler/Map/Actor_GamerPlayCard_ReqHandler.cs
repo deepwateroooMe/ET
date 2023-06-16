@@ -13,7 +13,7 @@ namespace ET.Server {
             // Actor_GamerPlayCard_Ack response = new Actor_GamerPlayCard_Ack();
             // try {
                 // Room room = Root.Instance.Scene.GetComponent<RoomComponent>().Get(gamer.RoomID); // 它这里，RoomComponent 与RoomSystem 是相互生成系。。
-                Room room = RoomComponentSystem.Get(gamer.RoomID); // 这里有点儿不知道怎么改，先放一下
+            Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID); // 这里有点儿不知道怎么改，先放一下
                 GameControllerComponent gameController = room.GetComponent<GameControllerComponent>();
                 DeskCardsCacheComponent deskCardsCache = room.GetComponent<DeskCardsCacheComponent>();
                 OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();

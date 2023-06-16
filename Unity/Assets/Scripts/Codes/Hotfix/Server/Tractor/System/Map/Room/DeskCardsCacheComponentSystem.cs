@@ -1,5 +1,7 @@
 ﻿using ET;
 namespace ET.Server {
+
+    [FriendOfAttribute(typeof(ET.DeskCardsCacheComponent))]
     public static class DeskCardsCacheComponentSystem {
         // 获取总权值
         public static int GetTotalWeight(this DeskCardsCacheComponent self) {
