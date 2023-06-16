@@ -2,6 +2,11 @@
 #+title: ET 框架学习笔记（三）－－网络交互相关
 #+author: deepwaterooo 
 * Actor 消息相关
+- 下面套一点儿网络上的总结，可以帮助自己从比较高的层次上来理解和区分细节。
+- ET中，正常的网络消息需要建立一个session链接来发送，这类消息对应的proto需要由IMessage，IResponse，IRequest来修饰。（这是最常规，感觉最容易理解的）
+- 另外还有一种消息机制，称为 *【Actor机制】* ，挂载了MailBoxComponent的实体会成为一个actor. 而向Actor发送消息可以根据实体的instanceId来发送，不需要自己建立session链接，这类消息在proto中会打上IActorRequest, IActorResponse, IActorMessage的注释，标识为Actor消息。这种机制极大简化了服务器间向Actor发送消息的逻辑，使得实体间通信更加灵活方便。
+- 上面的，自己去想明白，挂载了MailBoxComponent的组件实体，知道对方实体的 instanceId, 背后的封装原理，仍然是对方实体 instanceId 之类的生成得比较聪明，自带自家进程 id, 让MailBoxCompoent 能够方便拿到发向收消息的进程？忘记了，好像是这样的。就是本质上仍是第一种，但封装得狠受用户弱弱程序员方便实用。。。
+- 但有的时候实体需要在服务器间传递（这一块儿还没有涉入，可以简单理解为玩家 me 从加州地图，重入到了亲爱的表哥身边的地图，不嫁给亲爱的表哥就永远不再离开。 me 大概可以理解为从一个地图服搬家转移重入到了另一个地图服， me 所属的进程可能已经变了），每次传递都会实例化一个新的，其instanceId也会变，但实体的id始终不会变，所以为了应对实体传递的问题，增加了proto需要修饰为IActorLocationRequest, IActorLocationResponse, IActorLocationMessage的消息【这一块儿仍不懂，改天再捡】，它可以根据实体Id来发送消息，不受实体在服务器间传递的影响，很好的解决了上面的问题。
 ** ActorMessageSender: 知道对方的instanceId，使用这个类发actor消息
 - Tcs 成员变量：精华在这里：因为内部自带一个IActorResponse 的异步任务成员变量，可以帮助实现异步消息的自动回复
 - 正是因为内部成员自带一个异步任务，所以会多一个成员变量，就是标记是否要抛异常。这是异步任务成员变量带来的
@@ -1363,4 +1368,8 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 直接把 enum 生成的那三个 .cs 类分别复制进双端，服务器端与客户端。包括Card 类。那些编译错误会去天边。哈哈哈，除了一个Card 的两个变量之外（CardSuits, CardWeight）。
 - 【热更新库】：现在剩下的问题，就成为，判定是用了哪个热更新的库，ILRuntime, 还是 HybridCLR, 如果帮它连那两个变量。好像接的是 HybridCLR. 这个库是我之前还不曾真正用过的。
   - 相比于ET6，彻底剔除了ILRuntime，使得代码简洁了不少，并且比较稳定
+
+
+
+
 
