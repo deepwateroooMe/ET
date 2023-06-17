@@ -52,10 +52,12 @@ namespace ET.Server {
                 }
                 // 发送房间玩家信息：这里要换种方式来发消息
                 // 下面写得仍然不对：是我没有理解透彻ActorMessageSenderComponent 组件，所以写得乱七八糟的，还要再改一下。先分析明白，组件是如何管理不同的可发收消息的 actorId 的？
-                ActorMessageSender actorProxy = ActorMessageSenderComponent.Instance.requestCallback.get(gamer.GetComponent<UnitGateComponent>().GateSessionActorId);
+                ActorMessageSender actorProxy = ActorMessageSenderComponent.Instance.requestCallback.Get(Root.Instance.Scene.GetComponent<ActorMessageSenderComponent>(),
+                                                                                                         gamer.GetComponent<UnitGateComponent>().GateSessionActorId);
                 // ActorMessageSender actorProxy = Root.Instance.Scene.GetComponent<ActorMessageSenderComponent>().Get(gamer.GetComponent<UnitGateComponent>().GateSessionActorId);
                 // ActorMessageSender actorProxy = gamer.GetComponent<UnitGateComponent>().GetActorMessageSender();
                 actorProxy.Send(broadcastMessage);
+                //ActorMessageSenderComponentSystem.Send(broadcastMessage); // 方法不匹配：发送消息，ET7 重构后没弄懂
                 List<GamerCardNum> gamersCardNum = new List<GamerCardNum>();
                 List<GamerState> gamersState = new List<GamerState>();
                 GameControllerComponent gameController = room.GetComponent<GameControllerComponent>();

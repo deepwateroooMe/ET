@@ -426,7 +426,7 @@ namespace ET.Server {
                         List<IList<Card>> otherDouble = await GetPrompt(other, deskCardsCache, CardsType.Double);
                         if (otherDouble.Count > 0)
                         {
-                            IList<Card> randomDouble = otherDouble[RandomHelper.RandomNumber(0, otherDouble.Count)];
+                            IList<Card> randomDouble = otherDouble[RandomGenerator.RandomNumber(0, otherDouble.Count)];
                             IList<Card> groupCards = new Card[5];
                             groupCards[0] = cards[i - 2];
                             groupCards[1] = cards[i - 1];

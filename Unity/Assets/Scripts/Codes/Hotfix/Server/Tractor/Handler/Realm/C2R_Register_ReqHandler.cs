@@ -16,7 +16,7 @@ namespace ET.Server {
                 return;
             }
             // 新建账号
-            AccountInfo newAccount = ComponentFactory.CreateWithId<AccountInfo>(IdGenerater.GenerateId());
+            AccountInfo newAccount = ComponentFactory.CreateWithId<AccountInfo>(IdGenerater.Instance.GenerateId());
             newAccount.Account = message.Account;
             newAccount.Password = message.Password;
             Log.Info($"注册新账号：{MongoHelper.ToJson(newAccount)}");

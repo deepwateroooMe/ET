@@ -36,6 +36,9 @@
         </Compile> 
     </ItemGroup>
     <ItemGroup>
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Client\Module\IStartSystem.cs" />
+    </ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="..\..\Share\Analyzer\Share.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <ProjectReference Include="..\Loader\DotNet.Loader.csproj" />
         <ProjectReference Include="..\Model\DotNet.Model.csproj" />

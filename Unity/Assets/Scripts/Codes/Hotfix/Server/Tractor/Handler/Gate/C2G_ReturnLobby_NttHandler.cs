@@ -22,9 +22,11 @@ namespace ET.Server {
             }
             // 正在游戏中发送玩家退出房间请求
             if (user.ActorID != 0) {
-                ActorMessageSender actorProxy = actorProxyComponent.Get(user.ActorID);
-                // ActorMessageSender actorProxy = ActorMessageSenderComponentSystem.Get(actorProxyComponent, user.ActorID); // 今天上午读的这个类，因为重构了，确实不是在说同一个方法。。
-                await actorProxy.Call(new Actor_PlayerExitRoom_Req() { UserID = user.UserID });
+                // ActorMessageSender actorProxy = actorProxyComponent.Get(user.ActorID);
+                // await actorProxy.Call(new Actor_PlayerExitRoom_Req() { UserID = user.UserID });
+                // 重构后，普通消息的发送，怎么发送的？
+                await ActorMessageSenderComponentSystem.Call(new Actor_PlayerExitRoom_Req() { UserID = user.UserID });
+
                 user.ActorID = 0;
             }
         }

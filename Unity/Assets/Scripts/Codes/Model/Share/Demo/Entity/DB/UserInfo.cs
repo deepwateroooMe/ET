@@ -1,4 +1,6 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Attributes;
+using ET;
+
 namespace ET.Server {
     // 用户信息
     [BsonIgnoreExtraElements]

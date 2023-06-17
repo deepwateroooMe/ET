@@ -1,6 +1,7 @@
 #+latex_class: cn-article
 #+title: ET 框架学习笔记（三）－－网络交互相关
 #+author: deepwaterooo 
+
 * Actor 消息相关
 - 下面套一点儿网络上的总结，可以帮助自己从比较高的层次上来理解和区分细节。
 - ET中，正常的网络消息需要建立一个session链接来发送，这类消息对应的proto需要由IMessage，IResponse，IRequest来修饰。（这是最常规，感觉最容易理解的）
@@ -627,7 +628,6 @@ public class NetInnerComponentOnReadEvent: AEvent<NetInnerComponentOnRead> {
     }
 }
 #+END_SRC
-
 
 * StartConfigComponent: 找【各种服】的起始初始化地址
 ** ConfigSingleton<T>: ProtoObject, ISingleton
@@ -1264,12 +1264,20 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 - 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
 - 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
 
-* Unit: 
+* Unit: 这个模块还不太懂，需要明天上午花时间再看一下
+- 有个编译错误说：这个组件不可以同时成分多于一个不同组件组成元件。。。可是框架中使用的地方，明明把它添加进了不同的组件。去弄明白框架里，如果控件一个组件只能成为一个【不能多于1 个】组件的组成部分的？
 ** UnitGateComponent: 
    #+BEGIN_SRC csharp
-[ComponentOf(typeof(Unit))]
+[ComponentOf(typeof(Gamer))]
+// [ComponentOf(typeof(User))]  // 这里为什么会成为：同一个组件只能为一个什么XX 的子组件组成部分？
+// [ComponentOf(typeof(Unit))]
 public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
     public long GateSessionActorId { get; set; }
+
+    // // 感觉下面这个方法：不再必要，也不应该，也会报错的
+    // public ActorMessageSender GetActorMessageSender() {
+    // 	return Game.Scene.GetComponent<ActorMessageSenderComponent>().Get(this.GateSessionActorId);
+    // }
 }
    #+END_SRC
 ** UnitGateComponentSystem
