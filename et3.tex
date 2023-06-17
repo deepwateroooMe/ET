@@ -1,4 +1,4 @@
-% Created 2023-06-16 Fri 11:40
+% Created 2023-06-16 Fri 19:50
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -34,13 +34,14 @@
 \maketitle
 \tableofcontents
 
+
 \section{Actor 消息相关}
 \label{sec-1}
 \begin{itemize}
 \item 下面套一点儿网络上的总结，可以帮助自己从比较高的层次上来理解和区分细节。
 \item ET中，正常的网络消息需要建立一个session链接来发送，这类消息对应的proto需要由IMessage，IResponse，IRequest来修饰。（这是最常规，感觉最容易理解的）
 \item 另外还有一种消息机制，称为 \textbf{【Actor机制】} ，挂载了MailBoxComponent的实体会成为一个actor. 而向Actor发送消息可以根据实体的instanceId来发送，不需要自己建立session链接，这类消息在proto中会打上IActorRequest, IActorResponse, IActorMessage的注释，标识为Actor消息。这种机制极大简化了服务器间向Actor发送消息的逻辑，使得实体间通信更加灵活方便。
-\item 上面的，自己去想明白，挂载了MailBoxComponent的组件实体，知道对方实体的 instanceId, 背后的封装原理，仍然是对方实体 instanceId 之类的生成得比较聪明，自带自家进程 id, 让MailBoxCompoent 能够方便拿到发向收自己的进程？忘记了，好像是这样的。就是本质上仍是第一种，但封装得狠受用户弱弱程序员方便实用。。。
+\item 上面的，自己去想明白，挂载了MailBoxComponent的组件实体，知道对方实体的 instanceId, 背后的封装原理，仍然是对方实体 instanceId 之类的生成得比较聪明，自带自家进程 id, 让MailBoxCompoent 能够方便拿到发向收消息的进程？忘记了，好像是这样的。就是本质上仍是第一种，但封装得狠受用户弱弱程序员方便实用。。。
 \item 但有的时候实体需要在服务器间传递（这一块儿还没有涉入，可以简单理解为玩家 me 从加州地图，重入到了亲爱的表哥身边的地图，不嫁给亲爱的表哥就永远不再离开。 me 大概可以理解为从一个地图服搬家转移重入到了另一个地图服， me 所属的进程可能已经变了），每次传递都会实例化一个新的，其instanceId也会变，但实体的id始终不会变，所以为了应对实体传递的问题，增加了proto需要修饰为IActorLocationRequest, IActorLocationResponse, IActorLocationMessage的消息【这一块儿仍不懂，改天再捡】，它可以根据实体Id来发送消息，不受实体在服务器间传递的影响，很好的解决了上面的问题。
 \end{itemize}
 \subsection{ActorMessageSender: 知道对方的instanceId，使用这个类发actor消息}
@@ -696,7 +697,6 @@ public class NetInnerComponentOnReadEvent: AEvent<NetInnerComponentOnRead> {
     }
 }
 \end{minted}
-
 
 \section{StartConfigComponent: 找【各种服】的起始初始化地址}
 \label{sec-2}
@@ -1376,14 +1376,24 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 \item 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
 \end{itemize}
 
-\section{Unit:}
+\section{Unit: 这个模块还不太懂，需要明天上午花时间再看一下}
 \label{sec-7}
+\begin{itemize}
+\item 有个编译错误说：这个组件不可以同时成分多于一个不同组件组成元件。。。可是框架中使用的地方，明明把它添加进了不同的组件。去弄明白框架里，如果控件一个组件只能成为一个【不能多于1 个】组件的组成部分的？
+\end{itemize}
 \subsection{UnitGateComponent:}
 \label{sec-7-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[ComponentOf(typeof(Unit))]
+[ComponentOf(typeof(Gamer))]
+// [ComponentOf(typeof(User))]  // 这里为什么会成为：同一个组件只能为一个什么XX 的子组件组成部分？
+// [ComponentOf(typeof(Unit))]
 public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
     public long GateSessionActorId { get; set; }
+
+    // // 感觉下面这个方法：不再必要，也不应该，也会报错的
+    // public ActorMessageSender GetActorMessageSender() {
+    // 	return Game.Scene.GetComponent<ActorMessageSenderComponent>().Get(this.GateSessionActorId);
+    // }
 }
 \end{minted}
 \subsection{UnitGateComponentSystem}

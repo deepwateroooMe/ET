@@ -25,8 +25,7 @@ namespace ET.Client {
                     // session断开导致ping rpc报错，记录一下即可，不需要打成error
                     Log.Info($"ping error: {self.Id} {e.Error}");
                     return;
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     Log.Error($"ping error: \n{e}");
                 }
             }

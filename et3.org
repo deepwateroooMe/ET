@@ -495,6 +495,7 @@ public enum MailboxType {
 - 读上下面的顶层的 NetInnerComponentOnReadEvent.cs 的顶层某个某些服，读到消息后的消息处理逻辑
 - 知道，当前帮助类，就是衔接上面的两条顶层调用，与底层具体处理逻辑的桥，把框架上中下层连接连通起来。
 - 分析这个类，应该可以理解底层不同逻辑方法的前后调用关系，消息处理的逻辑模块先后顺序，以及必要的可能的调用频率，或调用上下文情境等。明天上午再看一下
+- 上面 *【ActorMessageSenderComponentSystem.cs】的使用情境* ：有个 *【服务端热更新的帮助】类MessageHelper.cs*, 发Actor 消息，与ActorLocation 位置消息，也会都是调用 ActorMessageSenderComponentSystem.cs 里定义的底层逻辑。 
    #+BEGIN_SRC csharp
 public static class ActorHandleHelper {
     public static void Reply(int fromProcess, IActorResponse response) {
@@ -1265,7 +1266,8 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 - 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
 
 * Unit: 这个模块还不太懂，需要明天上午花时间再看一下
-- 有个编译错误说：这个组件不可以同时成分多于一个不同组件组成元件。。。可是框架中使用的地方，明明把它添加进了不同的组件。去弄明白框架里，如果控件一个组件只能成为一个【不能多于1 个】组件的组成部分的？
+- 【Unit】究竟是什么：感觉像是视图里的控件的基本单位？它带位置、旋转信息
+- 有个编译错误说：这个组件不可以同时成分多于一个不同组件组成元件。。。可是框架中使用的地方，明明把它添加进了不同的组件。去弄明白框架里，如何控件一个组件只能成为一个【不能多于1 个】组件的组成部分的？
 ** UnitGateComponent: 
    #+BEGIN_SRC csharp
 [ComponentOf(typeof(Gamer))]
@@ -1376,8 +1378,3 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 直接把 enum 生成的那三个 .cs 类分别复制进双端，服务器端与客户端。包括Card 类。那些编译错误会去天边。哈哈哈，除了一个Card 的两个变量之外（CardSuits, CardWeight）。
 - 【热更新库】：现在剩下的问题，就成为，判定是用了哪个热更新的库，ILRuntime, 还是 HybridCLR, 如果帮它连那两个变量。好像接的是 HybridCLR. 这个库是我之前还不曾真正用过的。
   - 相比于ET6，彻底剔除了ILRuntime，使得代码简洁了不少，并且比较稳定
-
-
-
-
-
