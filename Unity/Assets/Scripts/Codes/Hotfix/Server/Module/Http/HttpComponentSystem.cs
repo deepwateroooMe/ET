@@ -79,7 +79,7 @@ namespace ET.Server {
             try {
                 IHttpHandler handler;
                 if (self.dispatcher.TryGetValue(context.Request.Url.AbsolutePath, out handler)) {
-                    await handler.Handle(self.Domain, context);
+                    await handler.Handle(self.Domain as Scene, context);
                 }
             }
             catch (Exception e) {

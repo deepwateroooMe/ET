@@ -28,8 +28,11 @@ namespace ET.Server {
                 OrderControllerComponent orderController = room.GetComponent<OrderControllerComponent>();
                 if (gamer.UserID == orderController.CurrentAuthority) {
                     bool isFirst = gamer.UserID == orderController.Biggest;
-                    ActorMessageSender actorProxy = gamer.GetComponent<UnitGateComponent>().GetActorMessageSender();
-                    actorProxy.Send(new Actor_AuthorityPlayCard_Ntt() { UserID = orderController.CurrentAuthority, IsFirst = isFirst });
+                    // ActorMessageSender actorProxy = gamer.GetComponent<UnitGateComponent>().GetActorMessageSender();
+                    // actorProxy.Send(new Actor_AuthorityPlayCard_Ntt() { UserID = orderController.CurrentAuthority, IsFirst = isFirst });
+                    // 感觉下面改的，可能正常是繁杂，总感觉是一个框架，应该有更为系统化的方法来调用，或只是亲爱的表哥的活宝妹现在的脑袋对这块儿还有点儿糊糊。。。
+                    ActorMessageSenderComponent.Instance.Send(gamer.GetComponent<UnitGateComponent>().GateSessionActorId,
+                                                                    new Actor_AuthorityPlayCard_Ntt() { UserID = orderController.CurrentAuthority, IsFirst = isFirst });
                 }
             }
         }

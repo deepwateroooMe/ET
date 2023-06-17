@@ -25,7 +25,7 @@ namespace ET.Server {
                 // ActorMessageSender actorProxy = actorProxyComponent.Get(user.ActorID);
                 // await actorProxy.Call(new Actor_PlayerExitRoom_Req() { UserID = user.UserID });
                 // 重构后，普通消息的发送，怎么发送的？
-                await ActorMessageSenderComponentSystem.Call(new Actor_PlayerExitRoom_Req() { UserID = user.UserID });
+                await ActorMessageSenderComponent.Instance.Call(user.ActorID, new Actor_PlayerExitRoom_Req() { UserID = user.UserID });
 
                 user.ActorID = 0;
             }

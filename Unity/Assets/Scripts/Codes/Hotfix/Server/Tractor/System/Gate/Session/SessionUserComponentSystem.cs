@@ -22,10 +22,10 @@ namespace ET.Server {
                 }
                 // 正在游戏中发送玩家退出房间请求
                 if (self.User.ActorID != 0) {
-                    ActorMessageSender actorProxy = actorProxyComponent.Get(self.User.ActorID);
-                    // await actorProxy.Call(new Actor_PlayerExitRoom_Req() { UserID = self.User.UserID });
-                    actorProxy.Call(new Actor_PlayerExitRoom_Req() { UserID = self.User.UserID }).Coroutine();
-                    
+                    // ActorMessageSender actorProxy = actorProxyComponent.Get(self.User.ActorID);
+                    // // await actorProxy.Call(new Actor_PlayerExitRoom_Req() { UserID = self.User.UserID });
+                    // actorProxy.Call(new Actor_PlayerExitRoom_Req() { UserID = self.User.UserID }).Coroutine();
+                    ActorMessageSenderComponent.Instance.Call(self.User.ActorID, new Actor_PlayerExitRoom_Req() { UserID = self.User.UserID }).Coroutine();
                 }
                 // 向登录服务器发送玩家下线消息
                 IPEndPoint realmIPEndPoint = config.RealmConfig.GetComponent<InnerConfig>().IPEndPoint;
