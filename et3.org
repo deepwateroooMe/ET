@@ -495,6 +495,7 @@ public enum MailboxType {
 - 读上下面的顶层的 NetInnerComponentOnReadEvent.cs 的顶层某个某些服，读到消息后的消息处理逻辑
 - 知道，当前帮助类，就是衔接上面的两条顶层调用，与底层具体处理逻辑的桥，把框架上中下层连接连通起来。
 - 分析这个类，应该可以理解底层不同逻辑方法的前后调用关系，消息处理的逻辑模块先后顺序，以及必要的可能的调用频率，或调用上下文情境等。明天上午再看一下
+- 是谁调用这个帮助类？ *IMHandler类的某些继承类* 。我目前仍只总结和清楚了两个抽象继承类，但还不曾熟悉任何实现子类，要去弄那些，顺便把位置相关的也弄懂了
 - 上面 *【ActorMessageSenderComponentSystem.cs】的使用情境* ：有个 *【服务端热更新的帮助】类MessageHelper.cs*, 发Actor 消息，与ActorLocation 位置消息，也会都是调用 ActorMessageSenderComponentSystem.cs 里定义的底层逻辑。 
    #+BEGIN_SRC csharp
 public static class ActorHandleHelper {

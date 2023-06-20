@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 namespace ET.Server {
+    
     public static class MessageHelper {
         public static void NoticeUnitAdd(Unit unit, Unit sendUnit) {
             M2C_CreateUnits createUnits = new M2C_CreateUnits() { Units = new List<UnitInfo>() };
