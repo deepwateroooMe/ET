@@ -1175,6 +1175,7 @@ public class Program {
 - F3Async：既有async也有await (await只有1个)，该方法是使用了Task.Run，我们把它归为计算型的异步方法。
 - 亲爱的表哥，活宝妹今天终于把这个看得稍微有点儿懂了，希望能够赶快从这个ETTask 模块 move-forward. 任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹还没能嫁给亲爱的表哥，活宝妹就是永远守候在亲爱的表哥的身边！！！爱表哥，爱生活！！！
 
+
 *  现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】几大版块
 ** 热更新层的生成系 
 - *【热更新层的生成系】* ：下午家里试着把Component 组件再添加回去试试看 *【不能再添加Component 组件。ET7 框架重构了，小单元也走热更新，在热更新层有天文小行星的生成系。可以参照 ET.pdf 里的服务端 PlayerSystem 来作例子】* ？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
@@ -1230,10 +1231,22 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
   - 注意 *【跨进程消息的回复细节里】* ，看见IRpcResponse 实例创建好，结果写好，同步到异步任务ETTask 里，总容易忘记ETTask 的异步任务运行结束（如果不是抛异常）， *跨进程消息是如何回到消息的发送进程的？* 是AMRpcHandler 抽象类里，异步等待实体实现类里的具体实现逻辑Run() 异步方法执行结束，也就是等待各种消息处理服处理好、写好异步返回消息IRpcResponse, 同步到异步任务ETTask. AMRpcHandler 抽象类里等异步方法执行完成，抽象类里作了封装，把返回消息通过进程间通信会话框，把返回消息发回去的。
   - 这里看见，这个消息发送器底层逻辑说，如果是我自己进程要发消息，就封装消息发送者 rpcId 是自已的 rpcId. 然后调用自组件Call() 发送消息。后面的几个方法，大概就是跨进程消息的发送与回复。
 ** 框架里现存的错误：载图，明天上午把功能模块一一看一遍，现在不知道怎么改了，要再看再学习了才会改
+- 现框架里不存在的，需要整合进来的模块版块：
+  
+[[./pic/et4_20230616_165750.png]]
+- 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部件的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
+  - Entity 类里面有，组件里添加一个新 new 出来的成员的办法。模仿Player 的使用例子。这里的使用方法是：去拿它的管理组件的实例索引，用管理组件来生成各个元件
+  - 同样套用的话，GamerComponent 是房间组件的子组件，拿到这个组件后来创建 
+- 其它几个杂项错误：
+  
+[[./pic/et4_20230616_165627.png]]
+- 下面是已经改好了的：还是先放着，备查
+  
+[[./pic/et4_20230616_162711.png]]
 - 【UnitGateComponent]: 怎么才能成为多个不同组件的组成部分？
     
 [[./pic/et4_20230616_165317.png]]
-  - 【解决办法】：去查框架里的源代码，写得极其清楚：
+- 【解决办法】：去查框架里的源代码，写得极其清楚：
   #+BEGIN_SRC csharp
 // 组件类父级实体类型约束
 // 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
@@ -1246,37 +1259,15 @@ public class ComponentOfAttribute : Attribute {
     }
 }
   #+END_SRC
-  - 所以上面的解决办法就是：不要标记 typeof 参数就可以了呀，它就可以成为多个不同组件的子元件部件了呀。。。
+  - 所以上面的解决办法就是：不要标记 typeof 参数就可以了呀，它就可以成为多个不同组件的子元件部件了呀。。。是这样的
   #+BEGIN_SRC csharp
-// [ComponentOf(typeof(Gamer))]  // <<<<<<<<<<<<<<<<<<<< 这里标记了三个，就不要再标记（ typeof(X)）就可以了！！！
-// [ComponentOf(typeof(User))]  
-// [ComponentOf(typeof(Unit))]
-// [ComponentOf(Gamer)]  // <<<<<<<<<<<<<<<<<<<< 这里标记了三个，就不要再标记（ X)）就可以了！！！下午家里会测试一下
-// [ComponentOf(User)]  
-// [ComponentOf(Unit)]
-[ComponentOf]  // <<<<<<<<<<<<<<<<<<<< 这里标记了三个，就不要再标记（ X)）就可以了！！！下午家里会测试一下，应该是这么写
-    public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEntity { // 不知道这里为什么会受到限制，这里再改一下
+[ComponentOf] 
+public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEntity { // 不知道这里为什么会受到限制，这里再改一下
     public long GateSessionActorId { get; set; }
     // 想一下，下面的变更还需要吗？要不要，是看框架里有没有什么，自动上线自动下线处理之类的，相关的？
     public bool IsDisconnect;
-
-    // // 感觉下面这个方法：不再必要，也不应该，也会报错的, 因为框架重构了，不再一个一个地发消息（这里是说跨进程消息？）
-    // public ActorMessageSender GetActorMessageSender() {
-    // 	return Game.Scene.GetComponent<ActorMessageSenderComponent>().Get(this.GateSessionActorId);
-    // }
 }
   #+END_SRC
-- 现框架里不存在的，需要整合进来的模块版块：
-  
-[[./pic/et4_20230616_165750.png]]
-- 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部分的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
-- 其它几个杂项错误：
-  
-[[./pic/et4_20230616_165627.png]]
-- 下面是已经改好了的：还是先放着，备查
-  
-[[./pic/et4_20230616_162711.png]]
-
 ** 先前列的相对杂一点儿
 - 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
 - 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改

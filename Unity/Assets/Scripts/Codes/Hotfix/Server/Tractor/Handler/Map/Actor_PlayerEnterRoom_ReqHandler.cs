@@ -11,8 +11,10 @@ namespace ET.Server {
         protected override async ETTask Run(Room room, Actor_PlayerEnterRoom_Req message, Actor_PlayerEnterRoom_Ack response) {
             Gamer gamer = room.Get(message.UserID);
             if (gamer == null) { // 当前玩家，在这个被分配的房间里，还没被初始化
-                // 创建房间玩家对象
-                gamer = GamerFactory.Create(message.PlayerID, message.UserID);
+                // 创建房间玩家对象: 过程是先拿GamerComponent 管理者组件，再用它创建一个实例
+                GamerComponent gamerComponent = room.GetComponent<GamerComponent>();
+                // gamer = GamerFactory.Create(message.PlayerID, message.UserID);
+                gamer = gamerComponent.Create(message.PlayerID, message.UserID);
                 // 等待结果：这里就可以看见，当必须等待，就不可以跳过，所以我先前改的，基本上都错了。。活宝妹任何时候就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！
                 await gamer.AddComponent<MailBoxComponent>().AddLocation(); // 只有给玩家挂上这个组件，并向中央邮件注册登记地址，接下来的游戏它才可以收发消息，出牌什么的
                 gamer.AddComponent<UnitGateComponent, long>(message.SessionID);

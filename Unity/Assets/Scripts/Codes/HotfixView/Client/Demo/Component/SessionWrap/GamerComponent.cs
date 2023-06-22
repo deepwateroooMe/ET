@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Collections.Generic;
-namespace ET.Client {
+namespace ET {
     // 组件：是提供给房间用，用来管理游戏中每个房间里的最多三个当前玩家
     public class GamerComponent : Entity, IAwake { // 它也有【生成系】
         private readonly Dictionary<long, int> seats = new Dictionary<long, int>();
