@@ -1399,13 +1399,6 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
     public bool IsFirst { get; set; }
    #+END_SRC
 
-
-
-
-
-
-
-
 * ET7 数据库相关【服务端】
 - 这个数据库系统，连个添加使用的范例也没有。。。就两个组件，一个管理类。什么也没留下。。
 - 这里不急着整理。现框架 *DB 放在服务端的Model* 里。它的管理体系成为管理各个不同区服的数据库 DBComponent。
@@ -1414,7 +1407,7 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
    #+BEGIN_SRC java
 public interface IDBCollection {}
    #+END_SRC
-** DBComponent: 带生成系。可以查表，查询数据
+** DBComponent: 【CRUD】可以查表，查询数据等，各种数据库操作的基本方法 
 - 它的生成系就是解决对数据库的CRUD 必要操作，单条信息的，或是批量处理的
    #+BEGIN_SRC java
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
@@ -1940,4 +1933,4 @@ public static class GamerFactory {
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】
-
+- 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】

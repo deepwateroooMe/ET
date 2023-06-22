@@ -7,7 +7,7 @@ namespace ET.Server {
                 ActorMessageSenderComponent.Instance.HandleIActorResponse(response); // 【没读懂：】同一个进程内的消息，不走网络层，直接处理。什么情况下会是发给同一个进程的？ET7 重构后，同一进程下可能会有不同的先前小服：Realm 注册登录服，Gate 服等；如果不同的SceneType.Map-etc 先前场景小服只要在同一进程，就可以不走网络层吗？
                 return;
             }
-            // 【不同进程的消息处理：】走网络层，逻辑晚点儿有必要再细看一下
+            // 【不同进程的消息处理：】走网络层，就是调用会话框来发出消息
             Session replySession = NetInnerComponent.Instance.Get(fromProcess); // 从内网组件单例中去拿会话框：不同进程消息，一定走网络，通过会话框把返回消息发回去
             replySession.Send(response);
         }
@@ -41,7 +41,7 @@ namespace ET.Server {
                             IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
                             Reply(fromProcess, response);
                             break;
-                        }
+                        } // 调用管理器组件的处理方法 
                         await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
                     }
                     break;
@@ -73,29 +73,28 @@ namespace ET.Server {
                 return;
             }
             switch (mailBoxComponent.MailboxType) {
-            case MailboxType.MessageDispatcher: {
-                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                    if (entity.InstanceId != realActorId) {
-                        break;
+                case MailboxType.MessageDispatcher: {
+                    using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
+                        if (entity.InstanceId != realActorId) 
+                            break;
+                        await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
                     }
+                    break;
+                }
+                case MailboxType.UnOrderMessageDispatcher: {
                     await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
+                    break;
                 }
-                break;
-            }
-            case MailboxType.UnOrderMessageDispatcher: {
-                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
-                break;
-            }
-            case MailboxType.GateSession: {
-                if (entity is Session gateSession) {
-                    // 发送给客户端
-                    gateSession.Send(iActorMessage);
+                case MailboxType.GateSession: {
+                    if (entity is Session gateSession) 
+                        // 发送给客户端
+                        gateSession.Send(iActorMessage);
+                    break;
                 }
-                break;
-            }
-            default:
-                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
+                default:
+                    throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
             }
         }
     }
 }
+

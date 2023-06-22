@@ -1,4 +1,4 @@
-% Created 2023-06-20 Tue 08:42
+% Created 2023-06-22 Thu 13:40
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1159,17 +1159,80 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
     }
 }
 \end{minted}
-\subsection{ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息}
+\subsection{ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息 et3}
 \label{sec-3-10}
 \subsection{MessageDispatcherComponent: 这些是一个系统的，需要放在一起总结}
 \label{sec-3-11}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 总管：对每个场景，消息分发器
+// 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。那么默认，每种场景，只有一个消息处理器实体类
+public class MessageDispatcherInfo { 
+    public SceneType SceneType { get; }
+    public IMHandler IMHandler { get; }
+    public MessageDispatcherInfo(SceneType sceneType, IMHandler imHandler) {
+        this.SceneType = sceneType;
+        this.IMHandler = imHandler;
+    }
+}
+// 消息分发组件
+[ComponentOf(typeof(Scene))]
+public class MessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
+    public static MessageDispatcherComponent Instance { get; set; }
+    public readonly Dictionary<ushort, List<MessageDispatcherInfo>> Handlers = new(); // 总管的字典
+}
+\end{minted}
 \subsection{MessageDispatcherComponentSystem:}
 \label{sec-3-12}
-\begin{itemize}
-\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 扫描框架里的标签系【MessageHandler(SceneType)】
+private static void Load(this MessageDispatcherComponent self) {
+    self.Handlers.Clear();
+    HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+    foreach (Type type in types) {
+        IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+        if (iMHandler == null) {
+            Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+            continue;
+        }
+        object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+        foreach (object attr in attrs) {
+            MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+            Type messageType = iMHandler.GetMessageType();
+            ushort opcode = NetServices.Instance.GetOpcode(messageType); // 这里相对、理解上的困难是：感觉无法把OpCode 网络操作码与消息类型，从概念上连接起来
+            if (opcode == 0) {
+                Log.Error($"消息opcode为0: {messageType.Name}");
+                continue;
+            } // 下面：下面是创建一个包装体，注册备用 
+            MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+            self.RegisterHandler(opcode, messageDispatcherInfo);
+        }
+    }
+}
+private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+    if (!self.Handlers.ContainsKey(opcode)) 
+        self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+    self.Handlers[opcode].Add(handler); // 加入管理体系来管理
+}
+public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+    List<MessageDispatcherInfo> actions;
+    ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+    if (!self.Handlers.TryGetValue(opcode, out actions)) {
+        Log.Error($"消息没有处理: {opcode} {message}");
+        return;
+    }
+    // 这里就不明白：它的那些 Domain 什么的
+    SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
+    foreach (MessageDispatcherInfo ev in actions) {
+        if (ev.SceneType != sceneType) 
+            continue;
+        try {
+            ev.IMHandler.Handle(session, message); // 处理分派消息：也就是调用IMHandler 接口的方法来处理消息
+        } catch (Exception e) {
+            Log.Error(e);
+        }
+    }
+}
+\end{minted}
 
 \section{C\# 异步基础原理、状态机原理、逻辑整理}
 \label{sec-4}
@@ -1327,6 +1390,7 @@ public class Program {
 \item 亲爱的表哥，活宝妹今天终于把这个看得稍微有点儿懂了，希望能够赶快从这个ETTask 模块 move-forward. 任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹还没能嫁给亲爱的表哥，活宝妹就是永远守候在亲爱的表哥的身边！！！爱表哥，爱生活！！！
 \end{itemize}
 
+
 \section{现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】几大版块}
 \label{sec-5}
 \subsection{热更新层的生成系}
@@ -1419,13 +1483,41 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \subsection{框架里现存的错误：载图，明天上午把功能模块一一看一遍，现在不知道怎么改了，要再看再学习了才会改}
 \label{sec-5-3}
 \begin{itemize}
+\item 现框架里不存在的，需要整合进来的模块版块：
+\end{itemize}
+
+\includegraphics[width=.9\linewidth]{./pic/et4_20230616_165750.png}
+\begin{itemize}
+\item 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部件的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
+\begin{itemize}
+\item Entity 类里面有，组件里添加一个新 new 出来的成员的办法。模仿Player 的使用例子。这里的使用方法是：去拿它的管理组件的实例索引，用管理组件来生成各个元件
+\item 同样套用的话，GamerComponent 是房间组件的子组件，拿到这个组件后来创建
+\end{itemize}
+\item \textbf{【ComponentFactory.CreateWithId:】} 重构了的框架里，这个工厂类是被折解到各自小部分的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】新框架里，上次不是找到过：先去拿管理器组件，再用管理器组件，通过调用基类Entity 里的方法，来创建小部件的实例？可以再找个例子看一下
+\item 上午把【数据库模块的接入】、【InnerConfig】【StartConfigComponent】【LocationComponent】等相关模块：读下源码，理解透彻，必要的情况下下午家里接入并测试
+\begin{itemize}
+\item \textbf{【数据库模块：】} 现框架中被砍得几乎不剩下什么，如果弄不懂，可以与参考项目斗地主中的数据库模块作对照来理解，和添加必要的类等。
+\item 如果这一块儿，这会儿还没什么头绪，就先看看别的呀
+\end{itemize}
+\item 把IMHandler 接口，以及它的两个抽象实现类、相关模块的部分理解透彻
+\item 上午就是看那几个框架里还不熟悉的模块，能看懂哪些，就先看先事理哪些。
+\item 先看只看了一半的，比如什么IMHandler 接口的实现类等，如果今天上午有机会，也可以看一下
+\item 其它几个杂项错误：
+\end{itemize}
+
+\includegraphics[width=.9\linewidth]{./pic/et4_20230616_165627.png}
+\begin{itemize}
+\item 下面是已经改好了的：还是先放着，备查
+\end{itemize}
+
+\includegraphics[width=.9\linewidth]{./pic/et4_20230616_162711.png}
+\begin{itemize}
 \item 【UnitGateComponent]: 怎么才能成为多个不同组件的组成部分？
 \end{itemize}
 
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_165317.png}
 \begin{itemize}
 \item 【解决办法】：去查框架里的源代码，写得极其清楚：
-\end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 组件类父级实体类型约束
 // 父级实体类型唯一的 标记指定父级实体类型【ComponentOf(typeof(parentType)】
@@ -1439,44 +1531,17 @@ public class ComponentOfAttribute : Attribute {
 }
 \end{minted}
 \begin{itemize}
-\item 所以上面的解决办法就是：不要标记 typeof 参数就可以了呀，它就可以成为多个不同组件的子元件部件了呀。。。
+\item 所以上面的解决办法就是：不要标记 typeof 参数就可以了呀，它就可以成为多个不同组件的子元件部件了呀。。。是这样的
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// [ComponentOf(typeof(Gamer))]  // <<<<<<<<<<<<<<<<<<<< 这里标记了三个，就不要再标记（ typeof(X)）就可以了！！！
-// [ComponentOf(typeof(User))]  
-// [ComponentOf(typeof(Unit))]
-// [ComponentOf(Gamer)]  // <<<<<<<<<<<<<<<<<<<< 这里标记了三个，就不要再标记（ X)）就可以了！！！下午家里会测试一下
-// [ComponentOf(User)]  
-// [ComponentOf(Unit)]
-[ComponentOf]  // <<<<<<<<<<<<<<<<<<<< 这里标记了三个，就不要再标记（ X)）就可以了！！！下午家里会测试一下，应该是这么写
-    public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEntity { // 不知道这里为什么会受到限制，这里再改一下
+[ComponentOf] 
+public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEntity { // 不知道这里为什么会受到限制，这里再改一下
     public long GateSessionActorId { get; set; }
     // 想一下，下面的变更还需要吗？要不要，是看框架里有没有什么，自动上线自动下线处理之类的，相关的？
     public bool IsDisconnect;
-
-    // // 感觉下面这个方法：不再必要，也不应该，也会报错的, 因为框架重构了，不再一个一个地发消息（这里是说跨进程消息？）
-    // public ActorMessageSender GetActorMessageSender() {
-    // 	return Game.Scene.GetComponent<ActorMessageSenderComponent>().Get(this.GateSessionActorId);
-    // }
 }
 \end{minted}
-\begin{itemize}
-\item 现框架里不存在的，需要整合进来的模块版块：
 \end{itemize}
-
-\includegraphics[width=.9\linewidth]{./pic/et4_20230616_165750.png}
-\begin{itemize}
-\item 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部分的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
-\item 其它几个杂项错误：
-\end{itemize}
-
-\includegraphics[width=.9\linewidth]{./pic/et4_20230616_165627.png}
-\begin{itemize}
-\item 下面是已经改好了的：还是先放着，备查
-\end{itemize}
-
-\includegraphics[width=.9\linewidth]{./pic/et4_20230616_162711.png}
-
 \subsection{先前列的相对杂一点儿}
 \label{sec-5-4}
 \begin{itemize}
@@ -1586,6 +1651,14 @@ public class ComponentOfAttribute : Attribute {
 \item 【GamerComponent】玩家组件管理类，管理所有一个房间的玩家：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。今天晚上来弄这一块儿吧。
 \item 【Gamer】：每一个玩家
 \item 【拖拉机游戏房间】：多组件构成
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \end{itemize}
