@@ -16,6 +16,7 @@ namespace ET.Server {
         // 获取User对象
         public static User Get(UserComponent self, long id) {
             self.idUsers.TryGetValue(id, out User gamer);
+            // 这里就成为是：如果没有玩家，这里不能创建新的玩家
             return gamer;
         }
         // 移除User对象

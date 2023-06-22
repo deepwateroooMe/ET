@@ -16,15 +16,15 @@ namespace ET.Server {
             // Key过期
             LandlordsGateSessionKeyComponentSystem.Remove(landlordsGateSessionKeyComponent, message.Key);
             // 创建User对象
-            User user = UserFactory.Create(userId, session.InstanceId);
+            User user = UserFactory.Create(userId, session.InstanceId);// 用 UserComponent
             await user.AddComponent<MailBoxComponent>().AddLocation(); // 为【用户】添加了邮箱和位置信息。那么这个用户就可以收发消息了
             // 添加User对象关联到Session上
             session.AddComponent<SessionUserComponent>().User = user;
             await session.AddComponent<MailBoxComponent>().AddLocation(); // 添加消息转发组件
             StartConfigComponent config = Root.Instance.Scene.GetComponent<StartConfigComponent>(); // 这个组件被重构了，需要去查
 
-            // 这里涉及到另一块：如何发请求消息，新封装是怎么的，今天暂时不看这一块儿
-            IPEndPoint realmIPEndPoint = config.RealmConfig.GetComponent<InnerConfig>().IPEndPoint;
+            // 这里涉及到另一块：如何发请求消息，新封装是怎么的，今天暂时不看这一块儿k
+            IPEndPoint realmIPEndPoint = config.RealmConfig.GetComponent<InnerConfig>().IPEndPoint;// 这里拿这个地址的方法不对
             Session realmSession = NetInnerComponentSystem.Get(session.DomainScene().GetComponent<NetInnerComponent>(), realmIPEndPoint);
             await realmSession.Call(new G2R_PlayerOnline_Req() { UserID = userId, GateAppID = config.StartConfig.AppId });
 

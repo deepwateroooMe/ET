@@ -16,15 +16,5 @@ namespace ET {
         public CardsType Rule { get; set; }
         // 牌桌上最小的牌
         public int MinWeight { get { return (int)this.library[0].CardWeight; } }
-
-        // public override void Dispose() {
-        //     if(this.IsDisposed) {
-        //         return;
-        //     }
-        //     base.Dispose();
-        //     library.Clear();
-        //     LordCards.Clear();
-        //     Rule = CardsType.None;
-        // }
     }
 }
