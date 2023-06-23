@@ -4,7 +4,7 @@ namespace ET.Client {
 
         public static Unit Create(Scene currentScene, UnitInfo unitInfo) {
             UnitComponent unitComponent = currentScene.GetComponent<UnitComponent>();
-            Unit unit = unitComponent.AddChildWithId<Unit, int>(unitInfo.UnitId, unitInfo.ConfigId);
+            Unit unit = unitComponent.AddChildWithId<Unit, int>(unitInfo.UnitId, unitInfo.ConfigId); // 独特的身份ID 信息，是工厂生产类的前提
             unitComponent.Add(unit);
             
             unit.Position = unitInfo.Position;

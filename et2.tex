@@ -1,4 +1,4 @@
-% Created 2023-06-22 Thu 08:31
+% Created 2023-06-23 Fri 07:34
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1599,334 +1599,10 @@ public class DBProxyComponent: Component {
 \end{minted}
 
 
-\section{StartConfigComponent: 找【各种服】的起始初始化地址}
-\label{sec-6}
-\begin{itemize}
-\item 这些组群服务器的起始被全部重构了，重构成配置单例了
-\end{itemize}
-\subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
-\label{sec-6-1}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
-    [StaticField]
-    private static T instance;
-    public static T Instance {
-        get {
-            return instance ??= ConfigComponent.Instance.LoadOneConfig(typeof (T)) as T;
-        }
-    }
-    void ISingleton.Register() {
-        if (instance != null) {
-            throw new Exception($"singleton register twice! {typeof (T).Name}");
-        }
-        instance = (T)this;
-    }
-    void ISingleton.Destroy() {
-        T t = instance;
-        instance = null;
-        t.Dispose();
-    }
-    bool ISingleton.IsDisposed() {
-        throw new NotImplementedException();
-    }
-    public override void AfterEndInit() { }
-    public virtual void Dispose() { }
-}
-\end{minted}
-\subsection{StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge:}
-\label{sec-6-2}
-\begin{itemize}
-\item 当数据库集群成区服的形式，这里各服务器的配置，成了 ProtoBuf 里进程间可传的消息模式？。。。
-\item 这里配置是从哪里来的呢？仍然是从各种配置文件里
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[ProtoContract]
-[Config]
-public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
-    [ProtoIgnore]
-    [BsonIgnore]
-    private Dictionary<int, StartProcessConfig> dict = new Dictionary<int, StartProcessConfig>(); // 管理字典
-    [BsonElement]
-    [ProtoMember(1)]
-    private List<StartProcessConfig> list = new List<StartProcessConfig>();
-    public void Merge(object o) {
-        StartProcessConfigCategory s = o as StartProcessConfigCategory;
-        this.list.AddRange(s.list);
-    }
-    [ProtoAfterDeserialization]        
-    public void ProtoEndInit() {
-        foreach (StartProcessConfig config in list) {
-            config.AfterEndInit();
-            this.dict.Add(config.Id, config);
-        }
-        this.list.Clear();
-        this.AfterEndInit();
-    }
-    public StartProcessConfig Get(int id) {
-        this.dict.TryGetValue(id, out StartProcessConfig item);
-        if (item == null) {
-            throw new Exception($"配置找不到，配置表名: {nameof (StartProcessConfig)}，配置id: {id}");
-        }
-        return item;
-    }
-    public bool Contain(int id) {
-        return this.dict.ContainsKey(id);
-    }
-    public Dictionary<int, StartProcessConfig> GetAll() {
-        return this.dict;
-    }
-    public StartProcessConfig GetOne() {
-        if (this.dict == null || this.dict.Count <= 0) {
-            return null;
-        }
-        return this.dict.Values.GetEnumerator().Current;
-    }
-}
-[ProtoContract]
-public partial class StartProcessConfig: ProtoObject, IConfig {
-    [ProtoMember(1)]
-    public int Id { get; set; }
-    [ProtoMember(2)]
-    public int MachineId { get; set; }
-    [ProtoMember(3)]
-    public int InnerPort { get; set; }
-}
-\end{minted}
-\end{itemize}
-\subsection{SceneFactory 里可以给【匹配服】添加组件}
-\label{sec-6-3}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public static class SceneFactory {
-    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
-        await ETTask.CompletedTask;
-        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
-        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
-        switch (scene.SceneType) {
-            case SceneType.Router:
-                scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
-                break;
-            case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
-                // 云服务器在防火墙那里做端口映射
-                scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
-                break;
-            case SceneType.Realm:
-                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
-                break;
-            case SceneType.Match: // <<<<<<<<<<<<<<<<<<<< 这里是，我可以添加【匹配服】相关功能组件的地方。【参考项目原原码】感觉被我弄丢了
-                break;
-            case SceneType.Gate:
-                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
-                scene.AddComponent<PlayerComponent>();
-                scene.AddComponent<GateSessionKeyComponent>();
-                break;
-            case SceneType.Map:
-                scene.AddComponent<UnitComponent>();
-                scene.AddComponent<AOIManagerComponent>();
-                break;
-            case SceneType.Location:
-                scene.AddComponent<LocationComponent>();
-                break;
-//...
-        }
-        return scene;
-    }
-}
-\end{minted}
-\subsection{RouterAddressComponent: 路由器组件}
-\label{sec-6-4}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[ComponentOf(typeof(Scene))]
-public class RouterAddressComponent: Entity, IAwake<string, int> {
-    public IPAddress RouterManagerIPAddress { get; set; }
-    public string RouterManagerHost;
-    public int RouterManagerPort;
-    public HttpGetRouterResponse Info;
-    public int RouterIndex;
-}
-\end{minted}
-\subsection{RouterAddressComponentSystem: 路由器的生成系}
-\label{sec-6-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[FriendOf(typeof(RouterAddressComponent))]
-public static class RouterAddressComponentSystem {
-    public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
-        protected override void Awake(RouterAddressComponent self, string address, int port) {
-            self.RouterManagerHost = address;
-            self.RouterManagerPort = port;
-        }
-    }
-    public static async ETTask Init(this RouterAddressComponent self) {
-        self.RouterManagerIPAddress = NetworkHelper.GetHostAddress(self.RouterManagerHost);
-        await self.GetAllRouter();
-    }
-    private static async ETTask GetAllRouter(this RouterAddressComponent self) {
-        string url = $"http:// {self.RouterManagerHost}:{self.RouterManagerPort}/get_router?v={RandomGenerator.RandUInt32()}";
-        Log.Debug($"start get router info: {url}");
-        string routerInfo = await HttpClientHelper.Get(url);
-        Log.Debug($"recv router info: {routerInfo}");
-        HttpGetRouterResponse httpGetRouterResponse = JsonHelper.FromJson<HttpGetRouterResponse>(routerInfo);
-        self.Info = httpGetRouterResponse;
-        Log.Debug($"start get router info finish: {JsonHelper.ToJson(httpGetRouterResponse)}");
-        // 打乱顺序
-        RandomGenerator.BreakRank(self.Info.Routers);
-        self.WaitTenMinGetAllRouter().Coroutine();
-    }
-    // 等10分钟再获取一次
-    public static async ETTask WaitTenMinGetAllRouter(this RouterAddressComponent self) {
-        await TimerComponent.Instance.WaitAsync(5 * 60 * 1000);
-        if (self.IsDisposed) 
-            return;
-        await self.GetAllRouter();
-    }
-    public static IPEndPoint GetAddress(this RouterAddressComponent self) {
-        if (self.Info.Routers.Count == 0) 
-            return null;
-        string address = self.Info.Routers[self.RouterIndex++ % self.Info.Routers.Count];
-        string[] ss = address.Split(':');
-        IPAddress ipAddress = IPAddress.Parse(ss[0]);
-        if (self.RouterManagerIPAddress.AddressFamily == AddressFamily.InterNetworkV6) { 
-            ipAddress = ipAddress.MapToIPv6();
-        }
-        return new IPEndPoint(ipAddress, int.Parse(ss[1]));
-    }
-    public static IPEndPoint GetRealmAddress(this RouterAddressComponent self, string account) { // <<<<<<<<<<<<<<<<<<<< 照葫芦画飘，扩展方法 
-        int v = account.Mode(self.Info.Realms.Count);
-        string address = self.Info.Realms[v];
-        string[] ss = address.Split(':');
-        IPAddress ipAddress = IPAddress.Parse(ss[0]);
-        // if (self.IPAddress.AddressFamily == AddressFamily.InterNetworkV6) 
-        //    ipAddress = ipAddress.MapToIPv6();
-        return new IPEndPoint(ipAddress, int.Parse(ss[1]));
-    }
-}
-\end{minted}
-
-\subsection{RouterHelper: 路由器帮助类，向路由器注册、申请？}
-\label{sec-6-6}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public static class RouterHelper {
-    // 注册router
-    public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
-        (uint recvLocalConn, IPEndPoint routerAddress) = await GetRouterAddress(clientScene, address, 0, 0);
-        if (recvLocalConn == 0) 
-            throw new Exception($"get router fail: {clientScene.Id} {address}");
-        Log.Info($"get router: {recvLocalConn} {routerAddress}");
-        Session routerSession = clientScene.GetComponent<NetClientComponent>().Create(routerAddress, address, recvLocalConn);
-        routerSession.AddComponent<PingComponent>();
-        routerSession.AddComponent<RouterCheckComponent>();
-        return routerSession;
-    }
-    public static async ETTask<(uint, IPEndPoint)> GetRouterAddress(Scene clientScene, IPEndPoint address, uint localConn, uint remoteConn) {
-        Log.Info($"start get router address: {clientScene.Id} {address} {localConn} {remoteConn}");
-        // return (RandomHelper.RandUInt32(), address);
-        RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>();
-        IPEndPoint routerInfo = routerAddressComponent.GetAddress();
-        uint recvLocalConn = await Connect(routerInfo, address, localConn, remoteConn);
-        Log.Info($"finish get router address: {clientScene.Id} {address} {localConn} {remoteConn} {recvLocalConn} {routerInfo}");
-        return (recvLocalConn, routerInfo);
-    }
-    // 向router申请
-    private static async ETTask<uint> Connect(IPEndPoint routerAddress, IPEndPoint realAddress, uint localConn, uint remoteConn) {
-        uint connectId = RandomGenerator.RandUInt32();
-        using Socket socket = new Socket(routerAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-        int count = 20;
-        byte[] sendCache = new byte[512];
-        byte[] recvCache = new byte[512];
-        uint synFlag = localConn == 0? KcpProtocalType.RouterSYN : KcpProtocalType.RouterReconnectSYN;
-        sendCache.WriteTo(0, synFlag);
-        sendCache.WriteTo(1, localConn);
-        sendCache.WriteTo(5, remoteConn);
-        sendCache.WriteTo(9, connectId);
-        byte[] addressBytes = realAddress.ToString().ToByteArray();
-        Array.Copy(addressBytes, 0, sendCache, 13, addressBytes.Length);
-        Log.Info($"router connect: {connectId} {localConn} {remoteConn} {routerAddress} {realAddress}");
-
-        EndPoint recvIPEndPoint = new IPEndPoint(IPAddress.Any, 0);
-        long lastSendTimer = 0;
-        while (true) {
-            long timeNow = TimeHelper.ClientFrameTime();
-            if (timeNow - lastSendTimer > 300) {
-                if (--count < 0) {
-                    Log.Error($"router connect timeout fail! {localConn} {remoteConn} {routerAddress} {realAddress}");
-                    return 0;
-                }
-                lastSendTimer = timeNow;
-                // 发送
-                socket.SendTo(sendCache, 0, addressBytes.Length + 13, SocketFlags.None, routerAddress);
-            }
-            await TimerComponent.Instance.WaitFrameAsync();
-            // 接收
-            if (socket.Available > 0) {
-                int messageLength = socket.ReceiveFrom(recvCache, ref recvIPEndPoint);
-                if (messageLength != 9) {
-                    Log.Error($"router connect error1: {connectId} {messageLength} {localConn} {remoteConn} {routerAddress} {realAddress}");
-                    continue;
-                }
-                byte flag = recvCache[0];
-                if (flag != KcpProtocalType.RouterReconnectACK && flag != KcpProtocalType.RouterACK) {
-                    Log.Error($"router connect error2: {connectId} {synFlag} {flag} {localConn} {remoteConn} {routerAddress} {realAddress}");
-                    continue;
-                }
-                uint recvRemoteConn = BitConverter.ToUInt32(recvCache, 1);
-                uint recvLocalConn = BitConverter.ToUInt32(recvCache, 5);
-                Log.Info($"router connect finish: {connectId} {recvRemoteConn} {recvLocalConn} {localConn} {remoteConn} {routerAddress} {realAddress}");
-                return recvLocalConn;
-            }
-        }
-    }
-}
-\end{minted}
-\subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了。全框架只有这一个黄金案例}
-\label{sec-6-7}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public static class LoginHelper {
-    public static async ETTask Login(Scene clientScene, string account, string password) {
-        try {
-            // 创建一个ETModel层的Session
-            clientScene.RemoveComponent<RouterAddressComponent>();
-            // 获取路由跟realmDispatcher地址
-            RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>();
-            if (routerAddressComponent == null) {
-                routerAddressComponent = clientScene.AddComponent<RouterAddressComponent, string, int>(ConstValue.RouterHttpHost, ConstValue.RouterHttpPort);
-                await routerAddressComponent.Init();
-                clientScene.AddComponent<NetClientComponent, AddressFamily>(routerAddressComponent.RouterManagerIPAddress.AddressFamily);
-            }
-            IPEndPoint realmAddress = routerAddressComponent.GetRealmAddress(account); // <<<<<<<<<<<<<<<<<<<< 这里就是说，我必须去组件里扩展方法
-            R2C_Login r2CLogin;
-            using (Session session = await RouterHelper.CreateRouterSession(clientScene, realmAddress)) {
-                r2CLogin = (R2C_Login) await session.Call(new C2R_Login() { Account = account, Password = password });
-            }
-            // 创建一个gate Session,并且保存到SessionComponent中: 与网关服的会话框。主要负责用户下线后会话框的自动移除销毁
-            Session gateSession = await RouterHelper.CreateRouterSession(clientScene, NetworkHelper.ToIPEndPoint(r2CLogin.Address));
-            clientScene.AddComponent<SessionComponent>().Session = gateSession;
-            G2C_LoginGate g2CLoginGate = (G2C_LoginGate)await gateSession.Call(
-                new C2G_LoginGate() { Key = r2CLogin.Key, GateId = r2CLogin.GateId});
-            Log.Debug("登陆gate成功!");
-            await EventSystem.Instance.PublishAsync(clientScene, new EventType.LoginFinish());
-        }
-        catch (Exception e) {
-            Log.Error(e);
-        }
-    } 
-}
-\end{minted}
-\subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
-\label{sec-6-8}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[Message(OuterMessage.HttpGetRouterResponse)]
-[ProtoContract]
-public partial class HttpGetRouterResponse: ProtoObject {
-    [ProtoMember(1)]
-    public List<string> Realms { get; set; }
-    [ProtoMember(2)]
-    public List<string> Routers { get; set; }
-}
-\end{minted}
-
-
 \section{组件定义，再澄明，与去重}
-\label{sec-7}
+\label{sec-6}
 \subsection{OnlineComponent: 参考项目里的，现框架里查找一下}
-\label{sec-7-1}
+\label{sec-6-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 在线组件，用于记录在线玩家
 public class OnlineComponent : Entity {
@@ -1948,7 +1624,7 @@ public class OnlineComponent : Entity {
 }
 \end{minted}
 \subsection{框架Game 类：是单例的管理类，与服务端或是客户端的总、根场景无关}
-\label{sec-7-2}
+\label{sec-6-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class Game { // 框架的Game 类
     [StaticField]
@@ -2035,12 +1711,12 @@ public static class Game { // 框架的Game 类
 }
 \end{minted}
 \subsection{ET7 的重构，将数据库相关全部去掉了？找不到数据库的踪影？}
-\label{sec-7-3}
+\label{sec-6-3}
 \begin{itemize}
 \item 扔进什么狗屁的 AI 相关里去了。不用管，可以添加自己需要用到的
 \end{itemize}
 \subsection{GamerFactory: 【加工厂】全部移除掉}
-\label{sec-7-4}
+\label{sec-6-4}
 \begin{itemize}
 \item 工厂的逻辑，重构以后，全部放进了AUIEvent 的实例继承类里。全部移除掉
 \item 有个 Factory 的文件夹，是会全部移除掉的
@@ -2058,7 +1734,7 @@ public static class GamerFactory {
 
 
 \section{写在最后：反而是自己每天查看一再更新的}
-\label{sec-8}
+\label{sec-7}
 \begin{itemize}
 \item 因为感觉还是不曾系统性地读ET7 的源码，或者说有效阅读，因为没有带着实际问题的看源码，感觉都不叫看读源码呀。这里会记自己的感觉需要赶快查看的地方。
 \item 【ET 框架的整体架构】：感觉把握不够。常常命名空间分不清。要把这个大的框架，比较高层面的架构再好好看下。然后就是对自顶向下的不同层级场景，所需要的主要的不同组件，分不清，仍需要再熟悉一下源码
@@ -2070,7 +1746,7 @@ public static class GamerFactory {
 
 
 \section{现在的修改内容，记忆}
-\label{sec-9}
+\label{sec-8}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
@@ -2078,7 +1754,7 @@ public static class GamerFactory {
 
 
 \section{{\bfseries\sffamily TODO} }
-\label{sec-10}
+\label{sec-9}
 \begin{itemize}
 \item \textbf{Windows 下 org-mode 有几个【BUG：】} 1.org-mode 不能自动识别模式，除第一次加载可以正确，其它再加载不识别 org-mode; 2.org-export-to-pdf 在我换成为 msys64 里的 emacs 后就坏掉了。因为要花时间修，暂时还放着
 \item \textbf{【IStartSystem:】} 感觉还有点儿小问题。认为：我应该不需要同文件两份，一份复制到客户端热更新域。我认为，全框架应该如其它接口类一样，只要一份就可以了。 \textbf{【晚点儿再检查一遍】}
@@ -2097,7 +1773,7 @@ public static class GamerFactory {
 
 
 \section{拖拉机游戏：【重构OOP/OOD 设计思路】}
-\label{sec-11}
+\label{sec-10}
 \begin{itemize}
 \item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 \item 【GamerComponent】玩家组件：是对一个房间里四个玩家的（及其在房间里的坐位位置）管理（分东南西北）。可以添加移除玩家。

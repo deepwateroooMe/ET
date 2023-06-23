@@ -1,4 +1,4 @@
-% Created 2023-06-22 Thu 10:34
+% Created 2023-06-23 Fri 09:32
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -66,23 +66,28 @@ public readonly struct ActorMessageSender {
 }
 \end{minted}
 \end{itemize}
-\subsection{ActorMessageSenderComponent: 这个组件里有个计时器自动计时的超时时段、特定超时类型的超时时长成员变量}
+\subsection{ActorMessageSenderComponent: 这个组件里有个计时器自动计时的超时时段、特定超时类型的超时时长成员变量，背后有套计时器管理组件，自动检测消息的发送超时。}
 \label{sec-1-2}
 \begin{itemize}
 \item 超时时间：这个组件有计时器自动计时和超时激活的逻辑，这里定义了这个组件类型的超时时长，在ActorMessageSenderComponentSystem.cs 文件的 \textbf{【Invoke(TimerInvokeType.ActorMessageSenderChecker)】} 标注的ActorMessageSenderChecker 里会用到，检测超时与否
+\item \textbf{【组件里消息自动超时Timer 的计时器机制】} ：
+\begin{itemize}
+\item long TimeoutCheckTimer 是个重复闹钟
+\item \textbf{【TimerComponent】} ：是框架里的单例类，那么应该是，框架里所有的 Timer 定时计时器，应该是由这个单例管理类统一管理。那么这个组件应该能够负责相关逻辑。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
 // 超时时间：这个组件有计时器自动计时和超时激活的逻辑，这里定义了这个组件类型的超时时长，在【Invoke(TimerInvokeType.ActorMessageSenderChecker)】标注的ActorMessageSenderChecker 里会用到，检测超时与否
-    public const long TIMEOUT_TIME = 40 * 1000; 
+    public const long TIMEOUT_TIME = 40 * 1000;
     public static ActorMessageSenderComponent Instance { get; set; }
     public int RpcId;
-// 下面：这么理解： ET7 里是组件就是一个管理类，管理了对所有：不同 rpc-id 的消息发送器，所以有序字典管理，方便添加与移除
     public readonly SortedDictionary<int, ActorMessageSender> requestCallback = new SortedDictionary<int, ActorMessageSender>();
-    public long TimeoutCheckTimer;
-    public List<int> TimeoutActorMessageSenders = new List<int>();
+// 这个 long: 是重复闹钟的闹钟实例ID, 用来区分任何其它闹钟的
+    public long TimeoutCheckTimer; 
+    public List<int> TimeoutActorMessageSenders = new List<int>(); // 这桢更新里：待发送给的（接收者rpcId）接收者链表
 }
 \end{minted}
+\end{itemize}
 \end{itemize}
 \subsection{ActorMessageSenderComponentSystem: 这个类底层封装比较多，功能模块因为是服务器端不太敦悉，多看几遍}
 \label{sec-1-3}
@@ -103,6 +108,18 @@ public static class ActorMessageSenderComponentSystem {
              } catch (Exception e) {
                 Log.Error($"move timer error: {self.Id}\n{e}");
             }
+        }
+    }
+    [ObjectSystem]
+    public class ActorMessageSenderComponentAwakeSystem: AwakeSystem<ActorMessageSenderComponent> {
+// 【组件重复闹钟的设置】：实现组件内，消息的自动计时，超时触发Invoke 标签，调用相关逻辑来检测超时消息
+        protected override void Awake(ActorMessageSenderComponent self) {
+            ActorMessageSenderComponent.Instance = self;
+// 这个重复闹钟，是消息自动计时超时过滤器的上下文连接桥梁
+// 它注册的回调 TimerInvokeType.ActorMessageSenderChecker, 会每个消息超时的时候，都会回来调用 checker 的 Run()==>Check() 方法
+// 应该是重复闹钟每秒重复一次，就每秒检查一次，调用一次Check() 方法来检查超时？是过滤器会给服务器减压；但这里的自动检测会把压分在各消息发送组件服务器上
+// 这个重复间隔 1 秒钟的时间间隔，它计 1 秒钟开始，重复的逻辑是重复闹钟处理
+            self.TimeoutCheckTimer = TimerComponent.Instance.NewRepeatedTimer(1000, TimerInvokeType.ActorMessageSenderChecker, self);
         }
     }//...
 // Run() 方法：通过同步异常到ETTask, 通过ETTask 封装的抛异常方式抛出两类异常并返回；和对正常非异常返回消息，同步结果到ETTask, ETTask() 用触发调用注册过的非空回调

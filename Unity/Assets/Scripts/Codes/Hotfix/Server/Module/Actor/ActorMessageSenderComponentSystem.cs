@@ -20,6 +20,9 @@ namespace ET.Server {
             protected override void Awake(ActorMessageSenderComponent self) {
                 ActorMessageSenderComponent.Instance = self;
                 // 组件内部重复 1000 次的计时器：
+                // 这个重复闹钟，是消息自动计时超时过滤器的上下文连接桥梁
+                // 它注册的回调 TimerInvokeType.ActorMessageSenderChecker, 会每个消息超时的时候，都会回来调用 checker 的 Run()==>Check() 方法
+                // 应该是重复闹钟每秒重复一次，就每秒检查一次，调用一次Check() 方法来检查超时？是过滤器会给服务器减压；但这里的自动检测会把压分在各消息发送组件服务器上
                 self.TimeoutCheckTimer = TimerComponent.Instance.NewRepeatedTimer(1000, TimerInvokeType.ActorMessageSenderChecker, self);
             }
         }
@@ -58,13 +61,13 @@ namespace ET.Server {
         private static void Check(this ActorMessageSenderComponent self) {
             long timeNow = TimeHelper.ServerNow();
             foreach ((int key, ActorMessageSender value) in self.requestCallback) {
-                // 因为是顺序发送的，所以，检测到第一个不超时的就退出
-                // 超时触发的激活逻辑：是有至少一个超时的消息，才会【激活触发检测】；而检测到第一个不超时的，就退出下面的循环。
+                // 因为是顺序发送的，所以，检测到第一个不超时的就退出.
+                // 【顺序发送】，按发送时间（超时）从小到大排列。只要队关最小时间不超时，以后的也不会超时（同组件超时时长一致）；而若消息超时，遍历到不超时的那个消息，退出循环
                 if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
                     break;
                 self.TimeoutActorMessageSenders.Add(key);
             }
-// 超时触发的激活逻辑：是有至少一个超时的消息，才会【激活触发检测】；而检测到第一个不超时的，就退出上面的循环。
+// 超时触发的激活逻辑：先前写得不对。下面写得也不对
 // 检测到第一个不超时的，理论上说，一旦有一个超时消息就会触发超时检测，但实际使用上，可能存在当检测逻辑被触发走到这里，实际中存在两个或是再多一点儿的超时消息？
             foreach (int rpcId in self.TimeoutActorMessageSenders) { // 一一遍历【超时了的消息】 :
                 ActorMessageSender actorMessageSender = self.requestCallback[rpcId];

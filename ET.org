@@ -1128,6 +1128,7 @@ public class PlayerComponent : Entity, IAwake, IDestroy {
 }
    #+END_SRC
 ** 服务器端 PlayerComponentSystem: 添加、删除、拿一个，去拿所有玩家。。
+- 服务器端不也是这么写的吗？那么是如何生成一个新的玩家的呢？
    #+BEGIN_SRC csharp
 namespace ET.Server {
     [FriendOf(typeof(PlayerComponent))]

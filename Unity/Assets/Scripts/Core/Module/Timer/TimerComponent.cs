@@ -52,23 +52,23 @@ namespace ET {
         private static long GetNow() {
             return TimeHelper.ClientFrameTime();
         }
-        public void Update() {
+        public void Update() { // 每桢调用
             if (this.TimeId.Count == 0) {
                 return;
             }
             long timeNow = GetNow();
-            if (timeNow < this.minTime) {
+            if (timeNow < this.minTime) { // 还不到最近一次需要闹的时间，直接返回
                 return;
             }
             foreach (KeyValuePair<long, List<long>> kv in this.TimeId) {
                 long k = kv.Key;
-                if (k > timeNow) {
+                if (k > timeNow) { // 因为它是排序字典，所以找到第一个不超时的，组件记下下次的闹钟时间，等时间到再闹，就可以退出了
                     this.minTime = k;
                     break;
                 }
-                this.timeOutTime.Enqueue(k);
+                this.timeOutTime.Enqueue(k); // 其它超时的，入队列处理回调逻辑
             }
-            while (this.timeOutTime.Count > 0) {
+            while (this.timeOutTime.Count > 0) { // 遍历：一一处理，这一桢里，超时闹钟的回调
                 long time = this.timeOutTime.Dequeue();
                 var list = this.TimeId[time];
                 for (int i = 0; i < list.Count; ++i) {
@@ -82,24 +82,24 @@ namespace ET {
                 if (!this.timerActions.Remove(timerId, out TimerAction timerAction)) {
                     continue;
                 }
-                
-                this.Run(timerAction);
+                this.Run(timerAction); // 真正调用回调逻辑：比如ActorMessageSenderComponentSystem 里的 Check() 方法
             }
         }
         private void Run(TimerAction timerAction) {
+            // 区分重复闹钟：与否，的逻辑，在这个方法里处理
             switch (timerAction.TimerClass) {
-                case TimerClass.OnceTimer: {
+                case TimerClass.OnceTimer: { // 一次性闹钟
                     EventSystem.Instance.Invoke(timerAction.Type, new TimerCallback() { Args = timerAction.Object });
-                    timerAction.Recycle();
+                    timerAction.Recycle(); // 一次闹钟闹过了，就回收
                     break;
                 }
-                case TimerClass.OnceWaitTimer: {
+                case TimerClass.OnceWaitTimer: { // 需要包装一个异步任务
                     ETTask tcs = timerAction.Object as ETTask;
                     tcs.SetResult();
                     timerAction.Recycle();
                     break;
                 }
-                case TimerClass.RepeatedTimer: {                    
+                case TimerClass.RepeatedTimer: { // 重复闹钟：每桢（每一次的闹钟到闹钟响），都会重新调用下一次闹钟到的回调。所以它就成重复闹钟了。。                    
                     long timeNow = GetNow();
                     timerAction.StartTime = timeNow;
                     this.AddTimer(timerAction);

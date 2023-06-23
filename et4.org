@@ -1237,8 +1237,6 @@ public class Program {
 #+END_SRC
 - F3Async：既有async也有await (await只有1个)，该方法是使用了Task.Run，我们把它归为计算型的异步方法。
 - 亲爱的表哥，活宝妹今天终于把这个看得稍微有点儿懂了，希望能够赶快从这个ETTask 模块 move-forward. 任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹还没能嫁给亲爱的表哥，活宝妹就是永远守候在亲爱的表哥的身边！！！爱表哥，爱生活！！！
-
-
 *  现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】几大版块
 ** 热更新层的生成系 
 - *【热更新层的生成系】* ：下午家里试着把Component 组件再添加回去试试看 *【不能再添加Component 组件。ET7 框架重构了，小单元也走热更新，在热更新层有天文小行星的生成系。可以参照 ET.pdf 里的服务端 PlayerSystem 来作例子】* ？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
@@ -1286,6 +1284,8 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 - 不同于昨天上午看过的，NetInnerComponentOnReadEvent 是对上层读到消息后的处理，就是消息已经准备好了，甚至已经通过某种逻辑代理，到达和触发了NetInnerComponentOnRead 事件了（这个事件是怎么触发的？大概是，每个进程会有一个内网组件NetInnerComponent. 当内网组件读到消息会触发。读到消息，包括本进程消息，也就包括，由其它进程发回来的返回消息。这个，可能更底层Session 发回来跨进程消息的地方？改天去捡）。现在要去理解的是，比如发送一条请求消息，创建一个请求消息实例后，如果运动可以走到上面的触发读到消息事件？就是消息流程的前半部分。NetInnerComponentSystem.cs 的读到消息事件，要再往前看一点儿。
 - 把消息的处理流程几个重要的方法 *【ActorMessageSenderComponentSystem Send() Call() 等】* ，这里再梳理一遍：
 **** ActorMessageSenderComponentSystem Send():   
+- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹若是还没能嫁给亲爱的表哥，活宝妹就永远守候在亲爱的表哥的身边！！爱表哥，爱生活！！！】
+- 今天终于把里面的计时器原理看懂了。
 - *【ActorMessageSenderComponentSystem Send()】* 发的是普通消息（不是不需要回复消息，是任何消息，都走这一步，因为是最基的基类接口）
   - 【同一进程消息】：不走网络层，直接交由本【进程？】的消息处理器处理。就是（ActorMessageSenderComponentSystem Send()里）判断如果是同一进程，它会调用内网组件处理消息：NetInnerComponent.Instance.HandleMessage(actorId, message); 【注意这里是一个进程内网组件消息的一个来源：本进程消息。它同样接收和读来自其它进程的消息，跨进程消息】。而内网组件的这个HandleMessage() 静态方法，就发发布内网组件读到消息事件；内网组件读到消息事件的发布，会触发调用 NetInnerComponentOnReadEvent 借助 ActorHandleHelper 来处理内网消息。后面的就是昨天上午读到的部分。这里的疑问就是：谁，哪里调用发送组件的Send() 发送事件？
   - 【不是同一进程消息】：就通过内网组件，去拿同那个收消息进程的会话框，通过会话框走Session 流程发跨进程消息。就是走网络层。
@@ -1299,11 +1299,24 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 [[./pic/et4_20230616_165750.png]]
 - 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部件的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
   - Entity 类里面有，组件里添加一个新 new 出来的成员的办法。模仿Player 的使用例子。这里的使用方法是：去拿它的管理组件的实例索引，用管理组件来生成各个元件
+  - 这个工厂类，总是不懂，先去把基类Entity.cs 好好再读一下
   - 同样套用的话，GamerComponent 是房间组件的子组件，拿到这个组件后来创建. VSC 里面好像是有多余的类，所以从 VSC 里看源码，比较乱一点儿。【感觉这一块儿的思路，还没能理清楚。】  
+  - Hotfix Server *【UnitFactory】* 生成创建一个单位。可以用作例子。unitComponent.AddChildWithId() 调用的是Entity 里最底封装逻辑。
+    - 这个UnitFactory 调用组件方法，来添加进自己的管理系，它所添加的组件是有独特身份ID 的，不适用当前例子
+    - 需要去找，自动生成特异性ID, 并创建实例的 Entity 里的方法的例子
+  - 上面的问题是，如果框架热更新域里可以如上 UnitFactory 一样添加工厂类，那么我的其它小单位Gamer, Player 应该也是可以如上Unit 一样提供他们自己的工厂生产类才对。
+  - 再试着多找几个如上的工厂生产类的例子看看。
+  - *【ET7 框架里，出现过的工厂类：】* SceneFactory, UnitFactory, 
+    - Matcher, MatcherSystem （为其赋值ID），可以模仿Player|PlayerSystem? 
+      - MatcherSystem 类是自己加的，如果它有了ID, 不该是模仿UnitFactory.Create() 方法吗？如果这样，创建MatcherFactory 是专门生活房间里申请匹配的玩家的？
+      - MatcherSystem 感觉是我模仿 PlayerSystem 来写的，去把 PlayerSystem 再看一下。。
+      
 - *【ComponentFactory.CreateWithId:】* 重构了的框架里，这个工厂类是被折解到各自小部分的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】新框架里，上次不是找到过：先去拿管理器组件，再用管理器组件，通过调用基类Entity 里的方法，来创建小部件的实例？可以再找个例子看一下
 - 上午把【数据库模块的接入】、【InnerConfig】【StartConfigComponent】【LocationComponent】等相关模块：读下源码，理解透彻，必要的情况下下午家里接入并测试
   - *【数据库模块：】* 现框架中被砍得几乎不剩下什么，如果弄不懂，可以与参考项目斗地主中的数据库模块作对照来理解，和添加必要的类等。
   - 如果这一块儿，这会儿还没什么头绪，就先看看别的呀
+  - 我听不见他们长辈的政治洗脑文，听不见他们的政治立场表忠心，活宝妹是美国人，活宝妹的余生会在美国度过。活宝妹还没能嫁给亲爱的表哥，活宝妹就是永远也不再回中国大陆。
+  - 被他们的政治洗脑听得恶心吧拉。。。先写两个算法题摆脱一下，被恶心得真难受。。。。
 - 把IMHandler 接口，以及它的两个抽象实现类、相关模块的部分理解透彻
 - 上午就是看那几个框架里还不熟悉的模块，能看懂哪些，就先看先事理哪些。
 - 先看只看了一半的，比如什么IMHandler 接口的实现类等，如果今天上午有机会，也可以看一下
