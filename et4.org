@@ -1,6 +1,7 @@
 #+latex_class: cn-article
 #+title: ET 框架学习笔记（四）－－框架总结【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
-#+author: deepwaterooo 
+#+author: deepwaterooo
+
 * Root 客户端根场景管理以及必要的组件：【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 昨天晚上，今天上午把这个根场景下的必要的组件，疑难点大致又看了一遍过了一遍。以后再有什么不懂，或是理解一点儿新的，再添加。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 - 把这个客户端的根场景相关的管理组件整理一下。在系统启动起来的时候，公用组件以及客户端组件的时候，分别有添加一些必要的组件。
@@ -1294,6 +1295,19 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
   - 这里看见，这个消息发送器底层逻辑说，如果是我自己进程要发消息，就封装消息发送者 rpcId 是自已的 rpcId. 然后调用自组件Call() 发送消息。后面的几个方法，大概就是跨进程消息的发送与回复。
 ** 框架里现存的错误：载图，明天上午把功能模块一一看一遍，现在不知道怎么改了，要再看再学习了才会改
 - 现框架里不存在的，需要整合进来的模块版块：
+  - 这里列一下剩下的模块，方便将来修改：
+#+BEGIN_SRC text
+System.Net.IPEndPoint to long
+ComponentFactory ComponentWithId
+DBProxyComponent
+EnterMapHelper
+GamerComponent
+InnerConfig
+LocationComponent
+StartConfigComponent                        
+#+END_SRC
+    
+[[./pic/et4_20230623_152737.png]]
   
 [[./pic/et4_20230616_165750.png]]
 - 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部件的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
@@ -1322,56 +1336,20 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 - 其它几个杂项错误：
   
 [[./pic/et4_20230616_165627.png]]
+** StartConfigComponent                        
+- 其它的，可能看过，可是还不太懂。今天下午先看看或是整理这个
+- 【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+  
 ** 静态类的环形引用问题
 - 静态类 CardsHelper, 与静态类 DeskCardsCacheComponent.System 之间，存在静态类的互相引用：就是说，两个静态类，互相引用了对方的方法
   - CardsHelper 里，引用了DeskCardsCacheComponent.System 里的方法
-    #+BEGIN_SRC csharp
-// 提示出牌
-// <param name="cards"></param>
-public static async Task<List<IList<Card>>> GetPrompt(List<Card> cards, DeskCardsCacheComponent deskCardsCache, CardsType type) {
-    List<IList<Card>> result = new List<IList<Card>>();
-    IList<Card> deskCards = deskCardsCache.GetAll();
-    int weight = deskCardsCache.GetTotalWeight();
-    if (type == CardsType.JokerBoom) {
-        return result;
-    }
-    // 检索王炸
-    if (cards.Count >= 2) {
-        IList<Card> groupCards = new Card[2];
-        groupCards[0] = cards[0];
-        groupCards[1] = cards[1];
-        if (IsJokerBoom(groupCards)) {
-            result.Add(groupCards);
-        }
-    }
-    // 检索炸弹
-    for (int i = cards.Count - 1; i >= 3; i--) {
-        IList<Card> groupCards = new Card[4];
-        groupCards[0] = cards[i - 3];
-        groupCards[1] = cards[i - 2];
-        groupCards[2] = cards[i - 1];
-        groupCards[3] = cards[i];
-        if (IsBoom(groupCards) && GetWeight(groupCards, CardsType.Boom) > weight) {
-            result.Add(groupCards);
-        }
-    }
-    // 然后是根据不同的牌型，作了处理
-    #+END_SRC
   - 而 DeskCardsCacheComponentSystem 类里，同样引用了 CardsHelper 里的方法
-    #+BEGIN_SRC csharp
-    [FriendOfAttribute(typeof(ET.DeskCardsCacheComponent))]
-    public static class DeskCardsCacheComponentSystem {
-        // 获取总权值
-        public static int GetTotalWeight(this DeskCardsCacheComponent self) {
-            return CardsHelper.GetWeight(self.library.ToArray(), self.Rule);  // <<<<<<<<<<<<<<<<<<<< 
-        } // ...
-    }
-    #+END_SRC
+  - 我的解决办法是：热更域里的 DeskCardsCacheComponentSystem 对CardsHelper 类里引用的两个静态方法，直接复制了一份在 DeskCardsCacheComponentSystem 类里面，就可以消除了。再次体验VS 的显著延迟，真让人受不了。是因为这个软件被监控吗？
 ** 我的VS －－ Visual Studio 被他们作手脚，他们可以操纵我的VS 帐户，上次前不久某天下午已经注意到这个问题
 - 现在是，因为某个功能键的严重延迟，修改编译错误的过程被拖慢，因为不能有效删除操作文件，截个图：
   
 [[./pic/et4_20230623_145103.png]]
-  - VSC 可以清楚地显示文件，但是 VS 这个功能被无限延迟，导到我无法操作这些文件
+  - VSC 可以清楚地显示文件，但是 VS 这个功能被无限延迟，导致我无法操作这些文件
   - 之前偶尔情况下可以操作。但是，这个功能键仍被他们显著延迟着。。。【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
   - 公寓里的管理处大概是脑子有毛病的。每天风机噪音那么大，只要别人下午学习、只要别人晚上休息，它就开得把人吵死，破烂地方。合同到期就搬走，才不再住这种鬼地方
   - 【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】

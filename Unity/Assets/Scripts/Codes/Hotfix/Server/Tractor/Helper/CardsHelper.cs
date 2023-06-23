@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
-using ET;
-namespace ET.Server {
+using ET.Server;
+namespace ET {
     public static class CardsHelper {
         // 获取牌组权重
         public static int GetWeight(IList<Card> cards, CardsType rule) {

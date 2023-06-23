@@ -1,11 +1,11 @@
-﻿using ET;
+﻿// using ET;
+using System.Collections.Generic;
 namespace ET.Server {
 
     [FriendOfAttribute(typeof(ET.DeskCardsCacheComponent))]
     public static class DeskCardsCacheComponentSystem {
         // 获取总权值
         public static int GetTotalWeight(this DeskCardsCacheComponent self) {
-            // return CardsHelper.GetWeight(self.library.ToArray(), self.Rule); // 直接把里面的静态方法，搬到这个类复制了一份
             return GetWeight(self.library.ToArray(), self.Rule);
         }
         // 获取牌桌所有牌
@@ -34,9 +34,20 @@ namespace ET.Server {
         }
         // 手牌排序
         public static void Sort(this DeskCardsCacheComponent self) {
-            CardsHelper.SortCards(self.library);
+            SortCards(self.library); // 这个静态方法也得搬过来
         }
-        // 【CardsHelper】里的静态方法：
+
+        // 【CardsHelper】里的静态方法：两个静态方法, 搬过来，免得它报环形依赖的错！！【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+        // 卡组排序
+        public static void SortCards(List<Card> cards) {
+            cards.Sort(
+                (Card a, Card b) => {
+// 先按照权重降序，再按花色升序
+                    return -a.CardWeight.CompareTo(b.CardWeight) * 2 +
+                        a.CardWeight.CompareTo(b.CardWeight);
+                }
+                );
+        }
         public static int GetWeight(IList<Card> cards, CardsType rule) {
             int totalWeight = 0;
             if (rule == CardsType.JokerBoom) {
