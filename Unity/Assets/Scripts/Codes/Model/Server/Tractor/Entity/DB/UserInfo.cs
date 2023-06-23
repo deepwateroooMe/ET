@@ -1,9 +1,7 @@
 using MongoDB.Bson.Serialization.Attributes;
-using ET;
-
 namespace ET {
     // 用户信息
-    [BsonIgnoreExtraElements]
+    //[BsonIgnoreExtraElements]
     public class UserInfo : Entity {
         // 昵称
         public string NickName { get; set; }

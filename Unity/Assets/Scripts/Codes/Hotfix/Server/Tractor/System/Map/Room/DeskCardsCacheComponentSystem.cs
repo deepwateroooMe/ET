@@ -5,7 +5,8 @@ namespace ET.Server {
     public static class DeskCardsCacheComponentSystem {
         // 获取总权值
         public static int GetTotalWeight(this DeskCardsCacheComponent self) {
-            return CardsHelper.GetWeight(self.library.ToArray(), self.Rule);
+            // return CardsHelper.GetWeight(self.library.ToArray(), self.Rule); // 直接把里面的静态方法，搬到这个类复制了一份
+            return GetWeight(self.library.ToArray(), self.Rule);
         }
         // 获取牌桌所有牌
         public static Card[] GetAll(this DeskCardsCacheComponent self) {
@@ -23,7 +24,6 @@ namespace ET.Server {
         }
         // 清空牌桌
         public static void Clear(this DeskCardsCacheComponent self) {
-            // 【报错：】它说，禁止在 entity 类中直接调用 Child 和Component 。不知道说的是什么意思，但理解需要，就是去拿这个组件的 reference, 去想想有什么办法可以拿到？活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！
             DeckComponent deck = self.GetParent<Room>().GetComponent<DeckComponent>();
             while (self.CardsCount > 0) {
                 Card card = self.library[self.CardsCount - 1];
@@ -35,6 +35,30 @@ namespace ET.Server {
         // 手牌排序
         public static void Sort(this DeskCardsCacheComponent self) {
             CardsHelper.SortCards(self.library);
+        }
+        // 【CardsHelper】里的静态方法：
+        public static int GetWeight(IList<Card> cards, CardsType rule) {
+            int totalWeight = 0;
+            if (rule == CardsType.JokerBoom) {
+                totalWeight = int.MaxValue;
+            } else if (rule == CardsType.Boom) {
+                totalWeight = (int)cards[0].CardWeight * (int)cards[1].CardWeight * (int)cards[2].CardWeight * (int)cards[3].CardWeight + (int.MaxValue / 2);
+            } else if (rule == CardsType.ThreeAndOne || rule == CardsType.ThreeAndTwo) {
+                for (int i = 0; i < cards.Count; i++) {
+                    if (i < cards.Count - 2) {
+                        if (cards[i].CardWeight == cards[i + 1].CardWeight &&
+                            cards[i].CardSuits == cards[i + 2].CardSuits) {
+                            totalWeight += (int)cards[i].CardWeight;
+                            totalWeight *= 3;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                for (int i = 0; i < cards.Count; i++) 
+                    totalWeight += (int)cards[i].CardWeight;
+            }
+            return totalWeight;
         }
     }
 }

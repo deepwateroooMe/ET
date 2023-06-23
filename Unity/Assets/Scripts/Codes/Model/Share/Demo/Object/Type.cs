@@ -4,6 +4,7 @@ namespace ET {
     public enum RoomLevel : byte {
         Lv100   // 100底分局
     }
+    
     // 出牌类型
     public enum CardsType : byte {
         None,

@@ -1263,12 +1263,11 @@ public class Program {
 [[./pic/et4_20230616_160327.png]]
 
 [[./pic/et4_20230616_165027.png]]
-- 今天上午就先看这个。要把发送消息弄明白了，要不然下午还是不会改。下午改到5pm 左右再出发，天气热，出去早了会被晒黑。亲爱的表哥的活宝妹现在狠漂亮，肝肾功能好了，皮肤白白亮亮，可不要再轻易被晒丑了！！！
 - 【地图服Unit 相关】：先前所有接触到这个框架，都只看了个头，就是只限于能够任何客户端连接到服务端能够注册登录的程度，后面的其它服、框架逻辑全都还不曾看。所以今天上午扫一眼地图服相关，是糊的。要把这些前前后后相关的原理总弄懂了。
 - 去框架里搜发送的调用方法，可能现在 Mac 系统里有一点儿障碍的，就是VSC 不报错，不知道搜出来的是对的，还是错的。但是几种不同的方法，先总结在这里，对照运行时的报错一一改过来。必须把这块儿弄明白了。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 【拿到Session 会话框，调用其Send() 方法】：例子 PingComponentAwakeSystem 里的 PingAsync() 方法。它是一个心跳包。这个心跳包就是一Awake() 醒来，全生职责就是周期性给服务器发消息
 - 然后参照例子，把客户端和必要的小服里，所有需要发送消息的地方，改成上面看到总结的发送方法里。
-- 框架里，各种不同场景下发送消息的方法： *【今天下午有运行环境，三个小时，希望把这个模块总结完，几个相关的编译错误改完】*
+- 框架里，各种不同场景下发送消息的方法：
 - 【场景里拿到SessionComponent】，调用会话框的发送方法Send()
   #+BEGIN_SRC csharp
 robotScene.GetComponent<Client.SessionComponent>().Session.Send(new C2M_TestRobotCase2() {N = robotScene.Zone});
@@ -1323,7 +1322,60 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 - 其它几个杂项错误：
   
 [[./pic/et4_20230616_165627.png]]
-- 下面是已经改好了的：还是先放着，备查
+** 静态类的环形引用问题
+- 静态类 CardsHelper, 与静态类 DeskCardsCacheComponent.System 之间，存在静态类的互相引用：就是说，两个静态类，互相引用了对方的方法
+  - CardsHelper 里，引用了DeskCardsCacheComponent.System 里的方法
+    #+BEGIN_SRC csharp
+// 提示出牌
+// <param name="cards"></param>
+public static async Task<List<IList<Card>>> GetPrompt(List<Card> cards, DeskCardsCacheComponent deskCardsCache, CardsType type) {
+    List<IList<Card>> result = new List<IList<Card>>();
+    IList<Card> deskCards = deskCardsCache.GetAll();
+    int weight = deskCardsCache.GetTotalWeight();
+    if (type == CardsType.JokerBoom) {
+        return result;
+    }
+    // 检索王炸
+    if (cards.Count >= 2) {
+        IList<Card> groupCards = new Card[2];
+        groupCards[0] = cards[0];
+        groupCards[1] = cards[1];
+        if (IsJokerBoom(groupCards)) {
+            result.Add(groupCards);
+        }
+    }
+    // 检索炸弹
+    for (int i = cards.Count - 1; i >= 3; i--) {
+        IList<Card> groupCards = new Card[4];
+        groupCards[0] = cards[i - 3];
+        groupCards[1] = cards[i - 2];
+        groupCards[2] = cards[i - 1];
+        groupCards[3] = cards[i];
+        if (IsBoom(groupCards) && GetWeight(groupCards, CardsType.Boom) > weight) {
+            result.Add(groupCards);
+        }
+    }
+    // 然后是根据不同的牌型，作了处理
+    #+END_SRC
+  - 而 DeskCardsCacheComponentSystem 类里，同样引用了 CardsHelper 里的方法
+    #+BEGIN_SRC csharp
+    [FriendOfAttribute(typeof(ET.DeskCardsCacheComponent))]
+    public static class DeskCardsCacheComponentSystem {
+        // 获取总权值
+        public static int GetTotalWeight(this DeskCardsCacheComponent self) {
+            return CardsHelper.GetWeight(self.library.ToArray(), self.Rule);  // <<<<<<<<<<<<<<<<<<<< 
+        } // ...
+    }
+    #+END_SRC
+** 我的VS －－ Visual Studio 被他们作手脚，他们可以操纵我的VS 帐户，上次前不久某天下午已经注意到这个问题
+- 现在是，因为某个功能键的严重延迟，修改编译错误的过程被拖慢，因为不能有效删除操作文件，截个图：
+  
+[[./pic/et4_20230623_145103.png]]
+  - VSC 可以清楚地显示文件，但是 VS 这个功能被无限延迟，导到我无法操作这些文件
+  - 之前偶尔情况下可以操作。但是，这个功能键仍被他们显著延迟着。。。【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+  - 公寓里的管理处大概是脑子有毛病的。每天风机噪音那么大，只要别人下午学习、只要别人晚上休息，它就开得把人吵死，破烂地方。合同到期就搬走，才不再住这种鬼地方
+  - 【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+** 下面是已经改好了的：还是先放着，备查
   
 [[./pic/et4_20230616_162711.png]]
 - 【UnitGateComponent]: 怎么才能成为多个不同组件的组成部分？
