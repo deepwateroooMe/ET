@@ -75,7 +75,8 @@ namespace ET.Server {
             // 想要直接用当前的组件，来创建玩家
             // Gamer gamer = (room as Entity).Create(Gamer, actor_PlayerEnterRoom_Ack.GamerID);// Gamer is a type. 不知道说的是什么意思【这里仍然改得不对】
             // Gamer gamer = GamerFactory.Create(matcher.PlayerID, matcher.UserID, actor_PlayerEnterRoom_Ack.GamerID);
-            Gamer gamer = new Gamer(matcher.PlayerID);
+            // Gamer gamer = new Gamer(matcher.PlayerID);
+            Gamer gamer = room.GetComponent<GamerComponent>().AddChild<Gamer, long>(matcher.PlayerID);
             room.Add(gamer);
 
             // 向玩家发送匹配成功消息:
@@ -86,4 +87,4 @@ namespace ET.Server {
             await ETTask.CompletedTask;
         }
     }
-}
+} 

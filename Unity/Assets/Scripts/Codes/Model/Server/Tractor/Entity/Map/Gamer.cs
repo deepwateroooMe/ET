@@ -1,4 +1,6 @@
-﻿namespace ET.Server {
+﻿// 不知道这里，为什么它说，找不到 Gamer 类，先改成是ET 命名空间。原本写的是服务端
+// namespace ET.Server {
+namespace ET {
     // [ObjectSystem]
     // public class GamerAwakeSystem : AwakeSystem<Gamer,long> {
     //     protected override void Awake(Gamer self, long id) {

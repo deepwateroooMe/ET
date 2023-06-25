@@ -510,8 +510,8 @@ namespace ET {
             return component;
         }
         
-        // private static Entity Create(Type type, bool isFromPool) {  // 把这里先改了。知道改得不好，但先弄明白
-        public static Entity Create(Type type, bool isFromPool) {
+        // public static Entity Create(Type type, bool isFromPool) { // 我不应该随便动框架底层里的封装。现在找到解决办法了
+        private static Entity Create(Type type, bool isFromPool) {
             Entity component;
             if (isFromPool) {
                 component = (Entity)ObjectPool.Instance.Fetch(type);

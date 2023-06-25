@@ -1,4 +1,4 @@
-% Created 2023-06-23 Fri 07:33
+% Created 2023-06-25 Sun 10:43
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1213,6 +1213,7 @@ public sealed class Player : Entity, IAwake<string> {
 \item 这里可以看见，即使是说，只传一个参数，帐户名进来，新的ET7 框架里，因为移除了 ECS 中的Component 最小组件，这种即便感觉永远不需要热更新，可以Model 层固定不变的，也都热更新到了热更新层，不得不给他们弄成是【生成系】。
 \item 【小单元生成系】：目前还存在几个连通不通的问题。比如热更新层、域的生成系方法不被系统识到。不识别的原因大概是不曾 Awake(). 要去测试和添加这些系统，看能否消掉那一大堆一大堆的编译错误。
 \item 【小单元生成系】：另外的问题是，热更域中的方法全是静态方法，怎么调用呢？记得pdf 里，哪里记过两种不同的调用方法，找不到。记在 et2.pdf 里的Net 网络交互相关部分。
+\item 【小单元生成系】：在框架中找不到使用它的例子。有这个类，如何使用呢？
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(Player))]
@@ -1237,16 +1238,20 @@ Session matchSession = NetInnerComponentSystem.Get(matchIPEndPoint);
 Room room = RoomComponentSystem.Get(Root.Instance.Scene.GetComponent<RoomComponent>(), gamer.RoomID);
 // 现在会改热更域里的静态方法的调用了，就可以再消掉一大堆的编译错误了。。。
 \end{minted}
-\subsection{PlayerComponent:【客户端】为什么来个这样的客户端呢？不是我干的，想想它为什么要在客户端加个这个东西，什么情况下可以用到？}
+\subsection{【客户端】PlayerComponent:【客户端】每个客户端只有一个玩家，对应一个身份证号}
 \label{sec-9-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[ComponentOf(typeof(Scene))]
-public class PlayerComponent: Entity, IAwake {
-    public long MyId { get; set; }
+namespace ET.Client {
+    [ComponentOf(typeof(Scene))]
+    public class PlayerComponent: Entity, IAwake {
+        public long MyId { get; set; }
+    }
 }
 \end{minted}
-\subsection{服务器端的PlayerComponent: ET7 里但凡Component, 就都成为管理类，管理所有玩家，少不了字典备案}
+\subsection{【服务端】的PlayerComponent: ET7 里但凡Component, 就都成为管理类，管理所有玩家，少不了字典备案}
 \label{sec-9-4}
+\begin{itemize}
+\item 【服务端与客户端】：各有自己不同的关于玩家组件的管理。服务端管理（当前）服务器下的必有登录过的玩家，客户端管理客户端一个玩家
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
 [ComponentOf(typeof(Scene))]
@@ -1254,10 +1259,89 @@ public class PlayerComponent : Entity, IAwake, IDestroy {
     public readonly Dictionary<long, Player> idPlayers = new Dictionary<long, Player>();
 }
 \end{minted}
-\subsection{服务器端 PlayerComponentSystem: 添加、删除、拿一个，去拿所有玩家。。}
+\end{itemize}
+\subsection{Player 的几种生成方法：搜索、梳理一下ET7 框架里，玩家是如何生成的？}
 \label{sec-9-5}
 \begin{itemize}
-\item 服务器端不也是这么写的吗？那么是如何生成一个新的玩家的呢？
+\item 要不然，总不会改ComponentFactory 里各小单位的创建
+\item 这里，可以解决Gamer 等一系列小单元（Player,Gamer,etc）的生成。
+\item 还没明白，框架里明明是有 \textbf{【PlayerSystem】}, 为什么我找不到一个真正使用它的地方？还是它是如何使用，如何系统化的，我没弄明白？
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 下面：玩家同【网关服？】的会话框，是玩家发消息必备，里面存有玩家信息。那么更早时候，应该是创建过玩家的
+Player player = session.GetComponent<SessionPlayerComponent>().GetMyPlayer();
+\end{minted}
+\subsubsection{【PlayComponent】：玩家管理组件，负责生成新玩家}
+\label{sec-9-5-1}
+\begin{itemize}
+\item 上面：玩家同【网关服？】的会话框，是玩家发消息必备，里面存有玩家信息。那么更早时候，应该是创建过玩家的
+\item 进到这个组件里去查，它仍然是从【玩家管理类组件】来拿玩家的。再去玩家的管理类组件去找
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class SessionPlayerComponentSystem {
+    public static Player GetMyPlayer(this SessionPlayerComponent self) {
+        return self.DomainScene().GetComponent<PlayerComponent>().Get(self.PlayerId); // <<<<<<<<<<<<<<<<<<<< 
+    }
+}
+\end{minted}
+\begin{itemize}
+\item 【PlayerComponent 玩家组件】：客户端场景，或场景中，都存着场景所对应的玩家管理者组件。一个证实的使用情境如下：
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class UnitHelper {
+    public static Unit GetMyUnitFromClientScene(Scene clientScene) {
+        PlayerComponent playerComponent = clientScene.GetComponent<PlayerComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+        Scene currentScene = clientScene.GetComponent<CurrentScenesComponent>().Scene;
+        return currentScene.GetComponent<UnitComponent>().Get(playerComponent.MyId);
+    }
+
+    public static Unit GetMyUnitFromCurrentScene(Scene currentScene) {
+        PlayerComponent playerComponent = currentScene.Parent.GetParent<Scene>().GetComponent<PlayerComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+        return currentScene.GetComponent<UnitComponent>().Get(playerComponent.MyId);
+    }
+}
+\end{minted}
+\begin{itemize}
+\item \textbf{【C2G\_LoginGateHandler】} ：它像是有创建组件，下午家里，要检查查看一下，这个类有没有编译错误，再参考
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[MessageHandler(SceneType.Gate)]
+public class C2G_LoginGateHandler : AMRpcHandler<C2G_LoginGate, G2C_LoginGate> {
+    protected override async ETTask Run(Session session, C2G_LoginGate request, G2C_LoginGate response) {
+        string account = Root.Instance.Scene.GetComponent<GateSessionKeyComponent>().Get(request.Key);
+        if (account == null) {
+            response.Error = ErrorCore.ERR_ConnectGateKeyError;
+            response.Message = "Gate key验证失败!";
+            return;
+        } 
+        session.RemoveComponent<SessionAcceptTimeoutComponent>();
+
+// 这个场景的获取：Root.Instance.Scene. 是后来我自己改的，不一定对
+        PlayerComponent playerComponent = Root.Instance.Scene.GetComponent<PlayerComponent>(); 
+// <<<<<<<<<<<<<<<<<<<< 主要是这里添加新玩家的方法： 创建了一个新玩家：调用基类Entity 里 AddChild 方法
+        Player player = playerComponent.AddChild<Player, string>(account);// 如果没有编译错误，那么其它小单位的生成，可以模仿这个方法 
+        // 将生成的新玩家添加到，需要对其进行管理的各管理类组件 PlayerComponent|SessionPlayerComponent
+        playerComponent.Add(player);
+
+        // 对新生成玩家的【通信会话框】进行管理：使其具备收发消息功能。会话框与玩家一一对应
+        session.AddComponent<SessionPlayerComponent>().PlayerId = player.Id;
+        session.AddComponent<MailBoxComponent, MailboxType>(MailboxType.GateSession);
+
+        response.PlayerId = player.Id; // 写回复消息，玩家特异身份证传客户端
+        await ETTask.CompletedTask;
+    }
+}
+\end{minted}
+\subsubsection{【其它方法】：再找找看？}
+\label{sec-9-5-2}
+\begin{itemize}
+\item 我暂时找不到其它的。下午可以参考上面看的再改一改。先再去看其它模块。
+\item 【Emacs:org-export-to-pdf 与Skim-pdf】的自动同步 bug: 亲爱的表哥，这个是活宝妹放了一两年 legend 【BUG：】。它有一个 post-process 什么之类的Skim 接收到 emacs-org-export latex 相关的一个什么回调。可是从去年使用，到现在，活宝妹还没碰没去搜这个【BUG：】。改天再看一看，看看现在的活宝妹会配置这两个应用的自动化同步了吗？这是活宝妹的电脑应用软件里困扰活宝妹最久的【BUG：】！！！活宝妹现在还绕弯总背着一个小便条！！【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+\subsection{服务器端 PlayerComponentSystem: 添加、删除、拿一个，去拿所有玩家。。}
+\label{sec-9-6}
+\begin{itemize}
+\item 服务器端不也是这么写的吗？那么是如何生成一个新的玩家的呢？ \textbf{【没弄明白：】怎么才能生成一个新的玩家？} 这个，必须从框架里把它找出来
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 namespace ET.Server {
     [FriendOf(typeof(PlayerComponent))]
@@ -1280,7 +1364,7 @@ namespace ET.Server {
 \end{minted}
 \end{itemize}
 \subsection{服务器端SceneFactory-CreateServerScene 时【网关服】会添加【PlayerComponent】服务端玩家管理组件，用于管理当前网关小区下的所有玩家。}
-\label{sec-9-6}
+\label{sec-9-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -1325,7 +1409,7 @@ public static class SceneFactory {
     }
 \end{minted}
 \subsection{客户端SceneFactory-CreateClientScene 时,场景工厂会为客户端绑定当前客户端的玩家}
-\label{sec-9-7}
+\label{sec-9-8}
 \begin{itemize}
 \item 那么，这个不就解决了，昨天下午傍晚想要找的【参考项目】里 ClientComponent 的整合问题了吗？
 \item 这两小节，【服务端】与【客户端】都能够顺利添加管理玩家。关于玩家的逻辑，我觉得，到这里是基本完整的。其它，必要时再检查逻辑。
@@ -1353,7 +1437,7 @@ public static class SceneFactory {
 }
 \end{minted}
 \subsection{UnitHelper: 帮助，从客户端场景，或是当前场景下，去拿【客户端】PlayComponent.MyId}
-\label{sec-9-8}
+\label{sec-9-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitHelper {
     public static Unit GetMyUnitFromClientScene(Scene clientScene) {
@@ -1368,7 +1452,7 @@ public static class UnitHelper {
 }
 \end{minted}
 \subsection{SessionPlayerComponentSystem}
-\label{sec-9-9}
+\label{sec-9-10}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SessionPlayerComponentSystem {
     public class SessionPlayerComponentDestroySystem: DestroySystem<SessionPlayerComponent> {
@@ -1385,7 +1469,7 @@ public static class SessionPlayerComponentSystem {
 \end{minted}
 
 \subsection{SessionPlayerComponent: 会话框里，会保留客户端玩家 PlayerId}
-\label{sec-9-10}
+\label{sec-9-11}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Session))]
 public class SessionPlayerComponent : Entity, IAwake, IDestroy {

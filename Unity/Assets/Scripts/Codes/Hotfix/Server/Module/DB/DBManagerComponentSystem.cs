@@ -8,6 +8,7 @@ namespace ET.Server {
                 DBManagerComponent.Instance = self;
             }
         }
+
         [ObjectSystem]
         public class DBManagerComponentDestroySystem: DestroySystem<DBManagerComponent> {
             protected override void Destroy(DBManagerComponent self) {
