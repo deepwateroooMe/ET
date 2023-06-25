@@ -1,5 +1,4 @@
-% Created 2023-06-25 Sun 15:53
-% Intended LaTeX compiler: pdflatex
+% Created 2023-06-25 Sun 16:52
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -27,12 +26,9 @@
 \date{\today}
 \title{ET 框架学习笔记（四）－－框架总结【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】}
 \hypersetup{
- pdfauthor={deepwaterooo},
- pdftitle={ET 框架学习笔记（四）－－框架总结【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 28.2 (Org mode 9.5.5)}, 
- pdflang={English}}
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 28.2 (Org mode 8.2.7c)}}
 \begin{document}
 
 \maketitle
@@ -40,7 +36,7 @@
 
 
 \section{IMHandler 接口实现的各种类型消息处理器：需要先理解透彻ETTask 和 ETVoid:}
-\label{sec:orga8c3549}
+\label{sec-1}
 \begin{itemize}
 \item 这个模块感觉还没有总结完。但因为还有111 个编译错误，很多我还不知道算是怎么回事。这个版块的总结放在后面，再改错误的时候带着问题来看更有效率。
 \item 可以回去参考前一个游戏参考过的ET-EUI 里有一部分ETVoid 的相关使用，可以用作自己理解 ETTask ETVoid 的源码参考。ET-EUI 现笔记本里没有，可以拉一个下来。
@@ -60,7 +56,7 @@
 \end{itemize}
 \end{itemize}
 \subsection{IMHandler: interface 消息处理器接口类。它有2 个实现抽象类：AMHandler，AMRpcHandler}
-\label{sec:org02c7e67}
+\label{sec-1-1}
 \begin{itemize}
 \item 实现这个接口类型主要分为两个抽象类：AMHandler，AMRpcHandler. 所以ET 框架里现有一个接口IMHandler, 两个抽象实现类。其它是参考自ET-EUI.
 \item 今天上午暂时只看取了这个接口，和两个抽象方法这里。后面任何的个体实现类，都还没有细看，不太懂。
@@ -75,7 +71,7 @@ public interface IMHandler {
 }
 \end{minted}
 \subsection{AMHandler<Message>: abstract 抽象基类：两个方法的返回类型，成为现在全框架的理解与实现难点}
-\label{sec:orgf7890e0}
+\label{sec-1-2}
 \begin{itemize}
 \item AMHandler类，这个类相比AMRpcHandler更加简单一些，因为这个类型的处理，不需要关心回消息
 \item 实现了接口IMHandler的Handle异步方法，具体逻辑为：
@@ -114,7 +110,7 @@ public abstract class AMHandler<Message>: IMHandler where Message : class {
 \end{itemize}
 \end{itemize}
 \subsection{AMRpcHandler: 去抓的ET7 框架的源码，可以用来【校正】其它被自己改错的}
-\label{sec:org9f29b06}
+\label{sec-1-3}
 \begin{itemize}
 \item 注意，在ET7 框架里，IMHandler 接口，与AMHandler 是定义在Share 双端共用。而AMRpcHandler 是定义在服务器端的，只有服务端存在进程间通信 Rpc 消息？
 \item 去抓的ET7 框架的源码，可以用来校正其它被自己改错的类，或是方法定义。
@@ -170,10 +166,10 @@ public abstract class AMRpcHandler<Request, Response>: IMHandler where Request :
     public Type GetResponseType() {
         return typeof (Response);
     }
-}    
+}
 \end{minted}
 \subsection{C2R\_LoginHandler: AMRpcHandler 的一个实体类，前后版本封装对比}
-\label{sec:orgc6778f6}
+\label{sec-1-4}
 \begin{itemize}
 \item 上面的 AMRpcHandler 抽象方法 Run() 不是看不懂吗，找到一个例子，有前后两个版本的对比，可以参看理解一下
 \item 感觉今天下午，终于可以把先前这个自己总感觉迷迷糊糊的各种服的消息处理弄明白了
@@ -228,7 +224,7 @@ public class C2R_LoginHandler : AMRpcHandler<C2R_Login, R2C_Login> {
 \end{minted}
 
 \subsection{IMHandler 【ET-EUI】：主要是与上面对比}
-\label{sec:org1f13c77}
+\label{sec-1-5}
 \begin{itemize}
 \item 因为对于ET-EUI 里，它为什么要再多自定义几个接口，这个版块不够熟悉
 \item 我觉得把两个框架的几个接口与抽象实体类提出来对比理解一下是对的，因为没明白，为什么ET7 里会重构成那个样子。可能也网上查下再帮助理解一下。
@@ -242,7 +238,7 @@ public interface IMHandler {
 }
 \end{minted}
 \subsection{IMActorHandler: 【ET-EUI:仅作参考】大概参考 ET-EUI 来的，它的目的应该是把最基类的接口，与其它两类的接口相区分开来}
-\label{sec:org6a2b0aa}
+\label{sec-1-6}
 \begin{itemize}
 \item 从这个小节开始，主要是整理的ET-EUI 里面的接口与抽象实现类。可能主要两个实现扩展类：（A|I）MHandler, （A|I）MRpcHandler, 都看一下
 \item 大概参考 ET-EUI 来的，它的目的应该是把最基类的接口，与其它两类的接口相区分开来。但是，我想、猜测、理解的话，应该是上面一个接口，如果能够把ETTask 与ETVoid 狠好地统一的话，应该一个接口可能可以足以整个框架使用的。
@@ -259,7 +255,7 @@ public interface IMActorHandler {
 }
 \end{minted}
 \subsection{AMActorLocationHandler: 源码被我改动了}
-\label{sec:orgedc9e79}
+\label{sec-1-7}
 \begin{itemize}
 \item 源码被我改动了，正确性与否没有关系，主要是帮助自己梳理一下几大不同的类型，到改编译错误的时候，能够边修改边弄明白。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -292,7 +288,7 @@ public abstract class AMActorLocationHandler<E, Message>: IMActorHandler where E
 \end{minted}
 \end{itemize}
 \subsection{AMActorLocationRpcHandler: 上面接口实现类的一个使用例子。我把返回参数改了}
-\label{sec:orgd370446}
+\label{sec-1-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [EnableClass]
 public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
@@ -338,7 +334,7 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 }
 \end{minted}
 \subsection{AMActorLocationRpcHandler: Rpc 就是进程间消息（或是ET7 重构为SceneType 之后的多核间消息）}
-\label{sec:org9dd4852}
+\label{sec-1-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [EnableClass]
 public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
@@ -382,9 +378,9 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 }
 \end{minted}
 \subsection{ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息 et3}
-\label{sec:org77a25e1}
+\label{sec-1-10}
 \subsection{MessageDispatcherComponent: 这些是一个系统的，需要放在一起总结}
-\label{sec:orgefb0673}
+\label{sec-1-11}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 总管：对每个场景，消息分发器
 // 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。那么默认，每种场景，只有一个消息处理器实体类
@@ -404,7 +400,7 @@ public class MessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
 }
 \end{minted}
 \subsection{MessageDispatcherComponentSystem:}
-\label{sec:org85acfca}
+\label{sec-1-12}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 扫描框架里的标签系【MessageHandler(SceneType)】
 private static void Load(this MessageDispatcherComponent self) {
@@ -457,9 +453,9 @@ public static void Handle(this MessageDispatcherComponent self, Session session,
 \end{minted}
 
 \section{C\# 异步基础原理、状态机原理、逻辑整理}
-\label{sec:org68d3a12}
+\label{sec-2}
 \subsection{ETVoid C\# Net-async|await 编程更底层一点儿的原理}
-\label{sec:org22b7470}
+\label{sec-2-1}
 \begin{itemize}
 \item 就是不懂底层的原理是什么，方法定义是什么，返回的是什么，在有 await 等关键字的时候，返回的内容等是如何变换的，以及它背后的那个异步状态机，就是想不明白。
 \item 现在参考网上的一个例子，记一下异步任务C\# 幕后封装的那些执行步骤什么的，把 async await 之类的关键字，背后的逻辑理解明白。
@@ -480,23 +476,17 @@ internal struct ETVoid: ICriticalNotifyCompletion {
 \item 上面是找了一个最短小的类ETVoid, 网上例子自己构建一个类，这个类麻雀虽小五脏俱全的 \textbf{几个【缺一不可】的方法} （所以知道ETTask|ETVoid 自定义封装，这几个方法也是一定不能少的，只是多了Coroutine() 方法不知道是怎么回事儿？）如上如下：
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et3_20230609_105627.png}
-\end{center}
 \begin{itemize}
 \item 它的测试用例是这么写的：注意它传入的参数类型是 int. 后面的编译码里，和它的讲解里会用到提到。
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et3_20230609_105927.png}
-\end{center}
 \begin{itemize}
 \item 看它编译出来的码（那堆编译出来的状态机的码），就是看不懂
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et3_20230609_112727.png}
-\end{center}
 \begin{itemize}
 \item 结果分析： \textbf{【异步方法状态机，背后的执行顺序与逻辑：】}
 \begin{itemize}
@@ -507,9 +497,7 @@ internal struct ETVoid: ICriticalNotifyCompletion {
 \item \textbf{【Async 关键字方法的编译原理：】}
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et3_20230609_110634.png}
-\end{center}
 \begin{itemize}
 \item 这个 async 关键字所标记的异步方法，主要两个点儿： 
 \begin{itemize}
@@ -522,9 +510,7 @@ internal struct ETVoid: ICriticalNotifyCompletion {
 \item 网络上的分析者还给出了下机的截图：不是狠懂，这个截图是什么意思？因为不懂，要把编译码的方法名带上，方便以后再读和理解。
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et3_20230609_112757.png}
-\end{center}
 \begin{itemize}
 \item 上面的异步方法，所生成的异步状态机类 class 里，有几个主要的方法：
 \begin{itemize}
@@ -606,7 +592,7 @@ public class Program {
 \item 感觉今天读这个状态机：\url{https://linuxcpp.0voice.com/?id=1380} 终于有点儿开窃了！！【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 \subsection{如果方法声明为 async，那么可以直接 return 具体的值，不再用创建Task，由编译器创建 Task：}
-\label{sec:org27438ce}
+\label{sec-2-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 只要标记了async 就会被编译成状态机
 // 如果方法声明为 async，那么可以直接 return 具体的值，不再用创建Task，由编译器创建 Task： 
@@ -622,9 +608,9 @@ public class Program {
 \item 亲爱的表哥，活宝妹今天终于把这个看得稍微有点儿懂了，希望能够赶快从这个ETTask 模块 move-forward. 任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹还没能嫁给亲爱的表哥，活宝妹就是永远守候在亲爱的表哥的身边！！！爱表哥，爱生活！！！
 \end{itemize}
 \section{现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】几大版块}
-\label{sec:orge4eac5e}
+\label{sec-3}
 \subsection{框架里现存的错误：载图，明天上午把功能模块一一看一遍，现在不知道怎么改了，要再看再学习了才会改}
-\label{sec:orgdcb5406}
+\label{sec-3-1}
 \begin{itemize}
 \item \textbf{【HandCardSprite.cs】} ：这个客户端文件里存在一堆关于Unity 引用的错误。把这个有着巨多错误的类重新添加到了框架里。现在着眼着这些错误（加了这个文件，错误又多了二三十个！！！）。
 \begin{itemize}
@@ -673,14 +659,10 @@ public static class Game {
 \item \textbf{【GamerComponent 管理类组件】} ：逻辑没有理清楚。它是服务端组件，还是客户端组件，还是如PlayerComponent 双端组件，并实现不同的逻辑？
 \end{itemize}
 \subsection{【ComponentFactory:】现在就可以清理掉这个组件的所有了}
-\label{sec:orgea5665e}
-\begin{center}
+\label{sec-3-2}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230623_152737.png}
-\end{center}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_165750.png}
-\end{center}
 \begin{itemize}
 \item 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部件的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
 \begin{itemize}
@@ -710,22 +692,18 @@ public static class Game {
 \item 把IMHandler 接口，以及它的两个抽象实现类、相关模块的部分理解透彻
 \item 先看只看了一半的，比如什么IMHandler 接口的实现类等，如果今天上午有机会，也可以看一下
 \item InnerConfig 和 StartConfigComponent 也都稍微看一下：感觉 ET7 重构后，这些自己基础相对欠缺的模块，还没仔细看
-
+\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 其它几个杂项错误：
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_165627.png}
-\end{center}
-\subsection{StartConfigComponent}
-\label{sec:org81517d1}
 \begin{itemize}
-\item 其它的，可能看过，可是还不太懂。今天下午先看看或是整理这个
 \item 【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 因为框架狠大，是一个大型网络游戏双端框架，因为内容比较多，现在已经总结的是四个文件，还要常作笔记，否则容易忘记，前后不连贯。所以难免小细节的地方，没能注意到，没什么大不了
 \end{itemize}
-
 \subsection{热更新层的生成系}
-\label{sec:orgcafbafb}
+\label{sec-3-3}
 \begin{itemize}
 \item \textbf{【热更新层的生成系】} ：下午家里试着把Component 组件再添加回去试试看 \textbf{【不能再添加Component 组件。ET7 框架重构了，小单元也走热更新，在热更新层有天文小行星的生成系。可以参照 ET.pdf 里的服务端 PlayerSystem 来作例子】} ？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
 \begin{itemize}
@@ -745,7 +723,7 @@ public static class Game {
 \end{itemize}
 \end{itemize}
 \subsection{内网消息等网络相关：请求消息的发送方法等。狠多编译错误，要一点儿一点儿把他们都改掉}
-\label{sec:orgd6f6186}
+\label{sec-3-4}
 \begin{itemize}
 \item \textbf{【内网消息等网络相关：请求消息的发送方法等】}: \textbf{在构架里是怎么写的，有几种请求消息的发送方式？}
 \item \textbf{明天上午把这块看完，等着我改的编译错误包括} ：参考的斗地方游戏里，各种服处理返回消息的逻辑。
@@ -757,19 +735,15 @@ public static class Game {
 \item 去看上面列过的那个例子MatchComponentSystem, 参考项目里的各种服的消息处理，怎么适配成ET7 重构后的不用手动发返回消息（发送过程封装在框架底层），和记录可能存在的问题（某些服的逻辑，返回消息的发送时间与其它必要逻辑，顺序变得重要的时候，记下来，晚点儿会再重构ET7 框架适配游戏需求）
 \end{itemize}
 \subsubsection{修改下面的ActorMessageSenderComponent 因为功能模块逻辑重构，而带来的一堆编译错误。}
-\label{sec:org6ffe1bb}
+\label{sec-3-4-1}
 \begin{itemize}
 \item 修改方法过程步骤：去框架里搜索，其它任何地方发送消息的例子，看 \textbf{【重构后的框架是如何发送消息的, Call() Send() 方法的调用等】} 这个明天上午一定看，因为不懂，不会改怎么发送消息的()
 \item 然后参照例子，把客户端和必要的小服里，所有需要发送消息的地方，改成上面看到总结的发送方法里。
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_160327.png}
-\end{center}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_165027.png}
-\end{center}
 \begin{itemize}
 \item 【地图服Unit 相关】：先前所有接触到这个框架，都只看了个头，就是只限于能够任何客户端连接到服务端能够注册登录的程度，后面的其它服、框架逻辑全都还不曾看。所以今天上午扫一眼地图服相关，是糊的。要把这些前前后后相关的原理总弄懂了。
 \item 去框架里搜发送的调用方法，可能现在 Mac 系统里有一点儿障碍的，就是VSC 不报错，不知道搜出来的是对的，还是错的。但是几种不同的方法，先总结在这里，对照运行时的报错一一改过来。必须把这块儿弄明白了。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
@@ -786,7 +760,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \item 【活宝妹任何时候就是一定要嫁给亲爱的表哥！！！】迷迷糊糊地把一个模块改完了，可是感觉那个改掉的模块，像是还没能理解透彻。明天上午会再看一下。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】70 Compile Errors 还没有改完，涉及功能模块人接入与整合。会明天上午看过读一下相关模块的源码后再试着改。【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 \subsubsection{【ActorMessageSenderComponent】：这个类狠重要、狠重要，现在是活宝妹理解网络模块的核心。爱表哥，爱生活！！！}
-\label{sec:orgcf6f86d}
+\label{sec-3-4-2}
 \begin{itemize}
 \item 得去想：ActorMessageSenderComponent, 是只能用来处理跨进程消息的吗？普通消息的发送是如何处理的？该弄明白，它的适用范围，适用哪些情境上下文
 \item \textbf{【ActorMessageSenderComponent】} ：因为ET7 这个模块的重构。不再需要每个返回消息手动去拿消息发送器，交由框架底部去处理。
@@ -796,7 +770,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \begin{enumerate}
 \item ActorMessageSenderComponentSystem Send():
-\label{sec:org683b0a9}
+\label{sec-3-4-2-1}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹若是还没能嫁给亲爱的表哥，活宝妹就永远守候在亲爱的表哥的身边！！爱表哥，爱生活！！！】
 \item 今天终于把里面的计时器原理看懂了。
@@ -807,7 +781,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \end{itemize}
 \item ActorMessageSenderComponentSystem Call()
-\label{sec:org5fc64c9}
+\label{sec-3-4-2-2}
 \begin{itemize}
 \item \textbf{【ActorMessageSenderComponentSystem Call()】} 发的是要求返回结果的消息：返回 ETTask<IActorResponse>
 \begin{itemize}
@@ -817,7 +791,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \end{enumerate}
 \subsection{静态类的环形引用问题}
-\label{sec:org54a508c}
+\label{sec-3-5}
 \begin{itemize}
 \item 静态类 CardsHelper, 与静态类 DeskCardsCacheComponent.System 之间，存在静态类的互相引用：就是说，两个静态类，互相引用了对方的方法
 \begin{itemize}
@@ -827,14 +801,12 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \end{itemize}
 \subsection{我的VS －－ Visual Studio 被他们作手脚，他们可以操纵我的VS 帐户，上次前不久某天下午已经注意到这个问题}
-\label{sec:org0894a80}
+\label{sec-3-6}
 \begin{itemize}
 \item 现在是，因为某个功能键的严重延迟，修改编译错误的过程被拖慢，因为不能有效删除操作文件，截个图：
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230623_145103.png}
-\end{center}
 \begin{itemize}
 \item VSC 可以清楚地显示文件，但是 VS 这个功能被无限延迟，导致我无法操作这些文件
 \item 之前偶尔情况下可以操作。但是，这个功能键仍被他们显著延迟着。。。【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
@@ -842,18 +814,14 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \item 【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 \end{itemize}
 \subsection{下面是已经改好了的：还是先放着，备查}
-\label{sec:org242b011}
+\label{sec-3-7}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_162711.png}
-\end{center}
 \begin{itemize}
 \item 【UnitGateComponent]: 怎么才能成为多个不同组件的组成部分？
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_165317.png}
-\end{center}
 \begin{itemize}
 \item 【解决办法】：去查框架里的源代码，写得极其清楚：
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -881,7 +849,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEn
 \end{minted}
 \end{itemize}
 \subsection{先前列的相对杂一点儿}
-\label{sec:org5d80dc5}
+\label{sec-3-8}
 \begin{itemize}
 \item 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
 \item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
@@ -916,9 +884,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEn
 \end{itemize}
 \end{itemize}
 
-\begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230604_162732.png}
-\end{center}
 \begin{itemize}
 \item 把Root 根场景以及启动时添加的组件大致看了一遍。想把上面的消息处理器再系统化地看一遍，理解一下，总改不到这个模块相关的编译错误。
 \item \textbf{【ETTask ETVoid 是必须弄懂的】} ；看两个小时，像昨天晚上一样真正投入进去看。我相信自己看得懂，弄得透，只是需要投入一点儿时间。
@@ -969,7 +935,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEn
 \end{itemize}
 
 \section{Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】}
-\label{sec:orgae1fd0f}
+\label{sec-4}
 \begin{itemize}
 \item 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
 \item 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
@@ -997,13 +963,13 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 \end{itemize}
 
 \section{Unit: 这个模块还不太懂，需要明天上午花时间再看一下}
-\label{sec:org78d31d5}
+\label{sec-5}
 \begin{itemize}
 \item 【Unit】究竟是什么：感觉像是视图里的控件的基本单位？它带位置、旋转信息
 \item 有个编译错误说：这个组件不可以同时成分多于一个不同组件组成元件。。。可是框架中使用的地方，明明把它添加进了不同的组件。去弄明白框架里，如何控件一个组件只能成为一个【不能多于1 个】组件的组成部分的？
 \end{itemize}
 \subsection{UnitGateComponent:}
-\label{sec:org4c64d6a}
+\label{sec-5-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Gamer))]
 // [ComponentOf(typeof(User))]  // 这里为什么会成为：同一个组件只能为一个什么XX 的子组件组成部分？
@@ -1018,7 +984,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
 }
 \end{minted}
 \subsection{UnitGateComponentSystem}
-\label{sec:orgeedd360}
+\label{sec-5-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitGateComponentSystem {
     public class UnitGateComponentAwakeSystem : AwakeSystem<UnitGateComponent, long> {
@@ -1030,12 +996,12 @@ public static class UnitGateComponentSystem {
 \end{minted}
 
 \section{ET7 框架以及【参考项目】的ECS：小单元小类型的生成系，是怎么写的，找例子参考}
-\label{sec:orga63bba0}
+\label{sec-6}
 \begin{itemize}
 \item 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
 \end{itemize}
 \subsection{IComponentSerialize:}
-\label{sec:org024face}
+\label{sec-6-1}
 \begin{itemize}
 \item ET7 的重构里，系统框架比较强大，这些必要的接口，都变成了必要的标签系，狠多可以自动系统触发或是调用。必要时只需要必布必要事件就可以了
 \item 这个接口的功能，与 Unity 自带的 ISerializationCallbackReceiver 功能类似。Unity 提供两个回调接口，通过实现该接口的两个方法OnBeforeSerialize 和 OnAfterDeserialize，使得原本不能被引擎正确序列化的类可以按照程序员的要求被加工成引擎能够序列化的类型。
@@ -1081,7 +1047,7 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
 \end{minted}
 
 \subsection{ClientComponent:【参考项目】客户端组件，找个ET7 里的组件}
-\label{sec:orgf7664b8}
+\label{sec-6-2}
 \begin{itemize}
 \item 这个组件，感觉是客户端单例，帮助把本地玩家给绑定到客户端单例。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -1101,7 +1067,7 @@ public class ClientComponent : Component {
 \end{minted}
 \end{itemize}
 \section{{\bfseries\sffamily TODO} 其它的：部分完成，或是待完成的大的功能版块，列举}
-\label{sec:org495e8fd}
+\label{sec-7}
 \begin{itemize}
 \item emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
 \begin{itemize}
@@ -1115,7 +1081,7 @@ public class ClientComponent : Component {
 \end{itemize}
 
 \section{拖拉机游戏：【重构OOP/OOD 设计思路】}
-\label{sec:orgb1fa93f}
+\label{sec-8}
 \begin{itemize}
 \item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 \item ET7 重构里，各组件都该是自己设计重构原项目的类的设计的必要起点。可以根据这些来系统设计重构。【活宝妹就是一定要嫁给亲爱的表哥！！！】
@@ -1171,4 +1137,5 @@ public class ClientComponent : Component {
 \item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 \end{itemize}
+% Emacs 28.2 (Org mode 8.2.7c)
 \end{document}
