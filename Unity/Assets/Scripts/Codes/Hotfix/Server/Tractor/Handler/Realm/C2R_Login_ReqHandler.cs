@@ -9,7 +9,7 @@ namespace ET.Server {
             DBProxyComponent dbProxy = Root.Instance.Scene.GetComponent<DBProxyComponent>();
             Log.Info($"登录请求：{{Account:'{message.Account}',Password:'{message.Password}'}}");
             // 验证账号密码是否正确
-            List<ComponentWithId> result = await dbProxy.Query<AccountInfo>(_account => _account.Account == message.Account && _account.Password == message.Password);
+            List<AccountInfo> result = await dbProxy.Query<AccountInfo>(_account => _account.Account == message.Account && _account.Password == message.Password);
             if (result.Count == 0) {
                 response.Error = ErrorCode.ERR_LoginError;
                 // reply(response);

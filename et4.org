@@ -1294,6 +1294,43 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
   - 注意 *【跨进程消息的回复细节里】* ，看见IRpcResponse 实例创建好，结果写好，同步到异步任务ETTask 里，总容易忘记ETTask 的异步任务运行结束（如果不是抛异常）， *跨进程消息是如何回到消息的发送进程的？* 是AMRpcHandler 抽象类里，异步等待实体实现类里的具体实现逻辑Run() 异步方法执行结束，也就是等待各种消息处理服处理好、写好异步返回消息IRpcResponse, 同步到异步任务ETTask. AMRpcHandler 抽象类里等异步方法执行完成，抽象类里作了封装，把返回消息通过进程间通信会话框，把返回消息发回去的。
   - 这里看见，这个消息发送器底层逻辑说，如果是我自己进程要发消息，就封装消息发送者 rpcId 是自已的 rpcId. 然后调用自组件Call() 发送消息。后面的几个方法，大概就是跨进程消息的发送与回复。
 ** 框架里现存的错误：载图，明天上午把功能模块一一看一遍，现在不知道怎么改了，要再看再学习了才会改
+- *【HandCardSprite.cs】* ：这个客户端文件里存在一堆关于Unity 引用的错误。把这个有着巨多错误的类重新添加到了框架里。现在着眼着这些错误（加了这个文件，错误又多了二三十个！！！）。
+  - 这个类里一堆错误。改不到的时候，就先把这个类拿掉。想试的时候再引入项目。今天改不到了，剩下的明天上午看过再改。
+  - 必须认识到， *【参考项目Game.cs】* 客户端类里，存在UnityEngineer 的诸多引用，所以HandCardSprite.cs 可以通过Game.EventSystem 等拿到引用。但ET7 重构得没有边际。必须自己去看明白。
+  - 这个类，是客户端添加到游戏过程中手牌中的组件，因为有对Unity 游戏引擎的引用，所以配合它创建了Game.cs. 要把这个类理解透彻了。它提醒客户端游戏引擎的事件机制。。
+  - 【参考项目热更域里的 Game.cs 类】：
+    #+BEGIN_SRC csharp
+public static class Game {
+    private static Scene scene;
+    public static Scene Scene {
+        get {
+            if (scene != null) 
+                return scene;
+            scene = new Scene();
+            return scene;
+        }
+    }
+    private static EventSystem eventSystem; // <<<<<<<<<<<<<<<<<<<< 
+    public static EventSystem EventSystem {
+        get {
+            return eventSystem ?? (eventSystem = new EventSystem());
+        }
+    }
+    private static ObjectPool objectPool; // <<<<<<<<<<<<<<<<<<<< 
+    public static ObjectPool ObjectPool {
+        get {
+            return objectPool ?? (objectPool = new ObjectPool());
+        }
+    }
+    public static void Close() {
+        scene.Dispose();
+        scene = null;
+        eventSystem = null;
+        objectPool = null;
+    }
+}
+    #+END_SRC
+  - 这里客户端，关于Unity 的引用，可能还没有连好  
 - 现框架里不存在的，需要整合进来的模块版块：
   - 这里列一下剩下的模块，方便将来修改：
 #+BEGIN_SRC text
@@ -1312,6 +1349,7 @@ StartConfigComponent
 [[./pic/et4_20230616_165750.png]]
 - 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部件的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
   - Entity 类里面有，组件里添加一个新 new 出来的成员的办法。模仿Player 的使用例子。这里的使用方法是：去拿它的管理组件的实例索引，用管理组件来生成各个元件
+  - 这个组件不清楚：去把所有的例子中，
   - 这个工厂类，总是不懂，先去把基类Entity.cs 好好再读一下
   - 同样套用的话，GamerComponent 是房间组件的子组件，拿到这个组件后来创建. VSC 里面好像是有多余的类，所以从 VSC 里看源码，比较乱一点儿。【感觉这一块儿的思路，还没能理清楚。】  
   - Hotfix Server *【UnitFactory】* 生成创建一个单位。可以用作例子。unitComponent.AddChildWithId() 调用的是Entity 里最底封装逻辑。

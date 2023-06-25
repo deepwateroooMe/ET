@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 namespace ET.Server {
 
     // 匹配组件，匹配逻辑在MatchComponentSystem扩展. 这里是处理匹配的组件，与 Matcher 被匹配者相区分开来
@@ -13,5 +14,7 @@ namespace ET.Server {
 
         // 创建房间消息加锁，避免因为延迟重复发多次创建房间消息
         public bool CreateRoomLock { get; set; }
-    }
+
+		//public Gamer Create(long playerID, long userID, long gamerID) => throw new NotImplementedException();
+	}
 }

@@ -1,6 +1,6 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using ET.Server;
 using ET;
-using System.Collections.Generic;
 namespace ET.Server {
  // 游戏服务器： Realm 注册登录服，把这个注册，自动登录，存数据库等的整个过程弄清楚，服务器端连接链路
     [MessageHandler(SceneType.Realm)]
@@ -9,7 +9,7 @@ namespace ET.Server {
             // 数据库操作对象: 代理索引
             DBProxyComponent dbProxy = Root.Instance.Scene.GetComponent<DBProxyComponent>();
             // 查询账号是否存在
-            List<ComponentWithId> result = await dbProxy.Query<AccountInfo>(_account => _account.Account == message.Account);
+            List<AccountInfo> result = await dbProxy.Query<AccountInfo>(_account => _account.Account == message.Account);
             if (result.Count > 0) { // 出错：该帐户已注册
                 response.Error = ErrorCode.ERR_AccountAlreadyRegister;
                 // reply(response); // <<<<<<<<<<<<<<<<<<<< 重构后，不需要手动发返回消息. 异常是ETTash 里的封装会给抛出

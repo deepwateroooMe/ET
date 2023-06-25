@@ -43,7 +43,6 @@
         
     </ItemGroup>
     <ItemGroup>
-      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Client\Tractor\Scripts\MonoScript\HandCardSprite.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Component\Gate\SessionInfoComponent.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\GateMapComponent.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\GateSessionKeyComponent.cs" />
@@ -52,6 +51,7 @@
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\SessionInfoComponent.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Gate\SessionPlayerComponent.cs" />
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Demo\Map\Unit\UnitGateComponent.cs" />
+      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Client\Tractor\Scripts\MonoScript\HandCardSprite.cs" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="Google.Protobuf" Version="3.23.1" />
@@ -62,4 +62,6 @@
         <ProjectReference Include="..\Loader\DotNet.Loader.csproj" />
         <ProjectReference Include="..\ThirdParty\DotNet.ThirdParty.csproj" />
     </ItemGroup>
-</Project>
+    </Project>
+    <!-- <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Share\Demo\Entity\DB\UserInfo.cs" /> -->
+    <!-- <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Model\Server\Tractor\Entity\DB\UserInfo.cs" /> 我感觉这可能是我干的事！！-->

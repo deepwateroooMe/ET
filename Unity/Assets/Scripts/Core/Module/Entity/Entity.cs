@@ -510,7 +510,8 @@ namespace ET {
             return component;
         }
         
-        private static Entity Create(Type type, bool isFromPool) {
+        // private static Entity Create(Type type, bool isFromPool) {  // 把这里先改了。知道改得不好，但先弄明白
+        public static Entity Create(Type type, bool isFromPool) {
             Entity component;
             if (isFromPool) {
                 component = (Entity)ObjectPool.Instance.Fetch(type);
@@ -687,3 +688,5 @@ namespace ET {
         }
     }
 }
+
+
