@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ET;
-namespace ET.Client { 
+namespace ET { 
 // 【爱表哥，爱生活！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 // 玩家组件管理生成系：
+    [FriendOf(typeof(GamerComponent))]
     public static class GamerComponentSystem {
         [ObjectSystem]
         // 不明白：这里，为什么会找不到组件申明类，下午家里看一下.
@@ -28,7 +29,7 @@ namespace ET.Client {
         }
         // 获取玩家
         public static Gamer Get(GamerComponent self, long id) {
-            int seatIndex = GetGamerSeat(id);
+            int seatIndex = GetGamerSeat(self, id);
             if (seatIndex >= 0) {
                 return self.gamers[seatIndex];
             }
@@ -48,7 +49,7 @@ namespace ET.Client {
         }
         // 移除玩家并返回
         public static Gamer Remove(GamerComponent self, long id) {
-            int seatIndex = GetGamerSeat(id);
+            int seatIndex = GetGamerSeat(self, id);
             if (seatIndex >= 0) {
                 Gamer gamer = self.gamers[seatIndex];
                 self.gamers[seatIndex] = null;

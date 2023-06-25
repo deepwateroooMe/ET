@@ -38,45 +38,44 @@ namespace ET.Server {
                 case SceneType.Location:
                     scene.AddComponent<LocationComponent>();
                     break;
-                    // 下面的：先去掉，太多报错，会吓死人的。。。
-                // case SceneType.AllServer: // 我想要自己添加这个全服：方便模仿参考项目，对必要的服务器组件进行管理 
-                //     Game.Scene.AddComponent<ActorMessageSenderComponent>();
-                //     Game.Scene.AddComponent<ActorLocationSenderComponent>();
-                //     Game.Scene.AddComponent<PlayerComponent>();
-                //     Game.Scene.AddComponent<UnitComponent>();
-                //     // PS：如果启动闪退有可能是服务器配置文件没有填数据库配置，请正确填写
-                //     // 这里需要将DBComponent的Awake注释去掉才能连接MongoDB
-                //     Game.Scene.AddComponent<DBComponent>(); // 这个，就成为服务器端的一个重点，但是是最简单的重点，因为相比其它，它最容易
-                //     // 这里需要加上DBCacheComponent才能操作MongoDB
-                //     Game.Scene.AddComponent<DBCacheComponent>();
-                //     Game.Scene.AddComponent<DBProxyComponent>();
-                //     Game.Scene.AddComponent<LocationComponent>();
-                //     Game.Scene.AddComponent<ActorMessageDispatherComponent>();
-                //     Game.Scene.AddComponent<NetInnerComponent, string>(innerConfig.Address);
-                //     Game.Scene.AddComponent<NetOuterComponent, string>(outerConfig.Address);
-                //     Game.Scene.AddComponent<LocationProxyComponent>();
-                //     Game.Scene.AddComponent<AppManagerComponent>();
-                //     Game.Scene.AddComponent<RealmGateAddressComponent>(); // <<<<<<<<<<<<<<<<<<<< 
-                //     Game.Scene.AddComponent<GateSessionKeyComponent>();
-                //     Game.Scene.AddComponent<ConfigComponent>();
-                //     // Game.Scene.AddComponent<ServerFrameComponent>();
-                //     Game.Scene.AddComponent<PathfindingComponent>();
-                //     // Game.Scene.AddComponent<HttpComponent>();
+// 下面的：先去掉，太多报错，会吓死人的。。。
+                case SceneType.AllServer: // 我想要自己添加这个全服：方便模仿参考项目，对必要的服务器组件进行管理 
+                    scene.AddComponent<ActorMessageSenderComponent>();
+                    scene.AddComponent<ActorLocationSenderComponent>();
+                    scene.AddComponent<PlayerComponent>();
+                    scene.AddComponent<UnitComponent>();
+                    // PS：如果启动闪退有可能是服务器配置文件没有填数据库配置，请正确填写
+                    // 这里需要将DBComponent的Awake注释去掉才能连接MongoDB
+                    // scene.AddComponent<DBComponent>(); // 这个，就成为服务器端的一个重点，但是是最简单的重点，因为相比其它，它最容易
+                    // 这里需要加上DBCacheComponent才能操作MongoDB
+                    // scene.AddComponent<DBCacheComponent>();
+                    // scene.AddComponent<DBProxyComponent>();
+                    // scene.AddComponent<LocationComponent>();
+                    // scene.AddComponent<ActorMessageDispatherComponent>();
+                    scene.AddComponent<NetInnerComponent, string>(innerConfig.Address);
+                    // scene.AddComponent<NetOuterComponent, string>(outerConfig.Address);
+                    scene.AddComponent<LocationProxyComponent>();
+                    // scene.AddComponent<AppManagerComponent>();
+                    // scene.AddComponent<RealmGateAddressComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+                    scene.AddComponent<GateSessionKeyComponent>();
+                    // scene.AddComponent<ConfigComponent>();
+                    // scene.AddComponent<ServerFrameComponent>();
+                    // scene.AddComponent<HttpComponent>();
 
-                //     // 以下是【拖拉机服务端】自定义全局组件
-                //     // GateGlobalComponent
-                //     Game.Scene.AddComponent<UserComponent>();
-                //     Game.Scene.AddComponent<LandlordsGateSessionKeyComponent>(); // <<<<<<<<<< 为什么这里要特制一个，同上面有什么不同？如果只是类名的不同，仅只为了客户端热更新方便吗？
-                //     // MapGlobalComponent
-                //     Game.Scene.AddComponent<RoomComponent>();
-                //     // MatchGlobalComponent
-                //     Game.Scene.AddComponent<AllotMapComponent>();
-                //     Game.Scene.AddComponent<MatchComponent>();
-                //     Game.Scene.AddComponent<MatcherComponent>();
-                //     Game.Scene.AddComponent<MatchRoomComponent>();
-                //     // RealmGlobalComponent
-                //     Game.Scene.AddComponent<OnlineComponent>();
-                //     break;
+// 以下是【拖拉机服务端】自定义全局组件
+                    // GateGlobalComponent
+                    scene.AddComponent<UserComponent>();
+                    scene.AddComponent<LandlordsGateSessionKeyComponent>(); // <<<<<<<<<< 为什么这里要特制一个，同上面有什么不同？如果只是类名的不同，仅只为了客户端热更新方便吗？
+                    // MapGlobalComponent
+                    scene.AddComponent<RoomComponent>();
+                    // MatchGlobalComponent
+                    scene.AddComponent<AllotMapComponent>(); // 这里不知道，为什么也出错了？
+                    scene.AddComponent<MatchComponent>();
+                    scene.AddComponent<MatcherComponent>();
+                    scene.AddComponent<MatchRoomComponent>();
+                    // RealmGlobalComponent
+                    scene.AddComponent<OnlineComponent>();
+                    break;
                 case SceneType.Robot:
                     scene.AddComponent<RobotManagerComponent>();
                     break;

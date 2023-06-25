@@ -2,6 +2,12 @@
 namespace ET.Server {
     [FriendOfAttribute(typeof(ET.Room))]
     public static class RoomSystem {
+        [ObjectSystem]
+        public class RoomAwakeSystem: AwakeSystem<Room, long> {
+            protected override void Awake(Room self, long id) { // 房间：居然是没有房间门牌号？
+                self.id = id;
+            }
+        }
         // 添加玩家
         public static void Add(this Room self, Gamer gamer) {
             int seatIndex = self.GetEmptySeat();

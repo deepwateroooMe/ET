@@ -48,8 +48,9 @@ namespace ET.Server {
             IPEndPoint mapIPEndPoint = Root.Instance.Scene.GetComponent<AllotMapComponent>().GetAddress().GetComponent<InnerConfig>().IPEndPoint;
             // Session mapSession = Root.Instance.Scene.GetComponent<NetInnerComponent>().Get(mapIPEndPoint);
             Session mapSession = NetInnerComponentSystem.Get(Root.Instance.Scene.GetComponent<NetInnerComponent>(), mapIPEndPoint);
-            MP2MH_CreateRoom_Ack createRoomRE = await mapSession.Call(new MH2MP_CreateRoom_Req()) as MP2MH_CreateRoom_Ack;  // <<<<<<<<<<<<<<<<<<<< await
-            Room room = ComponentFactory.CreateWithId<Room>(createRoomRE.RoomID);
+            MP2MH_CreateRoom_Ack createRoomRE = await mapSession.Call(new MH2MP_CreateRoom_Req()) as MP2MH_CreateRoom_Ack;
+            RoomComponent roomComponent = Root.Instance.Scene.GetComponent<RoomComponent>();
+            Room room = roomComponent.AddChild<Room, long>(createRoomRE.RoomID);
             Root.Instance.Scene.GetComponent<MatchRoomComponent>().Add(room);
             // 解锁
             self.CreateRoomLock = false;

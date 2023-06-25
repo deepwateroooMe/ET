@@ -4,7 +4,9 @@ using ET;
 namespace ET {
     // 用户信息
     [BsonIgnoreExtraElements]
-    public class UserInfo : Entity {
+    [ChildOf(typeof(Session))]
+    public class UserInfo : Entity, IAwake<long> {
+        public long id;
         // 昵称
         public string NickName { get; set; }
         // 胜场

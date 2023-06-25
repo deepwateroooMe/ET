@@ -16,7 +16,9 @@ namespace ET.Server {
             // Key过期
             LandlordsGateSessionKeyComponentSystem.Remove(landlordsGateSessionKeyComponent, message.Key);
             // 创建User对象
-            User user = UserFactory.Create(userId, session.InstanceId);// 用 UserComponent
+            UserComponent userComponent = Root.Instance.Scene.GetComponent<UserComponent>(); // 不知道这么拿，对不对，运行时测试
+            User user = userComponent.AddChild<User, long>(userId);
+                // UserFactory.Create(userId, session.InstanceId);// 用 UserComponent: 对，用这个，就是去拿这个管理组件的 reference
             await user.AddComponent<MailBoxComponent>().AddLocation(); // 为【用户】添加了邮箱和位置信息。那么这个用户就可以收发消息了
             // 添加User对象关联到Session上
             session.AddComponent<SessionUserComponent>().User = user;

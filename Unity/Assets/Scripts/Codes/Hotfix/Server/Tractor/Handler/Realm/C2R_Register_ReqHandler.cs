@@ -15,13 +15,15 @@ namespace ET.Server {
                 // reply(response); // <<<<<<<<<<<<<<<<<<<< 重构后，不需要手动发返回消息. 异常是ETTash 里的封装会给抛出
                 return;
             }
-            // 新建账号
-            AccountInfo newAccount = ComponentFactory.CreateWithId<AccountInfo>(IdGenerater.Instance.GenerateId());
+            // 新建账号: 帐号系统没有管理器组件，我要把它添加作为谁的子控件，才能使用基类 Entity 里的 AddChild() 方法呢？暂时先把它捆绑到 session 里？
+            // AccountInfo newAccount = ComponentFactory.CreateWithId<AccountInfo>(IdGenerater.Instance.GenerateId());
+            AccountInfo newAccount = session.AddChild<AccountInfo, long>(IdGenerater.Instance.GenerateId()); // 这里感觉太诡异太不对了，应该需要去想其它方法
             newAccount.Account = message.Account;
             newAccount.Password = message.Password;
             Log.Info($"注册新账号：{MongoHelper.ToJson(newAccount)}");
             // 新建用户信息
-            UserInfo newUser = ComponentFactory.CreateWithId<UserInfo>(newAccount.Id);
+            // UserInfo newUser = ComponentFactory.CreateWithId<UserInfo>(newAccount.Id);
+            UserInfo newUser = session.AddChild<UserInfo, long>(newAccount.Id);
             newUser.NickName = $"用户{message.Account}";
             newUser.Money = 10000;
             // 保存到数据库: 内网不同服务器之间的交互

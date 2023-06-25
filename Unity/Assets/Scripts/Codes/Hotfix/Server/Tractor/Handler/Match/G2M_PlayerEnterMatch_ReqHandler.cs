@@ -36,7 +36,7 @@ namespace ET.Server {
             }
             else { // 不曾分配，去分配
                 // 创建匹配玩家
-                Matcher matcher = MatcherFactory.Create(message.PlayerID, message.UserID, message.SessionID);
+                Matcher matcher = matchComponent.AddChild<Matcher, long>(message.PlayerID);
             }
         }
     }

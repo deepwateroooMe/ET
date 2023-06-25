@@ -501,9 +501,7 @@ public class Program {
 *  现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】几大版块
 ** 框架里现存的错误：载图，明天上午把功能模块一一看一遍，现在不知道怎么改了，要再看再学习了才会改
 - *【HandCardSprite.cs】* ：这个客户端文件里存在一堆关于Unity 引用的错误。把这个有着巨多错误的类重新添加到了框架里。现在着眼着这些错误（加了这个文件，错误又多了二三十个！！！）。
-  - 这个类里一堆错误。改不到的时候，就先把这个类拿掉。想试的时候再引入项目。今天改不到了，剩下的明天上午看过再改。
   - *【参考项目Game.cs】* 客户端类里，存在UnityEngineer 的诸多引用，所以HandCardSprite.cs 可以通过Game.EventSystem 等拿到引用。但ET7 重构得没有边际。必须自己去看明白。这个类，更多的是，适配特定游戏需求的ET7 框架外的一个桥梁适配类。
-  - 这个类，是客户端添加到游戏过程中手牌中的组件，因为有对Unity 游戏引擎的引用，所以配合它创建了Game.cs. 要把这个类理解透彻了。它提醒客户端游戏引擎的事件机制。。
   - 【参考项目热更域里的 Game.cs 类】：
     #+BEGIN_SRC csharp
 public static class Game {
@@ -536,23 +534,20 @@ public static class Game {
     }
 }
     #+END_SRC
-- 现框架里不存在的，需要整合进来的模块版块：
-#+BEGIN_SRC text
-DBProxyComponent: 这个框架里的数据库，算怎么回事呢？
-InnerConfig
-LocationComponent
-StartConfigComponent                        
-#+END_SRC
+- 现框架里不存在的，需要整合进来的模块版块：DBProxyComponent, InnerConfig, LocationComponent, StartConfigComponent                        
 - 组件管理类：某些组件，属于双端，但客户端与服务端的逻辑不一样，如PlayerComponent; 某些组件，只属于服务端；有只属于客户端的吗？
-- *【GamerComponent】* ：它的逻辑设计应该是什么样的？当服务端有 PlayerComponent 对所有玩家进行管理，当前GamerComponent 只管理一个拖拉机房间里的四个玩家，是RoomComponent 的玩家组成对象（？还有房间组成对象，因为房间如玩家一样需要管理，对应不同拖拉机房间号）
+- *【GamerComponent】* ：它的逻辑设计应该是什么样的？当服务端有 PlayerComponent 对所有玩家进行管理，当前GamerComponent 只管理一个拖拉机房间里的四个玩家，是RoomComponent 的玩家组成对象（？还有房间组成对象，因为房间如玩家一样需要管理，对应不同拖拉机房间号）\
+  - 参考项目放在热更新域里面，但是现项目是不允许申明组件放在热更新域里的。去参考项目中其它组件是否全在Model 层申明组件，以及成员变量。暂时把它放到Model 双端共用的地方。
+  - 台式机好慢好慢，找了好久才找到这个类。现在应该可以往下改了。这个模块，今天就暂时改到这里，看不见什么相关的编译错误了
+  - 这里看出 ET 框架的局限：它把一切成员变量之类的在Model 层里固定死了，也就意味着，热更新是无法热更新功能逻辑模块的重构，只能热更新小细节的实现逻辑。
 - *【GamerComponent 管理类组件】* ：逻辑没有理清楚。它是服务端组件，还是客户端组件，还是如PlayerComponent 双端组件，并实现不同的逻辑？
- 
+** 【ComponentFactory:】现在就可以清理掉这个组件的所有了
 [[./pic/et4_20230623_152737.png]]
   
 [[./pic/et4_20230616_165750.png]]
 - 【ComponentFactory:】重构了的框架里，这个工厂类是被折解到各自小部件的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】
   - Entity 类里面有，组件里添加一个新 new 出来的成员的办法。模仿Player 的使用例子。这里的使用方法是：去拿它的管理组件的实例索引，用管理组件来生成各个元件
-  - 这个组件不清楚：去把所有的例子中，
+- 【PlayerSystem】：不是不知道框架里怎么用，找不出来一个使用的例子吗？它可能不需要用，它只需要框架底层的Entity 里相关方法的封装，能够生成一个一个小单元（Player,Gamer,Matcher-etc）之类的就可以了。就是框架底层原理，这一块儿的，还不太懂
   - 这个工厂类，总是不懂，先去把基类Entity.cs 好好再读一下
   - 同样套用的话，GamerComponent 是房间组件的子组件，拿到这个组件后来创建. VSC 里面好像是有多余的类，所以从 VSC 里看源码，比较乱一点儿。【感觉这一块儿的思路，还没能理清楚。】  
   - Hotfix Server *【UnitFactory】* 生成创建一个单位。可以用作例子。unitComponent.AddChildWithId() 调用的是Entity 里最底封装逻辑。
@@ -560,11 +555,6 @@ StartConfigComponent
     - 需要去找，自动生成特异性ID, 并创建实例的 Entity 里的方法的例子
   - 上面的问题是，如果框架热更新域里可以如上 UnitFactory 一样添加工厂类，那么我的其它小单位Gamer, Player 应该也是可以如上Unit 一样提供他们自己的工厂生产类才对。
   - 再试着多找几个如上的工厂生产类的例子看看。
-  - *【ET7 框架里，出现过的工厂类：】* SceneFactory, UnitFactory, 
-    - Matcher, MatcherSystem （为其赋值ID），可以模仿Player|PlayerSystem? 
-      - MatcherSystem 类是自己加的，如果它有了ID, 不该是模仿UnitFactory.Create() 方法吗？如果这样，创建MatcherFactory 是专门生活房间里申请匹配的玩家的？
-      - MatcherSystem 感觉是我模仿 PlayerSystem 来写的，去把 PlayerSystem 再看一下。。
-      
 - *【ComponentFactory.CreateWithId:】* 重构了的框架里，这个工厂类是被折解到各自小部分的生产工厂里去了，就是一个框架底层封装的工厂类，拆解到 100 个不同的小部件里。所以我必须得要每个使用的小部件里，它的生产工厂里去再调用相应的逻辑。【可以找个例子出来看一下】新框架里，上次不是找到过：先去拿管理器组件，再用管理器组件，通过调用基类Entity 里的方法，来创建小部件的实例？可以再找个例子看一下
 - 上午把【数据库模块的接入】、【InnerConfig】【StartConfigComponent】【LocationComponent】等相关模块：读下源码，理解透彻，必要的情况下下午家里接入并测试
   - 把ActorLocation 相关的，今天晚上一个小时左右，再读一下
@@ -575,7 +565,7 @@ StartConfigComponent
 - 把IMHandler 接口，以及它的两个抽象实现类、相关模块的部分理解透彻
 - 先看只看了一半的，比如什么IMHandler 接口的实现类等，如果今天上午有机会，也可以看一下
 - InnerConfig 和 StartConfigComponent 也都稍微看一下：感觉 ET7 重构后，这些自己基础相对欠缺的模块，还没仔细看
-
+- 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 - 其它几个杂项错误：
   
 [[./pic/et4_20230616_165627.png]]

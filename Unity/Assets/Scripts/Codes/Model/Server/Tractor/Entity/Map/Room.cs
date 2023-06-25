@@ -10,7 +10,9 @@ namespace ET {
         Game        
     }
     // 房间对象
-    public sealed class Room : Entity {
+    [ChildOf(typeof(RoomComponent))]
+    public sealed class Room : Entity, IAwake<long> {
+        public long id; // 自己给它加的：房间门牌号，身份证号
 
         public readonly Dictionary<long, int> seats = new Dictionary<long, int>();
         public readonly Gamer[] gamers = new Gamer[3];
@@ -18,20 +20,5 @@ namespace ET {
         public RoomState State { get; set; } = RoomState.Idle;
         // 房间玩家数量
         public int Count { get { return seats.Values.Count; } }
-        // 没弄懂：ET7 里下面的，大概是在 Entity 里自动处理了，不用管它了
-        // public override void Dispose() {
-        //     if (this.IsDisposed) {
-        //         return;
-        //     }
-        //     base.Dispose();
-        //     seats.Clear();
-        //     for (int i = 0; i < gamers.Length; i++) {
-        //         if (gamers[i] != null) {
-        //             gamers[i].Dispose();
-        //             gamers[i] = null;
-        //         }
-        //     }
-        //     State = RoomState.Idle;
-        // }
     }
 }

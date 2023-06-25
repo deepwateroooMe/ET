@@ -1,5 +1,7 @@
 ﻿namespace ET.Server {
     // 玩家对象
+    
+    [ChildOf(typeof(UserComponent))]
     public sealed class User : Entity, IAwake<long> {
         // 用户ID（唯一）
         public long UserID { get; set; }

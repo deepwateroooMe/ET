@@ -9,6 +9,7 @@ namespace ET.Server {
         [ObjectSystem]
         public class AwakeSystem: AwakeSystem<RoomComponent> {
             protected override void Awake(RoomComponent self) {
+                self.rooms = new Dictionary<long, Room>();
             }
         }
         // 添加房间

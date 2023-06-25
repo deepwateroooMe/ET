@@ -1,15 +1,15 @@
 using System.Linq;
 using System.Collections.Generic;
 namespace ET.Server {
-    // 匹配对象管理组件
+    // 匹配对象管理组件: 弄明白，这个组件的功能作用，是管理什么？
     [FriendOf(typeof(MatcherComponent))]
     public static class MatcherComponentSystem {
-        // [ObjectSystem]
-        // public class MatcherComponentSystem : UpdateSystem<MatchComponent> {
-        //     protected override void Update(MatchComponent self) {
-        //         self.Update();
-        //     }
-        // }
+        [ObjectSystem]
+        public class MatcherComponentAwakeSystem : AwakeSystem<MatcherComponent> {
+            protected override void Awake(MatcherComponent self) {
+                // self.Update();
+            }
+        }
         // 匹配对象数量
         // public static int Count { get { return matchers.Count; } } // 它不允许这么写，就换个写法来写呀
         public static int Count(MatcherComponent self) {

@@ -9,6 +9,7 @@ namespace ET {
     //     }
     // }
     // 房间玩家对象
+    [ChildOf(typeof(GamerComponent))]
     public sealed class Gamer : Entity, IAwake<long> {
     // public sealed class Gamer : Entity {
         // 用户ID（唯一）
