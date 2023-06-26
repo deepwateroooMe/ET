@@ -1,4 +1,4 @@
-% Created 2023-06-25 Sun 10:43
+% Created 2023-06-26 Mon 10:08
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1210,10 +1210,27 @@ public sealed class Player : Entity, IAwake<string> {
 \subsection{PlayerSystem: 这不就是昨天在找要找的，小单元的生成系吗？一个服务端的例子。}
 \label{sec-9-2}
 \begin{itemize}
-\item 这里可以看见，即使是说，只传一个参数，帐户名进来，新的ET7 框架里，因为移除了 ECS 中的Component 最小组件，这种即便感觉永远不需要热更新，可以Model 层固定不变的，也都热更新到了热更新层，不得不给他们弄成是【生成系】。
-\item 【小单元生成系】：目前还存在几个连通不通的问题。比如热更新层、域的生成系方法不被系统识到。不识别的原因大概是不曾 Awake(). 要去测试和添加这些系统，看能否消掉那一大堆一大堆的编译错误。
-\item 【小单元生成系】：另外的问题是，热更域中的方法全是静态方法，怎么调用呢？记得pdf 里，哪里记过两种不同的调用方法，找不到。记在 et2.pdf 里的Net 网络交互相关部分。
-\item 【小单元生成系】：在框架中找不到使用它的例子。有这个类，如何使用呢？
+\item 【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【小单元生成系】：目前还存在几个连通不通的问题。比如热更新层、域的生成系方法不被系统识到。不识别的原因是不曾 Awake() 【因为热更新域里的生成系中所定义的Awake() 方法不曾被调用过】. 把必要的组件类实现IAwake 接口【XXXComponent ： Entity, IAwake<long>】之类的就可以了
+\item 【小单元生成系】：PlayerSystem 这类小单元（Player, Gamer, Matcher-etc）的生成系，与管理类组件【XXXComponent】生成系的Awake() 原理是一样的。就是当创建新组件时，都是通过调用组件的基类Entity 中的AddChild<Player,long>(geneartedRandomID) 的方法来创建和生成新的小单元。但凡小单元申明过继承自IAwake|IAwake<long>, 它们的热更新域的生成系 XXXSystem方法 Awake() 就会被调用。原理极其简单，只是先前没仔细想过，狠好地解答了下面的问题。
+\item 【小单元生成系】：在框架中找不到使用它的例子。有这个类，如何使用呢？是ET7 框架底层 Entity.cs 类中创建新的小单元时，对小单元作的最基础Awake() 初始化。以后这个地方再不用疑问了。说得再直白一点儿, 就是对于小单元或是组件的初始化，这个框架，换了一下某些基础类的初始化方法（Unity 里生命周期回调函数是Awake(), 借用了它来初始化），包装得更为系统一点儿。但本质简单直白透彻。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+class A {
+    private long id;
+    public A(long id) {  // <<<<<<<<<<<<<<<<<<<< 框架里改进生成系Awake(long id) 方法里
+        this.id = id;
+    }
+}
+\end{minted}
+\begin{itemize}
+\item \textbf{【框架 XXXComponentSystem 任何生成系，原理】} ：知道Model 域，XXXComponent组件里会申明继承自某接口 : Entity, IAwake, IStart, IUpdate-etc；热更域会有相应的XXXComponentSystem.cs 静态类来提供各种静态方法，实现热更域里的相关逻辑定义与实时更新（甚至服务端的不关服热更新，当服务端所有热更域旧的所有消息处理完时，就实现了服务端的不关服热更新）。这个框架里，Model 域，与热更域， Model 域里的XXXComponent, 与热更域里的XXXComponentSystem.cs, 在框架的底层封装里，是如何牵线搭桥，将两个域的逻辑衔接连接起来的？感觉这里，仍然还有点儿迷糊。框架里找一找，把这些底层原理，也都尽量弄懂。（学习一个框架，感觉这个疑问狠正常，也应该有狠清楚的解。现在就去框架里爬一爬，看能否找出点儿思路头绪来？）
+\begin{itemize}
+\item 去随便翻一两个例子，可以看见所有热更域里的XXXComponentSystem.cs 里都有标签【FriendOf(typeof(ActorMessageSenderComponent))】。也就是说，ET7 的框架底层，是通过这些强大的标签系，来维系Model 域，与热更域的相应逻辑的实现热更新。
+\item 就像OOD/OOP 设计中， private|public|protected,FriendOf 标签属性，包装得比较精巧。今天，这里，就当自己打开了一扇通向大型复杂框架底层的门，以后慢慢，把框架里的这些更底层、最底层的原理也弄明白。不是加上标签、改掉编译错误就真的理解了框架，还是必须得有自己一再地去想、去思考这些幕后的原理。【爱表哥，爱生活！！！亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！】
+\item 现在，应该是去弄透彻FriendOf 标签， type 属性，就可以把Model 域里的组件，与热更域里的实现逻辑、热更新逻辑理解透彻，连接起来了。去证实这一点儿
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(Player))]
@@ -1477,6 +1494,7 @@ public class SessionPlayerComponent : Entity, IAwake, IDestroy {
 }
 \end{minted}
 
+
 \section{Match: 匹配服，没有独立出来的匹配服}
 \label{sec-10}
 \subsection{服务器端SceneFactory 的场景类型：SceneType-s}
@@ -1529,10 +1547,429 @@ public static class SceneFactory {
 \end{minted}
 \end{itemize}
 
-\section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
+\section{IMHandler 接口实现的各种类型消息处理器：需要先理解透彻ETTask 和 ETVoid:}
 \label{sec-11}
-\subsection{ResourcesComponent: 同文件有其生成系}
+\begin{itemize}
+\item 这个模块感觉还没有总结完。但因为还有111 个编译错误，很多我还不知道算是怎么回事。这个版块的总结放在后面，再改错误的时候带着问题来看更有效率。
+\item 可以回去参考前一个游戏参考过的ET-EUI 里有一部分ETVoid 的相关使用，可以用作自己理解 ETTask ETVoid 的源码参考。ET-EUI 现笔记本里没有，可以拉一个下来。
+\begin{itemize}
+\item 【抓下来后用法基本一样，ETVoid 使用的地方基本一样】。不一样的地方是，它扩展（或者说 \textbf{重新自定义了} ）了不少 \textbf{消息处理器接口类} 。那么就是说，ET-EUI 并没有、也做不到一个框架整个框架只使用一个消息处理器接口
+\end{itemize}
+\item 【主要使用：】主要是【服务端】处理客户端消息请求，用来定义处理逻辑。但是网络调用与返回大多是异步的，所以会有很多使用 ETTask 或是 ETVoid|Void 作为返回值的地方。主要是两个常用方法的接口定义，兼顾整个框架的接口定义。
+\item \textbf{【参照ET-EUI】} ：如果再来参照这个例子项目，或许也可以多定义几个不同的消息处理器接口，就不必强制整个框架只实现一个接口而顾A 顾不了B 了。那么如果下午继续参照这个例子，头脑清醒的时候，就要搞明白： \textbf{不同接口类，到底适用哪类消息？【可以把这部分再分析理解一下，总结在下面，但是区分清楚，哪个来自ET-EUI】} 就是需要理解透彻再改，不要再循环无限制地改。
+\item 【两点不透彻：】ETTask|ETVoid|Void 到底使用什么返回值？另则， async-await 方法是定义为异步，还是非异步。如果 async 定义异步，什么地方必须有 await 调用？
+\item 感觉ETTask|ETVoid 基本弄明白了，可是这里仍然是整个框架，感觉最为复杂不好修改的地方。可能我还是把网络异步调用没能弄得狠明白。
+\begin{itemize}
+\item 要保证两个方法里，若是同步方法, 方法中就一定不能有需要异步等待的地方（否则运行时会抛异常，对象为空之类的各种因为异步操作不能及时完成而抛的空异常）。就是， \textbf{如果需要使用异步方法，不可以改为同步，同步返回 void 或其它任何.}
+\item 改的过程中，方法中曾经有过 await 调用异步方法的逻辑（方法），不能因想去掉编译错误就去掉 await 调用关键字，错误地改成同步方法，因为暂时去掉了编译错误，运行时一定会抛异常。
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+\end{itemize}
+\subsection{IMHandler: interface 消息处理器接口类。它有2 个实现抽象类：AMHandler，AMRpcHandler}
 \label{sec-11-1}
+\begin{itemize}
+\item 实现这个接口类型主要分为两个抽象类：AMHandler，AMRpcHandler. 所以ET 框架里现有一个接口IMHandler, 两个抽象实现类。其它是参考自ET-EUI.
+\item 今天上午暂时只看取了这个接口，和两个抽象方法这里。后面任何的个体实现类，都还没有细看，不太懂。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public interface IMHandler {
+    // 下面，返回类型不对：【暂时不作重点】
+    void Handle(Session session, object message); // 这里返回类型，仍然应该是ETTask, 或者可能的 ETVoid ？
+
+    // 消息处理器帮助类，在程序域加载的时候，会自动扫描程序域里的ActorMessageHander 标签，
+    // 会想要拿消息的【发送类型】与消息的【返回类型】，来系统化管理消息处理
+    // 所以，这里关于往返消息类型的API, 一个也不能少
+    Type GetMessageType();
+    Type GetResponseType(); // 不应该把这个去掉。
+}
+\end{minted}
+\subsection{AMHandler<Message>: abstract 抽象基类：两个方法的返回类型，成为现在全框架的理解与实现难点}
+\label{sec-11-2}
+\begin{itemize}
+\item AMHandler类，这个类相比AMRpcHandler更加简单一些，因为这个类型的处理，不需要关心回消息
+\item 实现了接口IMHandler的Handle异步方法，具体逻辑为：
+\begin{itemize}
+\item 将传进来的msg首先转换为模板类，在AMHandler类里面为Message，具体应该为实现AMHandler的类的具体数据类。
+\item 根据数据类，以及session生成一些报错日志，方便调试
+\item 调用Run方法，将session及具体的数据类传进去
+\item 实际继承抽象类AMHandler的类型，会实现这个接口，从而走向各自的处理。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public abstract class AMHandler<Message>: IMHandler where Message : class {
+
+    protected abstract ETTask Run(Session session, Message message); // ET7 原本的
+// 虽然我这么改，可以暂时消掉编译错误。但改得不对，现在消掉了编译错误，等编译通过，运行时错误会一再崩出来的。。。
+    // protected abstract void Run(Session session, Message message); 
+
+    public void Handle(Session session, object msg) {
+        Message message = msg as Message;
+        if (message == null) {
+            Log.Error($"消息类型转换错误: {msg.GetType().Name} to {typeof (Message).Name}");
+            return;
+        }
+        if (session.IsDisposed) {
+            Log.Error($"session disconnect {msg}");
+            return;
+        }
+        this.Run(session, message).Coroutine(); // 同步方法：调用的是异步方法的协程？可以这么写吗》？
+    }
+    public Type GetMessageType() {
+        return typeof (Message);
+    }
+    public Type GetResponseType() {
+        return null;
+    }
+}
+\end{minted}
+\end{itemize}
+\end{itemize}
+\subsection{AMRpcHandler: 去抓的ET7 框架的源码，可以用来【校正】其它被自己改错的}
+\label{sec-11-3}
+\begin{itemize}
+\item 注意，在ET7 框架里，IMHandler 接口，与AMHandler 是定义在Share 双端共用。而AMRpcHandler 是定义在服务器端的，只有服务端存在进程间通信 Rpc 消息？
+\item 去抓的ET7 框架的源码，可以用来校正其它被自己改错的类，或是方法定义。
+\item 这个类比AMHandler要多传入一个模板类，主要用于处理那些约定好带返回数据的。 \textbf{【注意下面，是参考网络上别人的理解】} 。他们同样与活宝妹一样，也是一知半解，狠多地方说得也未必对。
+\item 简单解释一下，现在ET协议数据主要分为两个类型，一种是来了消息直接自己处理的，另外一种是来了消息，自己处理完毕后，还需要将一些数据给返回的。【带返回类型，和不带返回类型】的消息。觉得它理解得不对，不适用于这里。因为 Rpc 这里感觉，更多的是说，进程间，或是现在ET7 重构后的不同SceneType 之间，比如注册登录服与网关服间的消息，内网消息等？ Rpc-rpc-rpc\ldots{}
+\item 主要的处理流程与AMHandler大体相同，需要注意的:
+\begin{itemize}
+\item 传入的模板类有类型要求，除了是class外，第一个需要是实现IRequest接口，第二个是实现IResponse接口，他们分别对应了传进来的协议数据类型，以及需要返回的协议数据类型。
+\item IRequest类型，具有RpcId，这个id用来标识一个传入协议数据，同时又将它设置到response返回数据中的RpcId中，这样发送数据返回的时候，就能找到那个和他具有相同RpcId传入协议数据，这种关系一对一，从而能进行进一步处理。 \textbf{【谁发来的消息，就返回消息给谁——发送者】}
+\item \uline{回调函数Reply（），即当处理完传入数据后，需要马上装配好返回数据，并将其发送回去，所以需要一个回调函数将response，通过session发送回去.} 前面说的是以前的框架。现在的回调过程，直接通过Session 会话框走网络层将消息发回去，不用再弄个Action<T> 来触发调用回调了。
+\item 在Run中，需要传输上下文session，接受的协议数据request，需要返回的协议数据response，以及回调函数reply
+\end{itemize}
+\item 亲爱的表哥，活宝妹的小鼠标到了，可是活宝妹的小小手，也感觉这个好小，捏不住，不好用！！！
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public abstract class AMRpcHandler<Request, Response>: IMHandler where Request : class, IRequest where Response : class, IResponse {
+// ET7 框架里原本的：
+    protected abstract ETTask Run(Session session, Request request, Response response);
+    public void Handle(Session session, object message) { 
+        HandleAsync(session, message).Coroutine();
+    }
+    private async ETTask HandleAsync(Session session, object message) {
+        try {
+            Request request = message as Request;
+            if (request == null) 
+                throw new Exception($"消息类型转换错误: {message.GetType().Name} to {typeof (Request).Name}");
+            int rpcId = request.RpcId;
+            long instanceId = session.InstanceId;
+            Response response = Activator.CreateInstance<Response>(); // 创建一个消息的回复实例
+            try { // 【找个例子看一下，例子在下面】不懂：下面一句是在干什么，执行对发送来消息的处理，写返回数据？这里调的是抽象异步函数。会在具体的实现类里去实现
+// 猜测：应该更多可能是，通过不同服的具体实现，将返回数据写好？【是这样的】因为发送还在后面 session.Send(response) 是发送出去
+                await this.Run(session, request, response); 
+            }
+            catch (Exception exception) { // 如果出异常：写异常结果
+                Log.Error(exception);
+                response.Error = ErrorCore.ERR_RpcFail;
+                response.Message = exception.ToString();
+            }
+            // 等回调回来,session可以已经断开了,所以需要判断session InstanceId是否一样
+            if (session.InstanceId != instanceId) 
+                return;
+            response.RpcId = rpcId; // 在这里设置rpcId是为了防止在Run中不小心修改rpcId字段。【谁发来的消息，就返回消息给谁——发送者】
+            session.Send(response); // 把返回消息发回去，这里才是真正的发返回消息回请求端
+        }
+        catch (Exception e) { // 捕获异步操作过程中的异常
+            throw new Exception($"解释消息失败: {message.GetType().FullName}", e);
+        }
+    }
+
+    public Type GetMessageType() {
+        return typeof (Request);
+    }
+    public Type GetResponseType() {
+        return typeof (Response);
+    }
+}
+\end{minted}
+\subsection{C2R\_LoginHandler: AMRpcHandler 的一个实体类，前后版本封装对比}
+\label{sec-11-4}
+\begin{itemize}
+\item 上面的 AMRpcHandler 抽象方法 Run() 不是看不懂吗，找到一个例子，有前后两个版本的对比，可以参看理解一下
+\item 感觉今天下午，终于可以把先前这个自己总感觉迷迷糊糊的各种服的消息处理弄明白了
+\item 今天下午，把所有这类各种服的消息处理里的这些问题、编译错误全部改掉。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 框架中原本有这个方法，为什么我需要把它改成下现在的这个样子？
+[MessageHandler(SceneType.Realm)]
+public class C2R_LoginHandler : AMRpcHandler<C2R_Login, R2C_Login> {
+    // 【ET7 的进一步精简封装】：封装在AMRpcHandler 抽象实现类里
+    protected override async ETTask Run(Session session, C2R_Login request, R2C_Login response) {
+        // 随机分配一个Gate
+        StartSceneConfig config = RealmGateAddressHelper.GetGate(session.DomainZone());
+        Log.Debug($"gate address: {MongoHelper.ToJson(config)}");
+			
+        // 向gate请求一个key,客户端可以拿着这个key连接gate
+        G2R_GetLoginKey g2RGetLoginKey = (G2R_GetLoginKey) await ActorMessageSenderComponent.Instance.Call(
+            config.InstanceId, new R2G_GetLoginKey() {Account = request.Account});
+
+        response.Address = config.InnerIPOutPort.ToString();
+        response.Key = g2RGetLoginKey.Key;
+        response.GateId = g2RGetLoginKey.GateId;
+    }
+
+    // 【ET-EUI 版本中的实现】：用来作ET7 重构的对比参照。【下面的方法不要，不再需要】
+    protected override async void Run(Session session, C2R_Login message, Action<R2C_Login> reply) { // 【古老封装：】自己看看就能弄明白，ET7 的进一步精简封装
+        R2C_Login response = new R2C_Login(); // 创建一个回复消息的实例：是因为没有实例，参数只有回调方法函数，所以必须得造一个。。
+        try {
+            // if (message.Account != "abcdef" || message.Password != "111111") // 这里作必要的错误检测
+            // {
+            //    response.Error = ErrorCode.ERR_AccountOrPasswordError;
+            //    reply(response);
+            //    return;
+            // }
+            // 随机分配一个Gate: 这里原理不变
+            StartSceneConfig config = RealmGateAddressHelper.GetGate(session.DomainZone());
+            Log.Debug($"gate address: {MongoHelper.ToJson(config)}");
+            // 向gate请求一个key,客户端可以拿着这个key连接gate
+            G2R_GetLoginKey g2RGetLoginKey = (G2R_GetLoginKey) await ActorMessageSenderComponent.Instance.Call(
+                config.InstanceId, new R2G_GetLoginKey() {Account = message.Account});
+            // 手动：写返回消息的内容
+            response.Address = config.InnerIPOutPort.ToString();
+            response.Key = g2RGetLoginKey.Key;
+            response.GateId = g2RGetLoginKey.GateId;
+            reply(response); // 通过调用回调函数，将回调回调到调用端，就是把写好的消息返回给调用端，供它拿数据接通知等
+        }
+        catch (Exception e) { // 网络异步的过程中，捕获异常
+            ReplyError(response, e, reply);
+        }
+    }
+}
+\end{minted}
+
+\subsection{IMHandler 【ET-EUI】：主要是与上面对比}
+\label{sec-11-5}
+\begin{itemize}
+\item 因为对于ET-EUI 里，它为什么要再多自定义几个接口，这个版块不够熟悉
+\item 我觉得把两个框架的几个接口与抽象实体类提出来对比理解一下是对的，因为没明白，为什么ET7 里会重构成那个样子。可能也网上查下再帮助理解一下。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public interface IMHandler {
+    void Handle(Session session, object message);
+    Type GetMessageType();
+    Type GetResponseType();
+    // ETTask Run(Session session, M2C_TestActorMessage message); // 把这里去掉，感觉加得不对
+}
+\end{minted}
+\subsection{IMActorHandler: 【ET-EUI:仅作参考】大概参考 ET-EUI 来的，它的目的应该是把最基类的接口，与其它两类的接口相区分开来}
+\label{sec-11-6}
+\begin{itemize}
+\item 从这个小节开始，主要是整理的ET-EUI 里面的接口与抽象实现类。可能主要两个实现扩展类：（A|I）MHandler, （A|I）MRpcHandler, 都看一下
+\item 大概参考 ET-EUI 来的，它的目的应该是把最基类的接口，与其它两类的接口相区分开来。但是，我想、猜测、理解的话，应该是上面一个接口，如果能够把ETTask 与ETVoid 狠好地统一的话，应该一个接口可能可以足以整个框架使用的。
+\item 消息处理器：基本可以理解为，总都是【服务端】的消息处理器。【客户端】更多的是发请求消息，和接收消息。客户端狠少涉及什么消息处理。
+\item 下面的接口，哪个例子也没有参照，自己改的。极有可能都是错的
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public interface IMActorHandler {
+    // 下面，参考的是ET-EUI 可能是 6.0 版本。ET7 里，可能接口还可以简化，还是Actor 消息机制模块简化了，不一定如下面这样
+    void Handle(Entity entity, int fromProcess, object actorMessage);
+    // ETTask Handle(Entity entity, object actorMessage, Action<IActorResponse> reply);
+    Type GetRequestType();
+    Type GetResponseType();
+}
+\end{minted}
+\subsection{AMActorLocationHandler: 源码被我改动了}
+\label{sec-11-7}
+\begin{itemize}
+\item 源码被我改动了，正确性与否没有关系，主要是帮助自己梳理一下几大不同的类型，到改编译错误的时候，能够边修改边弄明白。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[EnableClass]
+public abstract class AMActorLocationHandler<E, Message>: IMActorHandler where E : Entity where Message : class, IActorLocationMessage {
+    // protected abstract ETTask Run(E entity, Message message);
+    protected abstract void Run(E entity, Message message);
+    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+    public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        if (actorMessage is not Message message) {
+            Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Message).Name}");
+            return;
+        }
+        if (entity is not E e) {
+            Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Message).Name}");
+            return;
+        }
+        ActorResponse response = new() {RpcId = message.RpcId};
+        ActorHandleHelper.Reply(fromProcess, response);
+        // await this.Run(e, message);
+        this.Run(e, message);
+    }
+    public Type GetRequestType() {
+        return typeof (Message);
+    }
+    public Type GetResponseType() {
+        return typeof (ActorResponse);
+    }
+}
+\end{minted}
+\end{itemize}
+\subsection{AMActorLocationRpcHandler: 上面接口实现类的一个使用例子。我把返回参数改了}
+\label{sec-11-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[EnableClass]
+public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
+    // protected abstract ETTask Run(E unit, Request request, Response response);
+    protected abstract void Run(E unit, Request request, Response response);
+    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+    public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        try {
+            if (actorMessage is not Request request) {
+                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
+                return;
+            }
+            if (entity is not E ee) {
+                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
+                return;
+            }
+            int rpcId = request.RpcId;
+            Response response = Activator.CreateInstance<Response>();
+            try {
+                //await this.Run(ee, request, response);
+                this.Run(ee, request, response);
+            }
+            catch (Exception exception) {
+                Log.Error(exception);
+                response.Error = ErrorCore.ERR_RpcFail;
+                response.Message = exception.ToString();
+            }
+            response.RpcId = rpcId;
+            ActorHandleHelper.Reply(fromProcess, response);
+        }
+        catch (Exception e) {
+            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
+        }
+    }
+    public Type GetRequestType() {
+        return typeof (Request);
+    }
+    public Type GetResponseType() {
+        return typeof (Response);
+    }
+    // 这里涉及的就是那个接口方法的定义
+    public ETTask Handle(Entity entity, object actorMessage, Action<IActorResponse> reply) => throw new NotImplementedException();
+}
+\end{minted}
+\subsection{AMActorLocationRpcHandler: Rpc 就是进程间消息（或是ET7 重构为SceneType 之后的多核间消息）}
+\label{sec-11-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[EnableClass]
+public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
+    // protected abstract ETTask Run(E unit, Request request, Response response);
+    protected abstract void Run(E unit, Request request, Response response);
+    // public async ETTask Handle(Entity entity, int fromProcess, object actorMessage) {
+    public void Handle(Entity entity, int fromProcess, object actorMessage) {
+        try {
+            if (actorMessage is not Request request) {
+                Log.Error($"消息类型转换错误: {actorMessage.GetType().FullName} to {typeof (Request).Name}");
+                return;
+            }
+            if (entity is not E ee) {
+                Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
+                return;
+            }
+            int rpcId = request.RpcId;
+            Response response = Activator.CreateInstance<Response>();
+            try {
+                //await this.Run(ee, request, response);
+                this.Run(ee, request, response);
+            }
+            catch (Exception exception) {
+                Log.Error(exception);
+                response.Error = ErrorCore.ERR_RpcFail;
+                response.Message = exception.ToString();
+            }
+            response.RpcId = rpcId;
+            ActorHandleHelper.Reply(fromProcess, response);
+        }
+        catch (Exception e) {
+            throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);
+        }
+    }
+    public Type GetRequestType() {
+        return typeof (Request);
+    }
+    public Type GetResponseType() {
+        return typeof (Response);
+    }
+}
+\end{minted}
+\subsection{ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息 et3}
+\label{sec-11-10}
+\subsection{MessageDispatcherComponent: 这些是一个系统的，需要放在一起总结}
+\label{sec-11-11}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 总管：对每个场景，消息分发器
+// 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。那么默认，每种场景，只有一个消息处理器实体类
+public class MessageDispatcherInfo { 
+    public SceneType SceneType { get; }
+    public IMHandler IMHandler { get; }
+    public MessageDispatcherInfo(SceneType sceneType, IMHandler imHandler) {
+        this.SceneType = sceneType;
+        this.IMHandler = imHandler;
+    }
+}
+// 消息分发组件
+[ComponentOf(typeof(Scene))]
+public class MessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
+    public static MessageDispatcherComponent Instance { get; set; }
+    public readonly Dictionary<ushort, List<MessageDispatcherInfo>> Handlers = new(); // 总管的字典
+}
+\end{minted}
+\subsection{MessageDispatcherComponentSystem:}
+\label{sec-11-12}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 扫描框架里的标签系【MessageHandler(SceneType)】
+private static void Load(this MessageDispatcherComponent self) {
+    self.Handlers.Clear();
+    HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+    foreach (Type type in types) {
+        IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+        if (iMHandler == null) {
+            Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+            continue;
+        }
+        object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+        foreach (object attr in attrs) {
+            MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+            Type messageType = iMHandler.GetMessageType();
+            ushort opcode = NetServices.Instance.GetOpcode(messageType); // 这里相对、理解上的困难是：感觉无法把OpCode 网络操作码与消息类型，从概念上连接起来
+            if (opcode == 0) {
+                Log.Error($"消息opcode为0: {messageType.Name}");
+                continue;
+            } // 下面：下面是创建一个包装体，注册备用 
+            MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+            self.RegisterHandler(opcode, messageDispatcherInfo);
+        }
+    }
+}
+private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+    if (!self.Handlers.ContainsKey(opcode)) 
+        self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+    self.Handlers[opcode].Add(handler); // 加入管理体系来管理
+}
+public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+    List<MessageDispatcherInfo> actions;
+    ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+    if (!self.Handlers.TryGetValue(opcode, out actions)) {
+        Log.Error($"消息没有处理: {opcode} {message}");
+        return;
+    }
+    // 这里就不明白：它的那些 Domain 什么的
+    SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
+    foreach (MessageDispatcherInfo ev in actions) {
+        if (ev.SceneType != sceneType) 
+            continue;
+        try {
+            ev.IMHandler.Handle(session, message); // 处理分派消息：也就是调用IMHandler 接口的方法来处理消息
+        } catch (Exception e) {
+            Log.Error(e);
+        }
+    }
+}
+\end{minted}
+
+
+\section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
+\label{sec-12}
+\subsection{ResourcesComponent: 同文件有其生成系}
+\label{sec-12-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ResourcesComponent: Entity, IAwake, IDestroy {
@@ -1549,7 +1986,7 @@ public class ResourcesComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{客户端 ConfigLoader 的Invoke 标签下：在根控件 Root 下添加资源管理器组件}
-\label{sec-11-2}
+\label{sec-12-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke]
 public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
@@ -1606,8 +2043,9 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 }
 \end{minted}
 
+
 \section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
-\label{sec-12}
+\label{sec-13}
 \begin{itemize}
 \item 整个框架的场景节点如下
 \end{itemize}

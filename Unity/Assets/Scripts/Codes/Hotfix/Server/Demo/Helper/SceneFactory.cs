@@ -35,8 +35,8 @@ namespace ET.Server {
                     scene.AddComponent<UnitComponent>();
                     scene.AddComponent<AOIManagerComponent>();
                     break;
-                case SceneType.Location:
-                    scene.AddComponent<LocationComponent>();
+                case SceneType.Location: // 现在也没有位置服吧。。。有要求位置服处理的消息，所以要保留
+                    // scene.AddComponent<LocationComponent>(); // 暂时还没有添加这个组件
                     break;
 // 下面的：先去掉，太多报错，会吓死人的。。。
                 case SceneType.AllServer: // 我想要自己添加这个全服：方便模仿参考项目，对必要的服务器组件进行管理 
