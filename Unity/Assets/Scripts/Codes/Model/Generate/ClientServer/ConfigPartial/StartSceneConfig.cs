@@ -61,8 +61,8 @@ namespace ET {
         public SceneType Type; // 场景类型
 
         public StartProcessConfig StartProcessConfig {
-            get {
-                return StartProcessConfigCategory.Instance.Get(this.Process);
+            get { // 从下面这行来看，每台小服、专职服都有他们各自的初始化场景？
+                return StartProcessConfigCategory.Instance.Get(this.Process); // 通过进程号，去拿各小服专职服的【进程初始化配置】
             }
         }
         public StartZoneConfig StartZoneConfig {
@@ -97,7 +97,3 @@ namespace ET {
         }
     }
 }
-
-
-
-
