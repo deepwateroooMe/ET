@@ -15,17 +15,14 @@ namespace ET {
             }
         }
         void ISingleton.Register() {
-            if (instance != null) {
+            if (instance != null) 
                 throw new Exception($"singleton register twice! {typeof (T).Name}");
-            }
             instance = (T)this;
         }
         void ISingleton.Destroy() {
-            if (this.isDisposed) {
+            if (this.isDisposed) 
                 return;
-            }
             this.isDisposed = true;
-            
             instance.Dispose();
             instance = null;
         }

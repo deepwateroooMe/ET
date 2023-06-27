@@ -1570,7 +1570,7 @@ public class NetInnerComponentOnReadEvent: AEvent<NetInnerComponentOnRead> {
 - 【服务端】是自己最不熟悉的模块。活宝妹可以啃下安卓，可以写游戏，学习和熟悉游戏引擎都没问题。学习上或是运动上，活宝妹喜欢像运行员一样可以挑战运动极限。活宝妹只有一样，那就是活宝妹就是一定要嫁给亲爱的表哥！！！
 - 【服务端、各服务器的配置、启动初始化】：是这个模块想要总结的内容。这个模块，因为框架重构里所接入的【路由器系统】的整合（感觉起来，就是通过网络，一台台服务端的服务器起来，一台台起来的服务器都向某个路由服，如同各客户端实时向位置服更新客户端的位置信息般，各小服专职服都向路由服上班打卡？要把这些看明白），让活宝妹理解起这个模块来显得相对困难，大概明天上午一上午的时间，都会花在这个模块上。
 - 同步，需要把所涉及的为方便服务端各服务器初始化而定义的各接口，实现类，以及用法弄明白。
-** 模块里所用到的几个。NET 里的接口
+** 模块里所用到的几个。NET 里的接口, 以及自定义的框架底层辅助体系类等
 *** ISupportInitialize: 【初始化】的支持接口，就是提供了【初始化之前】【初始化之后】的回调，两个API
 #+BEGIN_SRC csharp
 namespace System.ComponentModel {
@@ -1580,10 +1580,211 @@ namespace System.ComponentModel {
     }
 }
 #+END_SRC
-*** 
+*** IInvoke: 抽象类会在事件系统 EventSystem.cs 中被用到
 #+BEGIN_SRC csharp
+public interface IInvoke {
+    Type Type { get; }
+}
+public abstract class AInvokeHandler<A>: IInvoke where A: struct {
+    public Type Type {
+        get {
+            return typeof (A);
+        }
+    }
+    public abstract void Handle(A a);
+}
+public abstract class AInvokeHandler<A, T>: IInvoke where A: struct {
+    public Type Type {
+        get {
+            return typeof (A);
+        }
+    }
+    public abstract T Handle(A a);
+}
 #+END_SRC
+*** ISingleton 单例类接口：框架最底层，有狠多必要的单例类包装，统一实现这个单例接口，就是抽象提纯到框架最底层封装
+#+BEGIN_SRC csharp
+public interface ISingleton: IDisposable {
+    void Register();
+    void Destroy();
+    bool IsDisposed();
+}
+public abstract class Singleton<T>: ISingleton where T: Singleton<T>, new() {
+    private bool isDisposed;
+    [StaticField]
+    private static T instance;
+    public static T Instance {
+        get {
+            return instance;
+        }
+    }
+    void ISingleton.Register() {
+        if (instance != null) 
+            throw new Exception($"singleton register twice! {typeof (T).Name}");
+        instance = (T)this;
+    }
+    void ISingleton.Destroy() {
+        if (this.isDisposed) 
+            return;
+        this.isDisposed = true;
+        instance.Dispose();
+        instance = null;
+    }
+    bool ISingleton.IsDisposed() {
+        return this.isDisposed;
+    }
+    public virtual void Dispose() {
+    }
+}
+#+END_SRC
+** ProtoObject: 继承自上面的系统接口，定义必要的回调抽象API
+#+BEGIN_SRC csharp
+public abstract class ProtoObject: Object, ISupportInitialize {
+    public object Clone() { // 【进程间可传递的消息】：为什么这里的复制过程，是先序列化，再反序列化？
+        byte[] bytes = SerializeHelper.Serialize(this);
+        return SerializeHelper.Deserialize(this.GetType(), bytes, 0, bytes.Length);
+    }
+    public virtual void BeginInit() {
+    }
+    public virtual void EndInit() {
+    }
+    public virtual void AfterEndInit() { // 这个回调，与上一个 EndInit() 区别是？
+    }
+}
+#+END_SRC
+** ConfigAttribute: 抓这个出去，想去理解，当扫标签属性时，扫到的应该是形如阅读过的【Invoke(TimerInvokeType.ActorMessegaeSenderChecker)】之类的AttributeTargets.Class 特定类的类型？
+- 结合接下来 ConfigLoader.cs 中的源码，多想几遍或查一下，确认自己理解正确了。
+- 框架里有狠多【Config】标签。这里我在看【Invoke|(TimerInvokeType.ActorMessegaeSenderChecker)】相关时，好像把Invoke 与Config 弄混了。它们是两个不同的标签。
+- 还需要把【Config】标签独立出来，再读一下
+#+BEGIN_SRC csharp
+[AttributeUsage(AttributeTargets.Class)]
+public class ConfigAttribute: BaseAttribute {
+}
+#+END_SRC
+** ConfigLoader.cs: 【服务端】是理解接下来部分的基础。【客户端】有不同逻辑。所以要把两边的都看一下
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+#+BEGIN_SRC csharp
+[Invoke] // 激活系: 这个激活系是同属ET 强大的事件系统的一个标签和回调逻辑，处理两种类型： GetAllConfigBytes 和 GetOneConfigBytes
+public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
+    public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {
+        Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>();
+        List<string> startConfigs = new List<string>() {
+            "StartMachineConfigCategory",  // 涉及底层配置的几个单例类，为什么这四个单例类类型重要： Machine, Process 进程、Scene 场景， Zone 区
+            "StartProcessConfigCategory", 
+            "StartSceneConfigCategory", 
+            "StartZoneConfigCategory",
+        };
+// 类型：这里，扫的是所有【Invoke】标签（好像不对），还是说如【Invoke(TimerInvokeType.ActorMessegaeSenderChecker)】之类的Invoke 标签的类型属性？去看一下方法定义
+        HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute)); // 【Config】标签
+        foreach (Type configType in configTypes) {
+            string configFilePath;
+            if (startConfigs.Contains(configType.Name)) { // 就是，配置文件的地址可能不一样
+                configFilePath = $"../Config/Excel/s/{Options.Instance.StartConfig}/{configType.Name}.bytes";    
+            }
+            else {
+                configFilePath = $"../Config/Excel/s/{configType.Name}.bytes";
+            }
+            output[configType] = File.ReadAllBytes(configFilePath);
+        }
+        return output;
+    }
+}
+[Invoke]
+public class GetOneConfigBytes: AInvokeHandler<ConfigComponent.GetOneConfigBytes, byte[]> {
+    public override byte[] Handle(ConfigComponent.GetOneConfigBytes args) {
+        // 【Invoke 回调逻辑】：从框架特定位置，读取特定属性条款的配置，返回字节数组
+        byte[] configBytes = File.ReadAllBytes($"../Config/{args.ConfigName}.bytes");
+        return configBytes;
+    }
+}
+#+END_SRC
+** ConfigComponent 组件：单例类。底层组件，负责服务端配置相关管理？
+- 这个底层组件的内部，涉及ET 标签事件系统的扫描【Config】标签，并Invoke 相关（服务端的配置与启动？）这里花点儿时间，再进去把ET 事件系统中各小服服务端根据(excel? 等) 配置文件来加载和启动服务端（或是服务端的必要配置）的原理弄懂
+- 框架事件系统里，有对各种不同标签的处理逻辑。Invoke 同理。程序域加载时，它扫描和管理框架里的所有必要相关标签，同Invoke 标签同样有字典（套字典）纪录管理不同参数类型（args）的字典，字典里不同类型（type) 的激活处理器。对于特定的参数类型，type 类型，如果能够找到激活处理器，就会触发调用此激活回调，来作相应的处理。
+#+BEGIN_SRC csharp
+public T Invoke<A, T>(int type, A args) where A: struct {
+    // 先试着去拿，框架里这个【特定 args 类型】的所有标签申明过的 invokeHandlers
+    if (!this.allInvokes.TryGetValue(typeof(A), out var invokeHandlers)) {
+        throw new Exception($"Invoke error: {typeof(A).Name}");
+    }
+    // 再试着去拿，【特定类型 type】的 invokeHandler 处理器
+    if (!invokeHandlers.TryGetValue(type, out var invokeHandler)) {
+        throw new Exception($"Invoke error: {typeof(A).Name} {type}");
+    }
+    var aInvokeHandler = invokeHandler as AInvokeHandler<A, T>;
+    if (aInvokeHandler == null) {
+        throw new Exception($"Invoke error, not AInvokeHandler: {typeof(T).Name} {type}");
+    }
+    return aInvokeHandler.Handle(args); // 调用【Invoke】标签的相应处理回调逻辑
+}
+public void Invoke<A>(A args) where A: struct {
+    Invoke(0, args);
+}
+public T Invoke<A, T>(A args) where A: struct {
+    return Invoke<A, T>(0, args);
+}
+#+END_SRC
+- 框架最底层的封装原理如此。这里，更多的是需要去找当前配置系，激活处理器的具体实现逻辑（在ConfigLoader.cs 文件里，两个回调类类型），来理解这个初始化加载模块。
+- 感觉今天上午把目前看到的这些，读得还算比较透彻。【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+#+BEGIN_SRC csharp
+// Config组件会扫描所有的有【ConfigAttribute? Invoke|()】标签的配置,加载进来. 不是说Config 组件就【Config】标签标签的！
+public class ConfigComponent: Singleton<ConfigComponent> {
+    public struct GetAllConfigBytes {  }
+    public struct GetOneConfigBytes {
+        public string ConfigName;// 只是用一个字符串来区分不同配置 
+    }
+    private readonly Dictionary<Type, ISingleton> allConfig = new Dictionary<Type, ISingleton>();
+    public override void Dispose() {
+        foreach (var kv in this.allConfig) {
+            kv.Value.Destroy();
+        }
+    }
+    public object LoadOneConfig(Type configType) {
+        this.allConfig.TryGetValue(configType, out ISingleton oneConfig);// oneConfig：这里算是自定义变量的【申明与赋值】？
+        if (oneConfig != null) {
+            oneConfig.Destroy();
+        } 
+        // 跟进Invoke: 去看一下框架里事件系统，找到具体的激活回调逻辑定义类：ConfigLoader.cs, 去查看里面对 GetOneConfigBytes 类型的激活触发逻辑
+        byte[] oneConfigBytes = EventSystem.Instance.Invoke<GetOneConfigBytes, byte[]>(new GetOneConfigBytes() {ConfigName = configType.FullName});
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length);
+        ISingleton singleton = category as ISingleton;
+        singleton.Register(); // 【单例类初始化】：如果已经初始化过，会抛异常；单例类只初始化一次
+        this.allConfig[configType] = singleton; // 底层：管理类单例类，不同类型，各有一个。框架里就有上面看过的四大单例类
+        return category;
+    }
+    public void Load() { // 【加载】：系统加载，程序域加载 
+        this.allConfig.Clear(); // 清空
+        // 【原理】：借助框架强大事件系统，扫描域里【Invoke|()】标签（2 种）；根据参数类型，调用触发激活逻辑，到服务端特定路径特定文件中去读取所有相关配置，并返回字典
+        Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(new GetAllConfigBytes());
+        foreach (Type type in configBytes.Keys) {
+            byte[] oneConfigBytes = configBytes[type];
+            this.LoadOneInThread(type, oneConfigBytes);
+        }
+    }
+    public async ETTask LoadAsync() { // 哪里会调用这个方法？Entry.cs 服务端起来的时候，会调用此底层组件，加载各单例管理类。细看一下这里服务端启动初始化逻辑
+        this.allConfig.Clear();
+        Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(new GetAllConfigBytes());
+        using ListComponent<Task> listTasks = ListComponent<Task>.Create();
+        foreach (Type type in configBytes.Keys) {
+            byte[] oneConfigBytes = configBytes[type];
+// 四大单例管理类（Machine,Process,Scene,Zone）：每个单例类，开一个任务线路去完成？好像是这样的。
+// 不明白为什么必须管理那四个，多不同场景可以位于同一进程，一台机器可以多核多进程？区区区。。。不明白
+            Task task = Task.Run(() => LoadOneInThread(type, oneConfigBytes)); 
+            listTasks.Add(task);
+        }
+        await Task.WhenAll(listTasks.ToArray());
+    }
 
+    private void LoadOneInThread(Type configType, byte[] oneConfigBytes) {
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length);
+        lock (this) {
+            ISingleton singleton = category as ISingleton;
+            singleton.Register(); // 注册单例类：就是启动初始化一个单例类吧，框架里 Invoke 配置相关，有四大单例类
+            this.allConfig[configType] = singleton;
+        }
+    }
+}
+#+END_SRC
 ** ConfigSingleton<T>: ProtoObject, ISingleton
 #+BEGIN_SRC java
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
@@ -2047,3 +2248,31 @@ public class GateSessionKeyComponent : Entity, IAwake {
     public readonly Dictionary<long, string> sessionKey = new Dictionary<long, string>();
 }
 #+END_SRC
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
