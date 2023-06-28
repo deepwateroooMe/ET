@@ -13,13 +13,12 @@ namespace ET.Server {
                 "StartZoneConfigCategory",
             };
 // 类型：这里，扫的是所有【Invoke】标签（好像不对），还是说如【Invoke(TimerInvokeType.ActorMessegaeSenderChecker)】之类的Invoke 标签的类型属性？去看一下方法定义
-            HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute)); // 【Config】标签
+            HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute)); // 【Config】标签：返回程序域里所有的【Config】标签类型
             foreach (Type configType in configTypes) {
                 string configFilePath;
-                if (startConfigs.Contains(configType.Name)) { // 就是，配置文件的地址可能不一样
+                if (startConfigs.Contains(configType.Name)) { // 【单例管理类型】：有特异性的配置路径
                     configFilePath = $"../Config/Excel/s/{Options.Instance.StartConfig}/{configType.Name}.bytes";    
-                }
-                else {
+                } else { // 其它：人海里的路人甲，读下配置就扔掉
                     configFilePath = $"../Config/Excel/s/{configType.Name}.bytes";
                 }
                 output[configType] = File.ReadAllBytes(configFilePath);

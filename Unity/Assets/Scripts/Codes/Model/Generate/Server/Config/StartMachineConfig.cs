@@ -27,9 +27,8 @@ namespace ET {
         }
         public StartMachineConfig Get(int id) {
             this.dict.TryGetValue(id, out StartMachineConfig item);
-            if (item == null) {
+            if (item == null) 
                 throw new Exception($"配置找不到，配置表名: {nameof (StartMachineConfig)}，配置id: {id}");
-            }
             return item;
         }
         public bool Contain(int id) {
@@ -39,9 +38,8 @@ namespace ET {
             return this.dict;
         }
         public StartMachineConfig GetOne() {
-            if (this.dict == null || this.dict.Count <= 0) {
+            if (this.dict == null || this.dict.Count <= 0) 
                 return null;
-            }
             return this.dict.Values.GetEnumerator().Current;
         }
     }

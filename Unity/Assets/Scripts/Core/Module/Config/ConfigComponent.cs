@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 namespace ET {
-    // Config组件会扫描所有的有【ConfigAttribute? Invoke|()】标签的配置,加载进来. 不是说Config 组件就【Config】标签标签的！
+    // Config组件会扫描所有的有【Config】标签的配置,加载进来
     public class ConfigComponent: Singleton<ConfigComponent> {
         public struct GetAllConfigBytes {  }
         public struct GetOneConfigBytes {

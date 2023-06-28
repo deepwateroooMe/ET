@@ -8,22 +8,22 @@ namespace ET.Client {
         public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {
             Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>();
             HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute));
-            if (Define.IsEditor) {
+            if (Define.IsEditor) { // 【编辑器模式下】：
                 string ct = "cs";
-                GlobalConfig globalConfig = Resources.Load<GlobalConfig>("GlobalConfig");
+                GlobalConfig globalConfig = Resources.Load<GlobalConfig>("GlobalConfig"); // 加载全局模式：这里没有看懂
                 CodeMode codeMode = globalConfig.CodeMode;
                 switch (codeMode) {
-                case CodeMode.Client:
-                    ct = "c";
-                    break;
-                case CodeMode.Server:
-                    ct = "s";
-                    break;
-                case CodeMode.ClientServer:
-                    ct = "cs";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
+                    case CodeMode.Client:
+                        ct = "c";
+                        break;
+                    case CodeMode.Server:
+                        ct = "s";
+                        break;
+                    case CodeMode.ClientServer:
+                        ct = "cs";
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
                 List<string> startConfigs = new List<string>() {
                     "StartMachineConfigCategory", 

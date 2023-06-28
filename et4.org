@@ -651,7 +651,6 @@ public static class Game {
 - InnerConfig 和 StartConfigComponent 也都稍微看一下：感觉 ET7 重构后，这些自己基础相对欠缺的模块，还没仔细看
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】现在编译错误还剩几个模块
 ** IPEndPoint-to-long 转化
-** InnerConfig
 ** 两件杂事：
 - 【先花 10 分钟左右，搜下看 emacs-export-to-pdf 与 Skim 应用的自动同步，能理解回调适配过程吗？】还是比较麻烦，改天傍晚或是晚上再凭兴趣来解决，早上看别的
   - 这里主要的问题时，Skim 实时更新外源 pdf 的更新时，因为 emacs 的 export-to-pdf 有个过程，这个过程中生成 table-of-contents 比较靠后，如果不背便条，就必须得每次重点查看TOC. *Skim 怎么才能够接收到 latex 生成TOC 完成后的回调，来从 Skim 中显示 TOC?*
@@ -659,4 +658,5 @@ public static class Game {
   - 另外，【可以考虑， *过滤掉或是配置掉背便条自动同步过程中的确认窗口繁琐过程* 】如果每个 pdf 的自动生成与刷新，我不需要多次点 enter 确认窗口，我只需要点击一个，或者甚至一个也不需要点，就也算满足用户需求。
 - VSC 的配置可能哪里写得不对。以前没有这个问题。现VSC 跳转至 emacs 打开当前 buffer, 不能精确定位到 VSC 中当前 buffer 所在的行。改天有机会的时候再 debug 一下。
 ** StartConfigComponent: 现框架里有重构了的版本，在理解现ET7 框架的基础上进行必要适配：先把之前总结的再熟悉一下，下午有时间也看看这个
-- 这块儿涉及的内容比较多，不懂的也比较多。今天上午中午约一个半小时就看一块儿，希望把下午的修改理出一点儿头绪来，再不行还没思路，下午就得来学校学习了
+- InnerConfig: 可以把老版本里的 InnerConfig 类，参考对比ET7 里的ConfigSingleton<T> 泛型类，来试着理解和适配这相模块。因为同属配置类，就是分两个模块。
+- 昨天看了大半天StartConfigComponent 等配置相关，现在感觉看不出什么来。下午带适配任务，把这两三个相关的模块改完。晚上回学校学习。
