@@ -49,10 +49,10 @@ namespace ET.Server {
                     // scene.AddComponent<DBComponent>(); // 这个，就成为服务器端的一个重点，但是是最简单的重点，因为相比其它，它最容易
                     // 这里需要加上DBCacheComponent才能操作MongoDB
                     // scene.AddComponent<DBCacheComponent>();
-                    // scene.AddComponent<DBProxyComponent>();
+                    // scene.AddComponent<DBProxyComponent>(); // 【服务端启动时】：自动扫描加载四大单例管理类。数据库模块会在各小区下加载，用时若不配置，也会小区下自动添加DBComponent 组件
                     // scene.AddComponent<LocationComponent>();
                     // scene.AddComponent<ActorMessageDispatherComponent>();
-                    scene.AddComponent<NetInnerComponent, string>(innerConfig.Address);
+                    //scene.AddComponent<NetInnerComponent, string>(innerConfig.Address);
                     // scene.AddComponent<NetOuterComponent, string>(outerConfig.Address);
                     scene.AddComponent<LocationProxyComponent>();
                     // scene.AddComponent<AppManagerComponent>();

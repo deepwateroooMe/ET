@@ -1410,8 +1410,7 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
    #+BEGIN_SRC java
 public interface IDBCollection {}
    #+END_SRC
-** DBComponent: 【CRUD】可以查表，查询数据等，各种数据库操作的基本方法 
-- 它的生成系就是解决对数据库的CRUD 必要操作，单条信息的，或是批量处理的
+** DBComponent:  
    #+BEGIN_SRC java
 [ChildOf(typeof(DBManagerComponent))] // 用来缓存数据
 public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
@@ -1420,7 +1419,15 @@ public class DBComponent: Entity, IAwake<string, string, int>, IDestroy {
     public IMongoDatabase database;
 }
    #+END_SRC
-** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定吗？
+** DBComponentSystem: 【CRUD】可以查表，查询数据等，各种数据库操作的基本方法。热更域生成系
+- 它的生成系就是解决对数据库的CRUD 必要操作，单条信息的，或是批量处理的
+- 因为数据库操作的几个基本操作方法相对熟悉，这里不贴源码。只一点儿：服务端的远程数据库，仍属于是跨进程的进程间网络异步调用，所以几乎所有的方法也都异步ETTask 包装。
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+** DBManagerComponent: 有上面的 DBComponent 数组。数组长度固定。
+- 管理类组件：用来管理服务端不同分区里的DBComponent 组件。
+- 功能包括：根据区号，返回该区下的DBComponent 组件，就是返回该区下的数据库，方便对该数据库进行相应的操作。
+- 当引入这个区的概念，当要去取相应的区的数据库，其实也是说，小区下的所有用户的相关数据信息，应该是存放在用户所在的小区下的。这里区的概念，也就是框架的（包括数据库的）层级管理体系。  
+- 服务端自上而下的Machine, Process, Scene, Zone 也算基本上都懂。可是关于区、分区、小区的概念现在仍不深入。每个小区里有什么？分区管理有什么好处呢？  
    #+BEGIN_SRC java
 public class DBManagerComponent: Entity, IAwake, IDestroy {
     [StaticField]

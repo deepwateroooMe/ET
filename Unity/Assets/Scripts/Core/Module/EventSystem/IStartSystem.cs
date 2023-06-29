@@ -17,14 +17,9 @@ namespace ET {
         Type ISystemType.SystemType() {
             return typeof(IStartSystem);
         }
-        InstanceQueueIndex ISystemType.GetInstanceQueueIndex() { // 这里没看懂在干什么，大概还有个地方，我得去改
+        InstanceQueueIndex ISystemType.GetInstanceQueueIndex() { // 要添加进某个系统，这里早改完了
             return InstanceQueueIndex.Start; 
         }
         protected abstract void Start(T self);
     }
 }
-
-
-
-
-

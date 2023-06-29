@@ -659,4 +659,21 @@ public static class Game {
 - VSC 的配置可能哪里写得不对。以前没有这个问题。现VSC 跳转至 emacs 打开当前 buffer, 不能精确定位到 VSC 中当前 buffer 所在的行。改天有机会的时候再 debug 一下。
 ** StartConfigComponent: 现框架里有重构了的版本，在理解现ET7 框架的基础上进行必要适配：先把之前总结的再熟悉一下，下午有时间也看看这个
 - InnerConfig: 可以把老版本里的 InnerConfig 类，参考对比ET7 里的ConfigSingleton<T> 泛型类，来试着理解和适配这相模块。因为同属配置类，就是分两个模块。
-- 昨天看了大半天StartConfigComponent 等配置相关，现在感觉看不出什么来。下午带适配任务，把这两三个相关的模块改完。晚上回学校学习。
+- 刚才不小心把文件系统弄坏了。IStartSystem.cs 这个是自己整合进系统的。感觉上次已经修改完了，不知道今天怎么又崩出来，再看一下。在我这里，是老问题，显著延迟，或是他们故意捣乱。原则是全框架只保留一份ET 命名空间的申明与定义就可以了。今天再次把热更域里的客户端的多的一份给删除掉了。暂时没再报错。
+- 希望今天下午【消除掉所有的StartConfigComponent 和 InnerConfig 相关的编译错误】。
+  - C2G_LoginGate_Req ＝＝》 C2G_LoginGate
+  - G2C_LoginGate_Ack ＝＝》 G2C_LoginGate
+  - 【地图服Map 服】：在整理MapHelper.cs 的逻辑的时候，因为游戏的这块儿逻辑不够熟悉，具体原理，或说是连接过程仍然不是狠懂。
+  - 去想的话，感觉当用户注册或是登录帐户的时候，是随机分配一个网关服；框架里也随机分配给用户一个 Realm 注册登录服；当用户点击进入地图，或是重构游戏开始游戏的某个地方，是需要与地图服建立起连接的，大概如果有多个地图服，又随机分配一个。。框架里，虽然分配给每个用户的各个小服，是完全随机的，但是一旦分配给一个用户，除非用户登出下线、或是用户掉线，或是用户其它客户端顶号（用其它客户端的登录顶掉先前某个客户端的登录？这里先前分配的，会变吗？再读的时候看下这块儿），分配给用户的这些小服编号是可能会变的，与先前不同。但同户的同一个玩耍 session ，应该是保持不变的。所以，框架里应该是有某些组件，是可以记录这些小服编号的。要找出来。
+  - 感觉我还是需要回去再读一下参考项目斗地主游戏里进入地图服的这块儿逻辑。当地图服要给某个用户发消息，MapHelper 这里的作用，应该就是帮助地图服找到有当前用户所在的网关服会话框，以便地图服向用户所在的网关服发消息。可是，感觉起来，地图服与网关服之间，不该是内网组件去管理吗？如果内网组件能够管理，MapHelper 就显得多余了呀。要去检查的还有RealmHelper. 这里感觉没能理解透彻为什么ET7 要把一个个好多个弄成帮助类。 
+  - 今天晚上，或是明天上午把参考中的相关源码，相关部分再读一下。
+- 这里拿《NetInnerComponent》的方法可以参照：
+  #+BEGIN_SRC csharp
+Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.InnerIPPort);
+Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
+  #+END_SRC
+- DBProxyComponent: 这个类被重构丢了。数据库分区管理。根据用户所在的区号，去拿该区数据库索引办事就可以了。
+- DBManagerComponent: 全框架找不到一个使用的样例。我认为数据库应该只属于服务端。所以，我先把它在应用启动时添加到服务端的公用组件启动程序中（EntryEvent2_InitServer）去。
+- 下午把几个DBProxyComponent 相关的编译错误，基本改光了（目前还有几个小模块共计28 个编译错误）。还有一个类里不知道怎么用Gamer 去拿玩家所在的小区，先放一下，改天再去改个。
+- 剩下的今天不改了。今天晚上、明天再看源码之后再改。
+- 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】

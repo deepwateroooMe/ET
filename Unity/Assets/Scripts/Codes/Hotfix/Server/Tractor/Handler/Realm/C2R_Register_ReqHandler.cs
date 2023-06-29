@@ -7,9 +7,9 @@ namespace ET.Server {
     public class C2R_Register_ReqHandler : AMRpcHandler<C2R_Register_Req, R2C_Register_Ack> {
         protected override async ETTask Run(Session session, C2R_Register_Req message, R2C_Register_Ack response) {
             // 数据库操作对象: 代理索引
-            DBProxyComponent dbProxy = Root.Instance.Scene.GetComponent<DBProxyComponent>();
+            DBComponent dbComponent = DBManagerComponentSystem.GetZoneDB(Root.Instance.Scene.GetComponent<DBManagerComponent>(), session.DomainZone());
             // 查询账号是否存在
-            List<AccountInfo> result = await dbProxy.Query<AccountInfo>(_account => _account.Account == message.Account);
+            List<AccountInfo> result = await dbComponent.Query<AccountInfo>(_account => _account.Account == message.Account);
             if (result.Count > 0) { // 出错：该帐户已注册
                 response.Error = ErrorCode.ERR_AccountAlreadyRegister;
                 // reply(response); // <<<<<<<<<<<<<<<<<<<< 重构后，不需要手动发返回消息. 异常是ETTash 里的封装会给抛出
@@ -27,9 +27,8 @@ namespace ET.Server {
             newUser.NickName = $"用户{message.Account}";
             newUser.Money = 10000;
             // 保存到数据库: 内网不同服务器之间的交互
-            await dbProxy.Save(newAccount);  // 异步保存到数据库服务器
-            await dbProxy.Save(newUser, false);
+            await dbComponent.Save(newAccount);  // 异步保存到数据库服务器
+            await dbComponent.Save(newUser);
         }
     }
 }
-

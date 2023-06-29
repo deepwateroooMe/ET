@@ -6,10 +6,10 @@ namespace ET.Server {
     public class C2R_Login_ReqHandler : AMRpcHandler<C2R_Login_Req, R2C_Login_Ack> {
         protected override async ETTask Run(Session session, C2R_Login_Req message, R2C_Login_Ack response) {
             // 数据库操作对象
-            DBProxyComponent dbProxy = Root.Instance.Scene.GetComponent<DBProxyComponent>();
+            DBComponent dbComponent = DBManagerComponentSystem.GetZoneDB(Root.Instance.Scene.GetComponent<DBManagerComponent>(), session.DomainZone());
             Log.Info($"登录请求：{{Account:'{message.Account}',Password:'{message.Password}'}}");
             // 验证账号密码是否正确
-            List<AccountInfo> result = await dbProxy.Query<AccountInfo>(_account => _account.Account == message.Account && _account.Password == message.Password);
+            List<AccountInfo> result = await dbComponent.Query<AccountInfo>(_account => _account.Account == message.Account && _account.Password == message.Password);
             if (result.Count == 0) {
                 response.Error = ErrorCode.ERR_LoginError;
                 // reply(response);

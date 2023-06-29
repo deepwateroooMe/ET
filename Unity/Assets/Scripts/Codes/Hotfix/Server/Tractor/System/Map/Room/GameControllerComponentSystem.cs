@@ -228,12 +228,14 @@ namespace ET.Server {
         }
 // 结算用户余额
         public static async Task<long> StatisticalIntegral(this GameControllerComponent self, Gamer gamer, long sorce) {
-            DBProxyComponent dbProxy = Root.Instance.Scene.GetComponent<DBProxyComponent>();
+            DBComponent dbComponent = DBManagerComponentSystem.GetZoneDB(Root.Instance.Scene.GetComponent<DBManagerComponent>(), 17);
+            // 这里：不知道怎么去拿玩家所在的区号。。。先放一下
+            // DBProxyComponent dbProxy = Root.Instance.Scene.GetComponent<DBProxyComponent>();
             // 结算用户余额
-            UserInfo userInfo = await dbProxy.Query<UserInfo>(gamer.UserID, false);
+            UserInfo userInfo = await dbComponent.Query<UserInfo>(gamer.UserID);
             userInfo.Money = userInfo.Money + sorce < 0 ? 0 : userInfo.Money + sorce;
             // 更新用户信息
-            await dbProxy.Save(userInfo, false);
+            await dbComponent.Save(userInfo);
             return userInfo.Money;
         }
 // 随机先手玩家

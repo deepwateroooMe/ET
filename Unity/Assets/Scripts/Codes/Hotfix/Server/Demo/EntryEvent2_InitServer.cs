@@ -4,7 +4,9 @@ namespace ET.Server {
     public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
         protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
             // 发送普通actor消息
-            Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>();
+            Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
+            // 自已添加：【数据库管理类组件】
+            Root.Instance.Scene.AddComponent<DBManagerComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
             // 发送location actor消息
             Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>();
             // 访问location server的组件
