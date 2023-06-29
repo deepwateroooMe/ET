@@ -62,6 +62,8 @@ namespace ET {
         private readonly Dictionary<int, Action<long, long, object>> readCallback = new Dictionary<int, Action<long, long, object>>();
         private readonly Dictionary<int, Action<long, int>> errorCallback = new Dictionary<int, Action<long, int>>();
         private int serviceIdGenerator;
+        // 【异步任务】：是异步方法，但是这里是，返回已经建立的信道的 reference 索引，还是重新（或是不存在，必要时）或补建信道，并返回信道的 reference ？
+        // 【异步方法】：网络操作大多是异步的。这里只是异步去【读取、或拿到】所需要的信道信息。应该是不需要重新的，是GetChannelConn, 不是 CreateChannel
         public async Task<(uint, uint)> GetChannelConn(int serviceId, long channelId) {
             TaskCompletionSource<(uint, uint)> tcs = new TaskCompletionSource<(uint, uint)>();
             NetOperator netOperator = new NetOperator() { Op = NetOp.GetChannelConn, ServiceId = serviceId, ChannelId = channelId, Object = tcs};

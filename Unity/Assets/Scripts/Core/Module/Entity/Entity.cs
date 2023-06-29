@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
 namespace ET {
+
     [Flags]
     public enum EntityStatus: byte {
         None = 0,
@@ -11,32 +12,31 @@ namespace ET {
         IsCreated = 1 << 3,
         IsNew = 1 << 4,
     }
+
     public partial class Entity: DisposeObject {
 #if ENABLE_VIEW && UNITY_EDITOR
         private UnityEngine.GameObject viewGO;
 #endif
-        
+
         [BsonIgnore]
         public long InstanceId {
             get;
             protected set;
         }
-        protected Entity() {
-        }
+        protected Entity() {}
+
         [BsonIgnore]
         private EntityStatus status = EntityStatus.None; 
+
         [BsonIgnore]
         private bool IsFromPool {
             get => (this.status & EntityStatus.IsFromPool) == EntityStatus.IsFromPool;
             set {
-                if (value) {
-                    this.status |= EntityStatus.IsFromPool;
-                }
-                else {
-                    this.status &= ~EntityStatus.IsFromPool;
-                }
+                if (value) this.status |= EntityStatus.IsFromPool;
+                else  this.status &= ~EntityStatus.IsFromPool;
             }
         }
+
         [BsonIgnore]
         protected bool IsRegister {
             get => (this.status & EntityStatus.IsRegister) == EntityStatus.IsRegister;
@@ -688,5 +688,3 @@ namespace ET {
         }
     }
 }
-
-

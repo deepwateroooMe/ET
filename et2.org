@@ -1,7 +1,6 @@
 #+latex_class: cn-article
 #+title: ET 框架学习笔记（二）－－网络交互相关【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 #+author: deepwaterooo 
-
 * Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制而已
 - 以前看得比较空洞。今天读源码看见一个例子（同一进程内消息，不走网络层，直接处理消息的例子），顺着那个实例再理解一遍。
 - 当网络模块也改成是事件机制，可能是我先前对网络模块理解得还是不够透彻，怎么感觉 ET7 之后不知道会话框是怎么管理的？
@@ -198,7 +197,7 @@ public static class NetServerComponentSystem {
     }
 }
    #+END_SRC
-** NetClientComponent: 【客户端】组件
+** NetClientComponent: 【网络客户端】组件
 #+BEGIN_SRC csharp
 public struct NetClientComponentOnRead {
     public Session Session;
@@ -211,31 +210,47 @@ public class NetClientComponent: Entity, IAwake<AddressFamily>, IDestroy {
 #+END_SRC
 ** NetClientComponentSystem: 【服务端】也是类似事件系统的改装
 #+BEGIN_SRC csharp
-[FriendOf(typeof(NetClientComponent))]
-public static class NetClientComponentSystem { // ... Awake() etc
+[FriendOf(typeof(NetClientComponent))] // 把这个【网络客户端】组件的主要笔记要点，再快速写一遍
+public static class NetClientComponentSystem {
+    [ObjectSystem]
+    public class AwakeSystem: AwakeSystem<NetClientComponent, AddressFamily> {
+        protected override void Awake(NetClientComponent self, AddressFamily addressFamily) { // 需要什么样的参数，就传什么样的参数
+            self.ServiceId = NetServices.Instance.AddService(new KService(addressFamily, ServiceType.Outer)); // 开启了与这个客户端的网络服务
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead); // 注册订阅【读】网络消息事件，应该是从网络服务的服务端订阅
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError); // 注册订阅【出错】事件
+        }
+    }
+    [ObjectSystem]
+    public class DestroySystem: DestroySystem<NetClientComponent> {
+        protected override void Destroy(NetClientComponent self) {
+            NetServices.Instance.RemoveService(self.ServiceId); // 直接移除这个网络服务
+        }
+    }
     private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session == null) // 总是检查：会话框是否已经销毁了 
+        Session session = self.GetChild<Session>(channelId); // 拿：相应的会话框
+        if (session == null) { // 空：直接返回
             return;
+        }
         session.LastRecvTime = TimeHelper.ClientNow();
         OpcodeHelper.LogMsg(self.DomainZone(), message);
-        EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message});
+// 发布事件：事件的接收者，应该是【客户端】的Session 层面的进一步读取消息内容（内存流上读消息？），改天再去细看。
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message}); 
     }
     private static void OnError(this NetClientComponent self, long channelId, int error) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session == null) 
+        Session session = self.GetChild<Session>(channelId); // 同样，先去拿会话框：因为这些异步网络的消息传递，都是建立在一个个会话框的基础上的
+        if (session == null)  // 空：直接返回 
             return;
         session.Error = error;
         session.Dispose();
     }
     public static Session Create(this NetClientComponent self, IPEndPoint realIPEndPoint) {
         long channelId = NetServices.Instance.CreateConnectChannelId();
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 创建必要的会话框，方便交通
         session.RemoteAddress = realIPEndPoint;
         if (self.DomainScene().SceneType != SceneType.Benchmark) {
-            session.AddComponent<SessionIdleCheckerComponent>();
+            session.AddComponent<SessionIdleCheckerComponent>(); // 不知道这个是干什么的，改天再看
         }
-        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint);
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint); // 创建信道
         return session;
     }
     public static Session Create(this NetClientComponent self, IPEndPoint routerIPEndPoint, IPEndPoint realIPEndPoint, uint localConn) {
@@ -248,6 +263,7 @@ public static class NetClientComponentSystem { // ... Awake() etc
         NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
         return session;
     }
+}
 #+END_SRC
 ** NetClientComponentOnReadEvent: 框架里只有这一个注册过的回调事件
 #+BEGIN_SRC csharp
