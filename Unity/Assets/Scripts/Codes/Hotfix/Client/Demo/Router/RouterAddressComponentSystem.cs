@@ -6,7 +6,7 @@ namespace ET.Client {
     [FriendOf(typeof(RouterAddressComponent))]
     public static class RouterAddressComponentSystem {
         public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
-            // 添加这个组件时，永远记住的是管理专职服务端的地址与端口
+            // 添加这个组件时，永远记住的是管理专职服务端的地址与端口: 接下来每 10 分钟扫一遍网的时候，就会用到这两个变量 
             protected override void Awake(RouterAddressComponent self, string address, int port) {
                 self.RouterManagerHost = address;
                 self.RouterManagerPort = port;
@@ -22,7 +22,7 @@ namespace ET.Client {
             string url = $"http:// {self.RouterManagerHost}:{self.RouterManagerPort}/get_router?v={RandomGenerator.RandUInt32()}";
             Log.Debug($"start get router info: {url}");
             // 返回字符串：有点儿奇异，如何设计服务器，才能让它返回的信息，可是解析成一个特定的类型
-            string routerInfo = await HttpClientHelper.Get(url);
+            string routerInfo = await HttpClientHelper.Get(url); // 【返回类型】：关于路由器管理器（具对外网发消息的地址与端口信息）的信息，应该是底层协议封装的
             Log.Debug($"recv router info: {routerInfo}");
             // Json 解析：解析成进程间可传递的消息类 HttpGetRouterResponse. 进程间消息类：便可以【客户端】或是【其它服】想要拿相关住处时，进程间返回消息？
             HttpGetRouterResponse httpGetRouterResponse = JsonHelper.FromJson<HttpGetRouterResponse>(routerInfo);

@@ -11,7 +11,7 @@ namespace ET {
             }
         }
         protected abstract ETTask Run(Scene scene, A a);
-        public async ETTask Handle(Scene scene, A a) {
+        public async ETTask Handle(Scene scene, A a) { // 试着去找一个，什么地方会调用这个方法吗？
             try {
                 await Run(scene, a);
             }

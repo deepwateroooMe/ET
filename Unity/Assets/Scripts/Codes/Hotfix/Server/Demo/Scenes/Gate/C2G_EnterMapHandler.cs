@@ -3,7 +3,7 @@ namespace ET.Server {
     // 【网关服】：客户端申请，进入房间。也有可能这个类，这个方法，确实存在没有返回正确的类型ETTask|Void 之类的？
     [MessageHandler(SceneType.Gate)]
     public class C2G_EnterMapHandler : AMRpcHandler<C2G_EnterMap, G2C_EnterMap> {
-        // protected override async void Run(Session session, C2G_EnterMap message, Action<G2C_EnterMap> reply) {  // 这是被自已改坏掉的，改去适配其它接口了。。。。
+
 		protected override async ETTask Run(Session session, C2G_EnterMap request, G2C_EnterMap response) { 
 // 方法变成回调的形式：就是，先自己创建一个回复消息的实例，再用传参进来的回调函数把返回消息回复回去：【活宝妹就是一定要嫁给亲爱的表哥！！！】
             Player player = session.GetComponent<SessionPlayerComponent>().GetMyPlayer();
@@ -14,7 +14,7 @@ namespace ET.Server {
             
             // 这里可以从DB中加载Unit
             Unit unit = UnitFactory.Create(scene, player.Id, UnitType.Player);
-            // unit.AddComponent<UnitGateComponent, long>(session.InstanceId); // 【编译报错：】UnitGateComponent 组件，不能同时成为两个不同 entity 的组件 !!!
+            unit.AddComponent<UnitGateComponent, long>(session.InstanceId); 
                 
             StartSceneConfig startSceneConfig = StartSceneConfigCategory.Instance.GetBySceneName(session.DomainZone(), "Map1");
             response.MyId = player.Id;

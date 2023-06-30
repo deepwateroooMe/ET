@@ -4,7 +4,7 @@ using System.Net;
 namespace ET {
     // 配置文件处理，或是服务器启动相关类，以前都没仔细读过
     public partial class StartSceneConfigCategory { // 【双端】
-
+        // 数据结构：MultiMap, 它的值，实际是K 类型的链表，不止一个，是链表
         public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
         public MultiMap<int, StartSceneConfig> ProcessScenes = new MultiMap<int, StartSceneConfig>();
         public Dictionary<long, Dictionary<string, StartSceneConfig>> ClientScenesByName = new Dictionary<long, Dictionary<string, StartSceneConfig>>();

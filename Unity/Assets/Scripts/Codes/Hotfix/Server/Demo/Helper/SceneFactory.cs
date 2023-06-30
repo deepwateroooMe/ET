@@ -13,6 +13,9 @@ namespace ET.Server {
 
             switch (scene.SceneType) {
                 case SceneType.Router:
+                    // 云服务器中，一般来说router要单独部署，不过大家经常放在一起，那么下面要修改
+                    // startSceneConfig.OuterIPPort改成startSceneConfig.InnerIPOutPort
+                    // 然后云服务器防火墙把端口映射过来
                     scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
                     break;
                 case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
@@ -36,7 +39,7 @@ namespace ET.Server {
                     scene.AddComponent<AOIManagerComponent>();
                     break;
                 case SceneType.Location: // 现在也没有位置服吧。。。有要求位置服处理的消息，所以要保留
-                    // scene.AddComponent<LocationComponent>(); // 暂时还没有添加这个组件
+                    scene.AddComponent<LocationComponent>(); // 暂时还没有添加这个组件: 可是明明那个分支上是有这个组件的
                     break;
 // 下面的：先去掉，太多报错，会吓死人的。。。
                 case SceneType.AllServer: // 我想要自己添加这个全服：方便模仿参考项目，对必要的服务器组件进行管理 

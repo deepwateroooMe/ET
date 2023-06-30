@@ -14,12 +14,9 @@ namespace ET.Server {
 			G2R_GetLoginKey g2RGetLoginKey = (G2R_GetLoginKey) await ActorMessageSenderComponent.Instance.Call(
 				config.InstanceId, new R2G_GetLoginKey() {Account = request.Account});
 
-			response.Address = config.InnerIPOutPort.ToString();
+			response.Address = config.InnerIPOutPort.ToString(); // 现在的问题就成为是：什么地方、什么组件可以记这些信息？
 			response.Key = g2RGetLoginKey.Key;
 			response.GateId = g2RGetLoginKey.GateId;
 		}
     }
 }
-
-
-

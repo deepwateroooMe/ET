@@ -1697,77 +1697,7 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 }
 #+END_SRC
 ** ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息 et3
-** MessageDispatcherComponent: 这些是一个系统的，需要放在一起总结
-#+BEGIN_SRC csharp
-// 总管：对每个场景，消息分发器
-// 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。那么默认，每种场景，只有一个消息处理器实体类
-public class MessageDispatcherInfo { 
-    public SceneType SceneType { get; }
-    public IMHandler IMHandler { get; }
-    public MessageDispatcherInfo(SceneType sceneType, IMHandler imHandler) {
-        this.SceneType = sceneType;
-        this.IMHandler = imHandler;
-    }
-}
-// 消息分发组件
-[ComponentOf(typeof(Scene))]
-public class MessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
-    public static MessageDispatcherComponent Instance { get; set; }
-    public readonly Dictionary<ushort, List<MessageDispatcherInfo>> Handlers = new(); // 总管的字典
-}
-#+END_SRC
-** MessageDispatcherComponentSystem:
-   #+BEGIN_SRC csharp
-// 扫描框架里的标签系【MessageHandler(SceneType)】
-private static void Load(this MessageDispatcherComponent self) {
-    self.Handlers.Clear();
-    HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
-    foreach (Type type in types) {
-        IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
-        if (iMHandler == null) {
-            Log.Error($"message handle {type.Name} 需要继承 IMHandler");
-            continue;
-        }
-        object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
-        foreach (object attr in attrs) {
-            MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
-            Type messageType = iMHandler.GetMessageType();
-            ushort opcode = NetServices.Instance.GetOpcode(messageType); // 这里相对、理解上的困难是：感觉无法把OpCode 网络操作码与消息类型，从概念上连接起来
-            if (opcode == 0) {
-                Log.Error($"消息opcode为0: {messageType.Name}");
-                continue;
-            } // 下面：下面是创建一个包装体，注册备用 
-            MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
-            self.RegisterHandler(opcode, messageDispatcherInfo);
-        }
-    }
-}
-private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
-    if (!self.Handlers.ContainsKey(opcode)) 
-        self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
-    self.Handlers[opcode].Add(handler); // 加入管理体系来管理
-}
-public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
-    List<MessageDispatcherInfo> actions;
-    ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
-    if (!self.Handlers.TryGetValue(opcode, out actions)) {
-        Log.Error($"消息没有处理: {opcode} {message}");
-        return;
-    }
-    // 这里就不明白：它的那些 Domain 什么的
-    SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
-    foreach (MessageDispatcherInfo ev in actions) {
-        if (ev.SceneType != sceneType) 
-            continue;
-        try {
-            ev.IMHandler.Handle(session, message); // 处理分派消息：也就是调用IMHandler 接口的方法来处理消息
-        } catch (Exception e) {
-            Log.Error(e);
-        }
-    }
-}
-#+END_SRC
-
+- 再后面的，MessageDispatcherComponent 相关的，因为网络部分的再次总结一遍，移过去，先系统总结一下。改天有必要的时候，再作修改。
 
 * ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片
 ** ResourcesComponent: 同文件有其生成系

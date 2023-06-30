@@ -7,18 +7,15 @@ namespace ET.Server {
         public class HttpComponentAwakeSystem : AwakeSystem<HttpComponent, string> {
             protected override void Awake(HttpComponent self, string address) {
                 try {
-                    self.Load();
-                
+                    self.Load(); // <<<<<<<<<<<<<<<<<<<< 
                     self.Listener = new HttpListener();
                     foreach (string s in address.Split(';')) {
-                        if (s.Trim() == "")
-                        {
+                        if (s.Trim() == "") 
                             continue;
-                        }
                         self.Listener.Prefixes.Add(s);
                     }
                     self.Listener.Start();
-                    self.Accept().Coroutine();
+                    self.Accept().Coroutine(); // <<<<<<<<<<<<<<<<<<<< 
                 }
                 catch (HttpListenerException e) {
                     throw new Exception($"请先在cmd中运行: netsh http add urlacl url=http:// *:你的address中的端口/ user=Everyone, address: {address}", e);
@@ -28,7 +25,7 @@ namespace ET.Server {
         [ObjectSystem]
         public class HttpComponentLoadSystem: LoadSystem<HttpComponent> {
             protected override void Load(HttpComponent self) {
-                self.Load();
+                self.Load(); // <<<<<<<<<<<<<<<<<<<< 
             }
         }
         [ObjectSystem]
@@ -38,35 +35,30 @@ namespace ET.Server {
                 self.Listener.Close();
             }
         }
-        
         public static void Load(this HttpComponent self) {
             self.dispatcher = new Dictionary<string, IHttpHandler>();
-            HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (HttpHandlerAttribute));
+            HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (HttpHandlerAttribute)); // 实则，全局只有一个
             SceneType sceneType = self.GetParent<Scene>().SceneType;
             foreach (Type type in types) {
                 object[] attrs = type.GetCustomAttributes(typeof(HttpHandlerAttribute), false);
-                if (attrs.Length == 0) {
+                if (attrs.Length == 0) 
                     continue;
-                }
                 HttpHandlerAttribute httpHandlerAttribute = (HttpHandlerAttribute)attrs[0];
-                if (httpHandlerAttribute.SceneType != sceneType) {
+                if (httpHandlerAttribute.SceneType != sceneType) 
                     continue;
-                }
-                object obj = Activator.CreateInstance(type);
+                object obj = Activator.CreateInstance(type); // 创建一个处理器实例
                 IHttpHandler ihttpHandler = obj as IHttpHandler;
-                if (ihttpHandler == null) {
+                if (ihttpHandler == null) 
                     throw new Exception($"HttpHandler handler not inherit IHttpHandler class: {obj.GetType().FullName}");
-                }
-                self.dispatcher.Add(httpHandlerAttribute.Path, ihttpHandler);
+                self.dispatcher.Add(httpHandlerAttribute.Path, ihttpHandler); // "/get_router": 把【路径、处理器】加入管理系统
             }
         }
-        
-        public static async ETTask Accept(this HttpComponent self) {
+        public static async ETTask Accept(this HttpComponent self) { // 还是本类上面调用的
             long instanceId = self.InstanceId;
-            while (self.InstanceId == instanceId) {
+            while (self.InstanceId == instanceId) { // 只要当前这个【路由器管理器场景的 http组件】没有发生变化，就一直进行。。。
                 try {
-                    HttpListenerContext context = await self.Listener.GetContextAsync();
-                    self.Handle(context).Coroutine();
+                    HttpListenerContext context = await self.Listener.GetContextAsync(); // 刚才，有个帮助类，不是把什么结果写进上下文了，没有不必发回消息吗？这里【异步读到】
+                    self.Handle(context).Coroutine(); // <<<<<<<<<<<<<<<<<<<< 调用下面的方法：并【异步处理】上下文中返回的消息 
                 }
                 catch (ObjectDisposedException) {
                 }
@@ -78,14 +70,13 @@ namespace ET.Server {
         public static async ETTask Handle(this HttpComponent self, HttpListenerContext context) {
             try {
                 IHttpHandler handler;
-                if (self.dispatcher.TryGetValue(context.Request.Url.AbsolutePath, out handler)) {
-                    await handler.Handle(self.Domain as Scene, context);
-                }
+                if (self.dispatcher.TryGetValue(context.Request.Url.AbsolutePath, out handler)) 
+                    await handler.Handle(self.Domain as Scene, context); // 调用注册过、生成的【HttpHandler】标签实例，的处理方法来回调。【异步方法 】
             }
             catch (Exception e) {
                 Log.Error(e);
             }
-            context.Request.InputStream.Dispose();
+            context.Request.InputStream.Dispose(); // 上面【异步方法】处理完了，就可以回收了
             context.Response.OutputStream.Dispose();
         }
     }

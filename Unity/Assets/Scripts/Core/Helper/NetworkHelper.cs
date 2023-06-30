@@ -29,7 +29,7 @@ namespace ET {
             foreach (IPAddress ipAddress in ipAddresses) {
                 returnIpAddress = ipAddress;
                 // 遍历扫描：扫到那个对的，就返回了；扫不到，返回空
-                if (ipAddress.AddressFamily == AddressFamily.InterNetwork) { // 底层定义：相对复杂，应该也可以不需要懂
+                if (ipAddress.AddressFamily == AddressFamily.InterNetwork) { // 底层定义：有很多不同的类型，只选 InterNetwork
                     return ipAddress;
                 }
             }

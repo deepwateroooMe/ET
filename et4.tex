@@ -1,4 +1,4 @@
-% Created 2023-06-29 Thu 17:02
+% Created 2023-06-30 Fri 11:18
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -879,365 +879,519 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.In
 Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
 \end{minted}
 \item InnerConfig: 可以把老版本里的 InnerConfig 类，参考对比ET7 里的ConfigSingleton<T> 泛型类，来试着理解和适配这相模块。因为同属配置类，就是分两个模块。
+\item 【今天上午】：亲爱的表哥，以后的活宝妹要做到，视三楼的贱畜牲们如无物，不存在，太恶心人了。
+\begin{itemize}
+\item 因为昨天读【路由器相关模块】，读得感觉比较懂一点儿了。今天上午所所有网络相关的模块再读一遍，什么时候添加的组件，事件的传递顺序等，都弄明白。修改补好笔记。
+\item 今天下午大概再在家里改，理出重构游戏里接下来的学习和重构思路。
+\end{itemize}
 \item 今天上午再继续看一模块。把昨天下午感觉有点儿不熟悉的：服务端如何管理随机分配给各客户端的各小服的编号等，以及客户端什么时候、如何进入地图服的弄明白。
 \item 因为上午头脑相对清醒，把遇见的凡不明白的模块，都试图理解透彻弄明白，比较RouterAddressComponent
-\item 希望今天下午【消除掉所有的StartConfigComponent 和 InnerConfig 相关的编译错误】。
-\begin{itemize}
 \item 【地图服Map 服】：在整理MapHelper.cs 的逻辑的时候，因为游戏的这块儿逻辑不够熟悉，具体原理，或说是连接过程仍然不是狠懂。
 \item 去想的话，感觉当用户注册或是登录帐户的时候，是随机分配一个网关服；框架里也随机分配给用户一个 Realm 注册登录服；当用户点击进入地图，或是重构游戏开始游戏的某个地方，是需要与地图服建立起连接的，大概如果有多个地图服，又随机分配一个。。框架里，虽然分配给每个用户的各个小服，是完全随机的，但是一旦分配给一个用户，除非用户登出下线、或是用户掉线，或是用户其它客户端顶号（用其它客户端的登录顶掉先前某个客户端的登录？这里先前分配的，会变吗？再读的时候看下这块儿），分配给用户的这些小服编号是可能会变的，与先前不同。但同户的同一个玩耍 session ，应该是保持不变的。所以，框架里应该是有某些组件，是可以记录这些小服编号的。要找出来。
 \item 感觉我还是需要回去再读一下参考项目斗地主游戏里进入地图服的这块儿逻辑。当地图服要给某个用户发消息，MapHelper 这里的作用，应该就是帮助地图服找到有当前用户所在的网关服会话框，以便地图服向用户所在的网关服发消息。可是，感觉起来，地图服与网关服之间，不该是内网组件去管理吗？如果内网组件能够管理，MapHelper 就显得多余了呀。要去检查的还有RealmHelper. 这里感觉没能理解透彻为什么ET7 要把一个个好多个弄成帮助类。
-\item 今天晚上，或是明天上午把参考中的相关源码，相关部分再读一下。
-\end{itemize}
 \item 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 感觉我对源码的管理做得不够好。过程中为什么有很多类，过程中都没能看见呢？为什么分支里明明是有LocationComponent 类，而我先前找不到？
 \end{itemize}
 
-\section{RouterAddressComponent: 【动态路由组件、模块】相关}
+
+\section{Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制。没理解透、总结不全，待增补}
 \label{sec-9}
 \begin{itemize}
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 因为这个路由器相关的模块，以前总是不懂。感觉今天上午，算是着着实实地狠狠读一下局域网路由器相关。但是这一模块的基础相对薄弱，感觉还有狠多的小细节，不管是从路由器相关的概念上，还是从读源码的源码理解上，仍然还有不少理解不透彻的地方。所以这个章节会需要再多读几遍，多理解几遍源码。
-\item 也还需要更多的搜索网络，来从概念上理解【动态路由系统】的原理。感觉个模块更像是【动态路由系统】。因为这个章节是搬、修改自以前理解不够透彻的总结，所以还残留了不少其它可能不太相关的在这里。暂时仍放这里。
+\item 当网络模块也改成是事件机制，可能是我先前对网络模块理解得还是不够透彻，怎么感觉 ET7 之后不知道会话框是怎么管理的？
+\item 我把可能相关的文件系统摆在一起，可是还没能真正系统性地自顶向下地梳理一遍事件传递过程。
+\item 现在整理的阶段，仍然是翻源码的过程中，看见哪里没读过，或是没理解透彻，补上改改。但是当感觉把这块儿补完时，仍然需要一两个例子【自顶向下】，或自消息的发送，到返回消息至客户端，再梳理一遍整个流程。
+\item 现在还没弄清楚：Server, Client, Inner, 好像没有Outer 了，几个相对模块算是怎么回事？
 \end{itemize}
-\subsection{RouterAddressComponent: 路由器组件：能不能，把这个组件理解成为：多场景并存于同一个Process 下的小服（SceneType）的（服务器地址，或建立会话框所必要的信息）？}
+\subsection{RpcInfo: 【消息的包装体】。结合NetServerComponentOnReadEvent 来读。}
 \label{sec-9-1}
 \begin{itemize}
-\item 【RouterAddressComponent】: 理解上，感觉（需要再读再去确认），它是【局域网内网组件】，它是添加在【客户端场景】下的。概念上，局域网内网客户端，是需要与局域网内网下的具备收发消息功能的总管建立起会话框连接的。所以要把这个组件在这个会话框两端的哪一端理解明白。
-\item 现在这个路由器模块，感觉亲爱的表哥的活宝妹，更多的是概念上的不理解，不明白这些定义的一个个组件，是什么意思，能够起到什么作用，不同小服之间，或是不同的RouterAddress 之间，可以有哪些相关的联系？【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
-\item 同其它任何组件，框架里但凡组件，一定是管理类组件，就是管理一堆小单元小兵小将，它管理一堆一个个Router. 它会有好多条链表在 Info 里，可进程间传递。
-\item 可以再搜看【动态路由系统】的原理：它们是一个又一个的路由器每10 分钟自己扫描一遍周围还有哪些邻居，并每扫到一个邻居，就相互认识，把邻居加入到自己的路由器管理的配表里。
-\item 重点去看去找： Info 成员的更新原理。当【客户端】（注册？可能不对）登录时，会为当前的【客户端场景】添加【RouterAddressComponent】管理类组件。一个小细节：LoginHelper.cs 的处理逻辑里，会先删除再添加，几秒钟前总结这里，终于想明白，当一个用户再登录时，有可能是先前登出了、掉线了、或是用户自己从其它客户端自顶号。那么先前玩家玩乐的 session 的这个（RouterAddressComponent）组件【是有可能】还没能及时删除的，但它无效了（因为现正在处理现用户的重新登录逻辑）。所以上面是先删除，再添加RouterAddressComponent 组件。
-\item 这个【RouterAddressComponent】组件，每10 分钟周而复始周期性扫描系统，实时更新【服务端各小服】的相关信息，更新在 Info 成员里。
-\item 这个路由器系统：对自己来说的难点时，以前不曾接触过网络中路由器模块，连一个组件里面必要的成员变量也搞不懂。
-\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 在NetServerComponentOnReadEvent 中，IResponse 是会话框上直接返回的。
+\item 因为接口的扩展性，我认为这是最基本的包装，可以适用和包装扩展接口，如IRpcRequest, IRpcLocationResponse-etc. 框架里具体使用的地方，再多验证一下这个结论。
+\item 这里，后面的，IRpcRespon, IRpcLocationResponse 扩展接口，也该也都是 IResponse 接口吗？为什么NetServerComponentOnReadEvent 就直接调用了会话框层面的 OnResponse() 呢。后面要再去多想这个问题，想明白
 \end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[ComponentOf(typeof(Scene))]
-public class RouterAddressComponent: Entity, IAwake<string, int> {
-    public IPAddress RouterManagerIPAddress { get; set; }
-    public string RouterManagerHost;
-    public int RouterManagerPort;
-    public HttpGetRouterResponse Info; // <<<<<<<<<<<<<<<<<<<< 
-    public int RouterIndex;
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public readonly struct RpcInfo { // 【消息】包装体：可以是进程内的。可是它包装的是基类接口，与扩展接口如何区分？
+    public readonly IRequest Request;
+    public readonly ETTask<IResponse> Tcs;
+    public RpcInfo(IRequest request) {
+        this.Request = request;
+        this.Tcs = ETTask<IResponse>.Create(true);
+    }
 }
 \end{minted}
-\subsection{RouterAddressComponentSystem: 路由器的生成系：结合【LoginHelper】类来看，这块儿没太看懂}
+\subsection{NetServerComponent: NetServerComponentOnRead 结构体。}
 \label{sec-9-2}
-\begin{itemize}
-\item 这个类，我是同使用到它的地方，LoginHelper.cs 一起来看的。但是感觉还有不少细节，不知道自己理解得是否正确，没有看透。
-\end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[FriendOf(typeof(RouterAddressComponent))]
-public static class RouterAddressComponentSystem {
-    public class RouterAddressComponentAwakeSystem: AwakeSystem<RouterAddressComponent, string, int> {
-        // 添加这个组件时，永远记住的是管理专职服务端的地址与端口
-        protected override void Awake(RouterAddressComponent self, string address, int port) {
-            self.RouterManagerHost = address;
-            self.RouterManagerPort = port;
+public struct NetServerComponentOnRead {
+    public Session Session;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
+    public int ServiceId;
+}
+\end{minted}
+\subsection{NetServerComponentSystem: 【服务端】组件：网络交互服务端的相关功能，事件发布等}
+\label{sec-9-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+[FriendOf(typeof(NetServerComponent))] // 【服务端组件】：负责【服务端】的网络交互部分
+public static class NetServerComponentSystem {
+    [ObjectSystem]
+    public class AwakeSystem: AwakeSystem<NetServerComponent, IPEndPoint> {
+        protected override void Awake(NetServerComponent self, IPEndPoint address) {
+            self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Outer));
+            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept); // 网络交互的几个回调事件
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }// 省掉部分不必要的。。。
+    private static void OnError(this NetServerComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) return;
+        session.Error = error;
+        session.Dispose();
+    }
+    // 这个channelId是由CreateAcceptChannelId生成的
+    private static void OnAccept(this NetServerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        // 【创建会话框】：当此【服务端】组件，接受了一个客户端，就建一个与接收的【客户端】的会话框
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint;
+// 只要不是这个鬼服BenchmarkServer：就加两个【服务端】的必要的，防盗防挂网不干事占带宽的盗贼，和检查客户端状况
+        if (self.DomainScene().SceneType != SceneType.BenchmarkServer) { // 区分：同一功能，【服务端】的处理逻辑，与【客户端】的处理逻辑 
+            // 挂上这个组件，5秒就会删除session，所以客户端验证完成要删除这个组件。该组件的作用就是防止外挂一直连接不发消息也不进行权限验证
+            session.AddComponent<SessionAcceptTimeoutComponent>(); // 上面原标注：【客户端验证】的逻辑，改天去找
+            // 客户端连接，2秒检查一次recv消息，10秒没有消息则断开（与那个接收不到心跳包的客户端的连接）。【活宝妹就是一定要嫁给亲爱的表哥！！！】
+            //【自己的理解】：【客户端】有心跳包告知服务端，各客户端的连接状况；【服务端】：同样有服务端此组件来检测说，哪个客户端掉线了？
+            session.AddComponent<SessionIdleCheckerComponent>();
         }
     }
-    public static async ETTask Init(this RouterAddressComponent self) {// LoginHelper.cs 帮助类添加组件时，调用初始化
-        self.RouterManagerIPAddress = NetworkHelper.GetHostAddress(self.RouterManagerHost);
-        await self.GetAllRouter();
-    }
-// 这个异步函数：只有在这个组件被回收时，才会停止。【只有活宝妹一命归西了，活宝妹才可能不再去想，活宝妹是否已经嫁给亲爱的表哥了！！爱表哥，爱生活！！！】
-    private static async ETTask GetAllRouter(this RouterAddressComponent self) { 
-        // 【路由器服】：因为它也是一个特殊的场景，所以它有地址。尾数部分，是生成的随机数
-        string url = $"http:// {self.RouterManagerHost}:{self.RouterManagerPort}/get_router?v={RandomGenerator.RandUInt32()}";
-        Log.Debug($"start get router info: {url}");
-        // 返回字符串：有点儿奇异，如何设计服务器，才能让它返回的信息，可是解析成一个特定的类型
-        string routerInfo = await HttpClientHelper.Get(url);
-        Log.Debug($"recv router info: {routerInfo}");
-        // Json 解析：解析成进程间可传递的消息类 HttpGetRouterResponse. 进程间消息类：便可以【客户端】或是【其它服】想要拿相关住处时，进程间返回消息？
-        HttpGetRouterResponse httpGetRouterResponse = JsonHelper.FromJson<HttpGetRouterResponse>(routerInfo);
-        self.Info = httpGetRouterResponse; // 【Info 的实时更新：】只要存在这个管理类组件，它每10 分钟周期性自更新一次（哪里添加的当前组件？LoginHelper.cs 里？）
-        Log.Debug($"start get router info finish: {JsonHelper.ToJson(httpGetRouterResponse)}");
-        // 打乱顺序
-        RandomGenerator.BreakRank(self.Info.Routers);
-        self.WaitTenMinGetAllRouter().Coroutine(); // 无限循环，直到组件被删除移除时被回收 
-    }
-    // 等10分钟再获取一次: 明明是只等了 5 分钟，哪里有 10 分钟呢？扫的过程需要花掉 5 分钟那么久吗？
-    public static async ETTask WaitTenMinGetAllRouter(this RouterAddressComponent self) {
-        await TimerComponent.Instance.WaitAsync(5 * 60 * 1000); // 等5 分钟
-        if (self.IsDisposed) // 所以，如果移除组件了，这个无限循环，应该是会停止的。
-            return;
-        await self.GetAllRouter();
-    }
-    public static IPEndPoint GetAddress(this RouterAddressComponent self) { // 拿当前组件（所在的服务器）的地址：当知道它是一个路由系统
-        if (self.Info.Routers.Count == 0) return null; // 当前路由器每 10 分钟扫一遍：检测周围是否存在路由器的邻居，当它扫不到其它路由器存在就返回
-// 这里，我感觉，因为Info 的进程间可传递性（它永远背这个可传递Info,info 是如何更新的？），需要去考虑它的实时更新问题。
-        string address = self.Info.Routers[self.RouterIndex++ % self.Info.Routers.Count]; // 永远返回：路由器里接下来可用的一个端口索引
-        string[] ss = address.Split(':');
-        IPAddress ipAddress = IPAddress.Parse(ss[0]);
-        if (self.RouterManagerIPAddress.AddressFamily == AddressFamily.InterNetworkV6) 
-            ipAddress = ipAddress.MapToIPv6();
-        return new IPEndPoint(ipAddress, int.Parse(ss[1]));
-    }
-    // 【自己模仿出来的方法】：这里模仿时，可能根本就没弄明白，这个组件算时怎么回事，所以极有可能，自己这个方法模仿得不对
-    public static IPEndPoint GetMatchAddress(this RouterAddressComponent self, string account) {
-        int v = account.Mode(self.Info.Matchs.Count); // 它说，给它随机分配一个取模后的下编匹配服。。。
-        string address = self.Info.Matchs[v];
-        string[] ss = address.Split(':');
-        IPAddress ipAddress = IPAddress.Parse(ss[0]);
-        // if (self.IPAddress.AddressFamily == AddressFamily.InterNetworkV6) 
-        //    ipAddress = ipAddress.MapToIPv6();
-        return new IPEndPoint(ipAddress, int.Parse(ss[1]));
-    }
-    // 随机分配了一个Realm 注册登录服。。。去框架里找：为每个【客户端】所随机分配的这些小服编号，哪里有什么记载吗？因为晚些时候，感觉还会用到的
-    public static IPEndPoint GetRealmAddress(this RouterAddressComponent self, string account) {
-        int v = account.Mode(self.Info.Realms.Count); // 这里 mod: 随机分配了一个Realm 注册登录服。。。
-        string address = self.Info.Realms[v];
-        string[] ss = address.Split(':');
-        IPAddress ipAddress = IPAddress.Parse(ss[0]);
-        // if (self.IPAddress.AddressFamily == AddressFamily.InterNetworkV6) 
-        //    ipAddress = ipAddress.MapToIPv6();
-        return new IPEndPoint(ipAddress, int.Parse(ss[1]));
+    private static void OnRead(this NetServerComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) return;
+        session.LastRecvTime = TimeHelper.ClientNow();
+        OpcodeHelper.LogMsg(self.DomainZone(), message);
+        // 【发布事件】：服务端组件读到了消息。这个事件发布，事件的订阅者会收到通知，处理相应必要逻辑
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetServerComponentOnRead() {Session = session, Message = message}); // <<<<<<<<<<<<<<<<<<<< 
     }
 }
 \end{minted}
-\subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
-\label{sec-9-3}
-\begin{itemize}
-\item 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
-\item 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
-\end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[Message(OuterMessage.HttpGetRouterResponse)]
-[ProtoContract]
-public partial class HttpGetRouterResponse: ProtoObject {
-    [ProtoMember(1)]
-    public List<string> Realms { get; set; }
-    [ProtoMember(2)]
-    public List<string> Routers { get; set; }
-    // 【这个 proto 消息里： HttpGetRouterResponse】的进程间可传递消息的定义里，也需要添加多一个链表
-}
-message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
-    repeated string Realms = 1;
-    repeated string Routers = 2;
-    repeated string Matchs = 3;// 这行是我需要添加，和生成消息的。【上面： HttpGetRouterResponse】的进程间可传递消息的定义里，也需要添加多一个链表
-}
-\end{minted}
-\subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了}
+\subsection{NetServerComponentOnReadEvent: NetServerComponent组件，会发布事件，触发此回调类}
 \label{sec-9-4}
 \begin{itemize}
-\item 这里没太看懂：是在用户注册或是登录前的处理逻辑；那么如果同户登录活动状态，再要拿Realm 地址，会是一样的方法吗？想要把、或去找，把随机分配给各客户端的小服编号记住？
-\item 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下？
+\item 框架里，是NetServerComponent 会发布此事件，触发这个回调类。去找，有几个订阅者？相互间有没有不同？
+\item 从这个重要事件，会被自己先前总结丢来看，先前甚至现在，还是对网络框架，框架里的这些事件机制的传送过程，没能理解透彻。今天上午再理一遍。
 \end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public static class LoginHelper { // 程序域：热更新域在。调用自热更新视图层
-    public static async ETTask Login(Scene clientScene, string account, string password) {
-        try {
-            // 创建一个ETModel层的Session.
-// 这个组件：它的热更域里，好像有每 10 分钟再扫刷新一遍服务端系统；这里为什么必须先移除一遍，再添加一遍？
-            // 是因为现客户端正在试图重新登录，说明先前登出了、掉线了、或是用户自己其它客户端顶号了，先前的这个组件，过期了，该回收
-            clientScene.RemoveComponent<RouterAddressComponent>(); // 这里先删除，再去读：删除的过程是同步方法，不需要异步等待
-            // 获取路由跟realmDispatcher地址
-            RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>(); // 它可以神奇地自己添加。。它有个无限循环？忘记了，再去看一遍
-            if (routerAddressComponent == null) {
-                routerAddressComponent = clientScene.AddComponent<RouterAddressComponent, string, int>(ConstValue.RouterHttpHost, ConstValue.RouterHttpPort);
-                await routerAddressComponent.Init();
-                // 为【客户端场景】：添加【网络客户端】组件。添加了这个组件，客户端场景才可以与各服务端交通（注册必要的事件订阅与监听），收发消息等
-                clientScene.AddComponent<NetClientComponent, AddressFamily>(routerAddressComponent.RouterManagerIPAddress.AddressFamily);
-            }
-            IPEndPoint realmAddress = routerAddressComponent.GetRealmAddress(account);
-            R2C_Login r2CLogin;
-            using (Session session = await RouterHelper.CreateRouterSession(clientScene, realmAddress)) {
-                r2CLogin = (R2C_Login) await session.Call(new C2R_Login() { Account = account, Password = password });
-            }
-            // 创建一个gate Session,并且保存到SessionComponent中: 与网关服的会话框。主要负责用户下线后会话框的自动移除销毁
-            Session gateSession = await RouterHelper.CreateRouterSession(clientScene, NetworkHelper.ToIPEndPoint(r2CLogin.Address));
-            clientScene.AddComponent<SessionComponent>().Session = gateSession;
-
-            G2C_LoginGate g2CLoginGate = (G2C_LoginGate)await gateSession.Call(
-                new C2G_LoginGate() { Key = r2CLogin.Key, GateId = r2CLogin.GateId});
-            Log.Debug("登陆gate成功!");
-            await EventSystem.Instance.PublishAsync(clientScene, new EventType.LoginFinish());
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件
+public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
+    protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) {
+        Session session = args.Session;
+        object message = args.Message;
+// 【回复消息】：前面的重点看错了，重点是【回复】消息，能够到达当前内网组件，就说明至少是当前进程的，所以不管IRpcResponse IRpcLocationResponse, 都会话框处理
+        if (message is IResponse response) { // 【回复消息】
+            session.OnResponse(response);
+            return;
         }
-        catch (Exception e) {
+        // 根据消息接口判断是不是Actor消息，不同的接口做不同的处理,比如需要转发给Chat Scene，可以做一个IChatMessage接口
+        switch (message) { // 【发送消息】＋【不要求回复的消息】
+            case IActorLocationRequest actorLocationRequest: { // gate session收到actor rpc消息，先向actor 发送rpc请求，再将请求结果返回客户端 
+                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
+                int rpcId = actorLocationRequest.RpcId; // 这里要保存客户端的rpcId
+                long instanceId = session.InstanceId;
+                IResponse iResponse = await ActorLocationSenderComponent.Instance.Call(unitId, actorLocationRequest);
+                iResponse.RpcId = rpcId;
+                // session可能已经断开了，所以这里需要判断
+                if (session.InstanceId == instanceId) 
+                    session.Send(iResponse);
+                break;
+            }
+        case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
+                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
+                ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage);
+                break;
+            }
+            case IActorRequest actorRequest:  // 分发IActorRequest消息，目前没有用到，需要的自己添加 
+                break;
+            case IActorMessage actorMessage:  // 分发IActorMessage消息，目前没有用到，需要的自己添加 
+                break;
+            default: {
+                // 非Actor消息： MessageDispatcherComponent 全局单例吗？是的
+                MessageDispatcherComponent.Instance.Handle(session, message);
+                break;
+            }
+        }
+    }
+}
+\end{minted}
+\subsection{NetClientComponent: 【网络客户端】组件}
+\label{sec-9-5}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public struct NetClientComponentOnRead {
+    public Session Session;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetClientComponent: Entity, IAwake<AddressFamily>, IDestroy {
+    public int ServiceId;
+}
+\end{minted}
+\subsection{NetClientComponentSystem: 【服务端】也是类似事件系统的改装}
+\label{sec-9-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[FriendOf(typeof(NetClientComponent))] // 把这个【网络客户端】组件的主要笔记要点，再快速写一遍
+public static class NetClientComponentSystem {
+    [ObjectSystem]
+    public class AwakeSystem: AwakeSystem<NetClientComponent, AddressFamily> {
+        protected override void Awake(NetClientComponent self, AddressFamily addressFamily) { // 需要什么样的参数，就传什么样的参数
+            self.ServiceId = NetServices.Instance.AddService(new KService(addressFamily, ServiceType.Outer)); // 开启了与这个客户端的网络服务
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead); // 注册订阅【读】网络消息事件，应该是从网络服务的服务端订阅
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError); // 注册订阅【出错】事件
+        }
+    }
+    [ObjectSystem]
+    public class DestroySystem: DestroySystem<NetClientComponent> {
+        protected override void Destroy(NetClientComponent self) {
+            NetServices.Instance.RemoveService(self.ServiceId); // 直接移除这个网络服务
+        }
+    }
+    private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId); // 拿：相应的会话框
+        if (session == null) { // 空：直接返回
+            return;
+        }
+        session.LastRecvTime = TimeHelper.ClientNow();
+        OpcodeHelper.LogMsg(self.DomainZone(), message);
+// 发布事件：事件的接收者，应该是【客户端】的Session 层面的进一步读取消息内容（内存流上读消息？），改天再去细看。
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message}); 
+    }
+    private static void OnError(this NetClientComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId); // 同样，先去拿会话框：因为这些异步网络的消息传递，都是建立在一个个会话框的基础上的
+        if (session == null)  // 空：直接返回 
+            return;
+        session.Error = error;
+        session.Dispose();
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint realIPEndPoint) {
+        long channelId = NetServices.Instance.CreateConnectChannelId();
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 创建必要的会话框，方便交通
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>(); // 不知道这个是干什么的，改天再看
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint); // 创建信道
+        return session;
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint routerIPEndPoint, IPEndPoint realIPEndPoint, uint localConn) {
+        long channelId = localConn;
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>();
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
+        return session;
+    }
+}
+\end{minted}
+\subsection{NetClientComponentOnReadEvent: 框架里只有这一个注册过的回调事件}
+\label{sec-9-7}
+\begin{itemize}
+\item 感觉我这部分的源码出问题了，需要去网络上翻一下原本的源码，对比一下
+\item 以后管理源码的时候要小心，就不知道前面什么时候弄的，项目开始的时候，就该从头重新开一个新的分支。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Event(SceneType.Process)]
+public class NetClientComponentOnReadEvent: AEvent<NetClientComponentOnRead> {
+    protected override async ETTask Run(Scene scene, NetClientComponentOnRead args) {
+        Session session = args.Session;
+        object message = args.Message;
+        if (message is IResponse response) {// 这里是回复消息，就交给会话框去处理
+            session.OnResponse(response);// 由会话框层往下走
+            return;
+        }
+        // 普通消息或者是Rpc请求消息
+        MessageDispatcherComponent.Instance.Handle(session, message);
+        await ETTask.CompletedTask;
+    }
+}
+\end{minted}
+\subsection{NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件}
+\label{sec-9-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+namespace ET.Server {
+    // 【服务器】：对不同进程的一些处理
+    public struct ProcessActorId {
+        public int Process;
+        public long ActorId;
+        public ProcessActorId(long actorId) {
+            InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
+            this.Process = instanceIdStruct.Process;
+            instanceIdStruct.Process = Options.Instance.Process;
+            this.ActorId = instanceIdStruct.ToLong();
+        }
+    }
+    // 下面这个结构体：可以用来封装发布内网读事件
+    public struct NetInnerComponentOnRead {
+        public long ActorId;
+        public object Message;
+    }
+    
+    [ComponentOf(typeof(Scene))]
+    public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
+        public int ServiceId;
+        
+        public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
+        [StaticField]
+        public static NetInnerComponent Instance;
+    }
+}
+\end{minted}
+\subsection{NetInnerComponentSystem: 生成系}
+\label{sec-9-9}
+\begin{itemize}
+\item 处理内网消息：它发布了一个内网读到消息的事件。那么订阅过它的客户端？相关事件会被触发。去看 NetClientComponentOnReadEvent 类
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+[FriendOf(typeof(NetInnerComponent))]
+public static class NetInnerComponentSystem {
+    [ObjectSystem]
+    public class NetInnerComponentAwakeSystem: AwakeSystem<NetInnerComponent> {
+        protected override void Awake(NetInnerComponent self) {
+            NetInnerComponent.Instance = self;
+            switch (self.InnerProtocol) {
+                case NetworkProtocol.TCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new TService(AddressFamily.InterNetwork, ServiceType.Inner));
+                    break;
+                }
+                case NetworkProtocol.KCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new KService(AddressFamily.InterNetwork, ServiceType.Inner));
+                    break;
+                }
+            }
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }
+    [ObjectSystem]
+    public class NetInnerComponentAwake1System: AwakeSystem<NetInnerComponent, IPEndPoint> {
+        protected override void Awake(NetInnerComponent self, IPEndPoint address) {
+            NetInnerComponent.Instance = self;
+            switch (self.InnerProtocol) {
+                case NetworkProtocol.TCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new TService(address, ServiceType.Inner));
+                    break;
+                }
+                case NetworkProtocol.KCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Inner));
+                    break;
+                }
+            }
+            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept);
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }
+    [ObjectSystem]
+    public class NetInnerComponentDestroySystem: DestroySystem<NetInnerComponent> {
+        protected override void Destroy(NetInnerComponent self) {
+            NetServices.Instance.RemoveService(self.ServiceId);
+        }
+    }
+    private static void OnRead(this NetInnerComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) 
+            return;
+        session.LastRecvTime = TimeHelper.ClientFrameTime();
+        self.HandleMessage(actorId, message);
+    }
+// 这里，内网组件，处理内网消息看出，这些都重构成了事件机制，发布根场景内网组件读到消息事件
+    public static void HandleMessage(this NetInnerComponent self, long actorId, object message) {
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetInnerComponentOnRead() { ActorId = actorId, Message = message });
+    }
+    private static void OnError(this NetInnerComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) {
+            return;
+        }
+        session.Error = error;
+        session.Dispose();
+    }
+    // 这个channelId是由CreateAcceptChannelId生成的
+    private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint;
+        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
+    }
+    private static Session CreateInner(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint;
+        NetServices.Instance.CreateChannel(self.ServiceId, channelId, ipEndPoint);
+        // session.AddComponent<InnerPingComponent>();
+        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
+        return session;
+    }
+    // 内网actor session，channelId是进程号。【自己的理解】：这些内网服务器间，或说重构的SceneType 间，有维护着会话框的，比如Realm 注册登录服与Gate 网关服等
+    public static Session Get(this NetInnerComponent self, long channelId) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session != null) { // 有已经创建过，就直接返回
+            return session;
+        } // 下面，还没创建过，就创建一个会话框
+        IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
+        session = self.CreateInner(channelId, ipEndPoint);
+        return session;
+    }
+}
+\end{minted}
+\end{itemize}
+\subsection{MessageDispatcherInfo: 在【MessageDispatcherComponent】中}
+\label{sec-9-10}
+\subsection{MessageDispatcherComponent: 全局全框架单例：【活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】}
+\label{sec-9-11}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 总管：对每个场景SceneType，消息分发器
+// 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。
+// 那么默认，每种场景，只有一个消息处理器实体类( 可以去验证这点儿 )
+public class MessageDispatcherInfo { 
+    public SceneType SceneType { get; }
+    public IMHandler IMHandler { get; }
+    public MessageDispatcherInfo(SceneType sceneType, IMHandler imHandler) {
+        this.SceneType = sceneType;
+        this.IMHandler = imHandler;
+    }
+}
+// 消息分发组件
+[ComponentOf(typeof(Scene))]
+public class MessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
+// 按下面的字典看，消息分发器，全局单例，是的！【活宝妹就是一定要嫁给亲爱的表哥！！】
+    public static MessageDispatcherComponent Instance { get; set; }  // 【全局单例】 
+    public readonly Dictionary<ushort, List<MessageDispatcherInfo>> Handlers = new(); // 总管的字典
+}
+\end{minted}
+\begin{itemize}
+\item 这个组件全局单例，添加的地主是在框架服务器启动的时候，公共组件部分的添加。组件的字典，会管理全框架下所有的MessageDispatcherInfo 相产。
+\begin{itemize}
+\item 来自于文件 EntryEvent1\_InitShare:
+\end{itemize}
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 公用的相关组件的初始化：
+[Event(SceneType.Process)]
+public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
+    // 【全局单例】组件：
+    protected override async ETTask Run(Scene scene, EventType.EntryEvent1 args) {
+        Root.Instance.Scene.AddComponent<NetThreadComponent>();
+        Root.Instance.Scene.AddComponent<OpcodeTypeComponent>();
+        Root.Instance.Scene.AddComponent<MessageDispatcherComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+        Root.Instance.Scene.AddComponent<NumericWatcherComponent>();
+        Root.Instance.Scene.AddComponent<AIDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ClientSceneManagerComponent>();
+        await ETTask.CompletedTask;
+    }
+}
+\end{minted}
+\subsection{MessageDispatcherComponentSystem:}
+\label{sec-9-12}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 扫描框架里的标签系【MessageHandler(SceneType)】
+private static void Load(this MessageDispatcherComponent self) {
+    self.Handlers.Clear();
+    HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+    foreach (Type type in types) {
+        IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+        if (iMHandler == null) {
+            Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+            continue;
+        }
+        object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+        foreach (object attr in attrs) {
+            MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+            Type messageType = iMHandler.GetMessageType();
+            ushort opcode = NetServices.Instance.GetOpcode(messageType); // 这里相对、理解上的困难是：感觉无法把OpCode 网络操作码与消息类型，从概念上连接起来
+            if (opcode == 0) {
+                Log.Error($"消息opcode为0: {messageType.Name}");
+                continue;
+            } // 下面：下面是创建一个包装体，注册备用 
+            MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+            self.RegisterHandler(opcode, messageDispatcherInfo);
+        }
+    }
+}
+private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+    if (!self.Handlers.ContainsKey(opcode)) 
+        self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+    self.Handlers[opcode].Add(handler); // 加入管理体系来管理
+}
+public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+    List<MessageDispatcherInfo> actions;
+    ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+    if (!self.Handlers.TryGetValue(opcode, out actions)) {
+        Log.Error($"消息没有处理: {opcode} {message}");
+        return;
+    }
+    // 这里就不明白：它的那些 Domain 什么的
+    SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
+    foreach (MessageDispatcherInfo ev in actions) {
+        if (ev.SceneType != sceneType) 
+            continue;
+        try {
+            ev.IMHandler.Handle(session, message); // 处理分派消息：也就是调用IMHandler 接口的方法来处理消息
+        } catch (Exception e) {
             Log.Error(e);
         }
-    } 
-}
-\end{minted}
-\subsection{RouterHelper: 【客户端——路由器帮助类】，向路由器注册、申请？LoginHelper.cs 的逻辑里用到这个帮助类。}
-\label{sec-9-5}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-// 【路由器帮助类】：是【客户端】与客户端局域网下的【路由器】之间获取网络地址、建立连接等，相关必要操作帮助类
-// 这个类，框架开发者的原始标记，都看不懂。能够看懂、想出自己理解的一个大概轮括。需要改天准备了必要基础知识后再读一遍
-// 框架以前版本，【客户端】只与【网关服】通信，网关服是它所管辖小区里所有【客户端】的通信代理。
-// 框架重构后的现在版本说，不要什么【网关服】代理了，【客户端】通过客户端所在的路由系统下的【路由总管？】来收发消息。这里【路由总管】感觉功能上，相当于先前随机分配给当前【客户端】的【网关服】。不知道这么理解对不对，记下，再多想一想
-public static class RouterHelper {
-    // 【注册router】：什么叫注册 router? 为什么我觉得是在建会话框？这个方法没能看完。它是为当前【客户端场景】添加必备路由网络通信功能模块。注意添加的几个组件
-    public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
-// 拿客户端场景路由器地址：
-        (uint recvLocalConn, IPEndPoint routerAddress) = await GetRouterAddress(clientScene, address, 0, 0); 
-        if (recvLocalConn == 0) 
-            throw new Exception($"get router fail: {clientScene.Id} {address}");
-        Log.Info($"get router: {recvLocalConn} {routerAddress}");
-        Session routerSession = clientScene.GetComponent<NetClientComponent>().Create(routerAddress, address, recvLocalConn); // 直接建立了【客户端】会话框
-        // 前面想到，这个路由组件，功能上相当于先前的【网关服】
-        routerSession.AddComponent<PingComponent>(); // 路由组件：它需要心跳包给服务端知道，这个组件，是否掉线了？
-        routerSession.AddComponent<RouterCheckComponent>(); 
-        return routerSession;
-    }
-    // 不去细看关于RounterAddressComponent 里的这个方法了。感觉关于Rounter 的路由原理，我可能这个模块缺了一点儿基础知识，所以看得吃力看不懂。但我现在不需要去搞懂路由原理，跳过
-    public static async ETTask<(uint, IPEndPoint)> GetRouterAddress(Scene clientScene, IPEndPoint address, uint localConn, uint remoteConn) {
-        Log.Info($"start get router address: {clientScene.Id} {address} {localConn} {remoteConn}");
-        // return (RandomHelper.RandUInt32(), address);
-        RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>(); // 它就是在 LoginHelper 里添加的呀
-// 这里得看懂：【局域网内网下具备对外网收发消息的管理总管的地址？现感觉这里写反了呀，是局域网内网下客户端在路由系统中被分配的端口】，它的路由器的端口，是一定变化了的？
-// 【更新路由器的信息：】7 秒时间内，网络结构可能已经发生了变化，所以重新拿了一遍【路由器】的地址信息。感觉这里的路由器地址信息也，一定与上次不一样？！！
-        IPEndPoint routerInfo = routerAddressComponent.GetAddress(); 
-// 就是说，【局域网内网内部，客户端接收消息的专用连接】：从局域网内网下具备对外网收发消息的管理总管，接收消息的局域网内内网连接
-        uint recvLocalConn = await Connect(routerInfo, address, localConn, remoteConn); 
-        Log.Info($"finish get router address: {clientScene.Id} {address} {localConn} {remoteConn} {recvLocalConn} {routerInfo}");
-        return (recvLocalConn, routerInfo);
-    }
-    // 【向router申请】：应该是，使用了路由器的，当前【客户端】与远程【服务端】，实际路由建立会话框的，实现逻辑。是真正重新建立起一个新的通信信道的逻辑
-    private static async ETTask<uint> Connect(IPEndPoint routerAddress, IPEndPoint realAddress, uint localConn, uint remoteConn) {
-        uint connectId = RandomGenerator.RandUInt32(); // 随机生成一个：身份证号。。
-        using Socket socket = new Socket(routerAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp); // 建立一个通话信道
-        int count = 20; // 20 是什么意思呢：一个信道，最多同时（不同时？）发20 条消息？
-        byte[] sendCache = new byte[512]; // 【发送】与【接收】缓存区
-        byte[] recvCache = new byte[512];
-        uint synFlag = localConn == 0? KcpProtocalType.RouterSYN : KcpProtocalType.RouterReconnectSYN; // 消息的同步机制？
-        // 消息头相关的：一堆杂七杂八的？
-        sendCache.WriteTo(0, synFlag);
-        sendCache.WriteTo(1, localConn);
-        sendCache.WriteTo(5, remoteConn);
-        sendCache.WriteTo(9, connectId);
-        byte[] addressBytes = realAddress.ToString().ToByteArray();
-        Array.Copy(addressBytes, 0, sendCache, 13, addressBytes.Length); // 复制消息头
-        Log.Info($"router connect: {connectId} {localConn} {remoteConn} {routerAddress} {realAddress}");
-        EndPoint recvIPEndPoint = new IPEndPoint(IPAddress.Any, 0);
-        long lastSendTimer = 0;
-        while (true) { // 无限循环：信道的专职工作，周而复始。。。
-            long timeNow = TimeHelper.ClientFrameTime();
-            if (timeNow - lastSendTimer > 300) { // 按时间算，300 毫秒
-                if (--count < 0) {
-                    Log.Error($"router connect timeout fail! {localConn} {remoteConn} {routerAddress} {realAddress}");
-                    return 0;
-                }
-                lastSendTimer = timeNow;
-                // 发送：从当前信道，将消息发出去
-                socket.SendTo(sendCache, 0, addressBytes.Length + 13, SocketFlags.None, routerAddress);
-            }
-// 等待桢同步？时间组件管理类说等1 毫秒（还是等1 毫秒呢，感觉是1 毫秒），应该也就是（双端1 秒1 桢？桢率太少，60fps 每秒60 桢）等待这一个异步线程的操作同步到主线程上去？
-            await TimerComponent.Instance.WaitFrameAsync(); 
-            // 【接收：】这里KCP 路由器收消息的原理，感觉不太懂，改天再读
-            if (socket.Available > 0) {
-                int messageLength = socket.ReceiveFrom(recvCache, ref recvIPEndPoint);
-                if (messageLength != 9) {
-                    Log.Error($"router connect error1: {connectId} {messageLength} {localConn} {remoteConn} {routerAddress} {realAddress}");
-                    continue;
-                }
-                byte flag = recvCache[0];
-                if (flag != KcpProtocalType.RouterReconnectACK && flag != KcpProtocalType.RouterACK) {
-                    Log.Error($"router connect error2: {connectId} {synFlag} {flag} {localConn} {remoteConn} {routerAddress} {realAddress}");
-                    continue;
-                }
-                uint recvRemoteConn = BitConverter.ToUInt32(recvCache, 1);
-                uint recvLocalConn = BitConverter.ToUInt32(recvCache, 5);
-                Log.Info($"router connect finish: {connectId} {recvRemoteConn} {recvLocalConn} {localConn} {remoteConn} {routerAddress} {realAddress}");
-                return recvLocalConn;
-            }
-        }
     }
 }
 \end{minted}
-\subsection{PingComponent: 路由组件的几个子组件之一，分辨路由器是否掉线？}
-\label{sec-9-6}
+
+\subsection{MessageDispatcherComponentHelper:}
+\label{sec-9-13}
 \begin{itemize}
-\item 在RouterHelper.cs 类中，为【客户端场景】与客户端所在网络下的【RouterAddressComponent? 路由总代理】（就是同一个路由网络下可以对外发消息的那个局域网络上、管理的总代理）所建立起来的会话框（Session）所添加的几个组件之一。因为路由器可能会掉线？会话框可能会意外中断？所以心跳包可以让服务端知道，这个客户端所在的路由点？是否掉线？会话框是否有效，是否可发收消息等
-\item 标签申明得狠清楚：它是会话框的子部件。
+\item 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？就是说，这里的消息分发处理，还是没有弄明白的。
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[ComponentOf(typeof(Session))]
-public class PingComponent: Entity, IAwake, IDestroy {
-    public long Ping; // 延迟值
-}
-\end{minted}
-\subsection{PingComponentSystem: 添加组件时的自启动轮循逻辑}
-\label{sec-9-7}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[ObjectSystem]
-public class PingComponentAwakeSystem: AwakeSystem<PingComponent> {
-    protected override void Awake(PingComponent self) {
-        PingAsync(self).Coroutine(); // 只要一个会话框添加了这个组件：就始终轮循。。。
-    }
-    private static async ETTask PingAsync(PingComponent self) {
-        Session session = self.GetParent<Session>();
-        long instanceId = self.InstanceId; // 【初始值：】 instanceId, 唯一正确的。如同，亲爱的表哥在活宝妹这里，是永远的单例存在，呵呵呵！！！
-        while (true) { // 一个 true 可以是转了千年之后。。。
-            if (self.InstanceId != instanceId)  // 所以要检查一遍：不一样就不对
-                return;
-            long time1 = TimeHelper.ClientNow();
-            try {
-                G2C_Ping response = await session.Call(new C2G_Ping()) as G2C_Ping; // 这里还是发给【网关服】的
-                if (self.InstanceId != instanceId) // 这里，又检查了一遍。。。 
-                    return;
-                long time2 = TimeHelper.ClientNow();
-                self.Ping = time2 - time1;
-                TimeInfo.Instance.ServerMinusClientTime = response.Time + (time2 - time1) / 2 - time2;
-                await TimerComponent.Instance.WaitAsync(2000); // 每 2 秒，发一个最简心跳消息
+// 消息分发组件
+[FriendOf(typeof(MessageDispatcherComponent))]
+public static class MessageDispatcherComponentHelper { // Awake() etc...
+    private static void Load(this MessageDispatcherComponent self) {
+        self.Handlers.Clear();
+        HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+        foreach (Type type in types) {
+            IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+            if (iMHandler == null) {
+                Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+                continue;
             }
-            catch (RpcException e) {
-                // session断开导致ping rpc报错，记录一下即可，不需要打成error
-                Log.Info($"ping error: {self.Id} {e.Error}");
-                return;
-            } catch (Exception e) {
-                Log.Error($"ping error: \n{e}");
+            object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+            foreach (object attr in attrs) {
+                MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+                Type messageType = iMHandler.GetMessageType();
+                ushort opcode = NetServices.Instance.GetOpcode(messageType);
+                if (opcode == 0) {
+                    Log.Error($"消息opcode为0: {messageType.Name}");
+                    continue;
+                }
+                MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+                self.RegisterHandler(opcode, messageDispatcherInfo);
             }
         }
     }
-}
-[ObjectSystem]
-public class PingComponentDestroySystem: DestroySystem<PingComponent> {
-    protected override void Destroy(PingComponent self) {
-        self.Ping = default; // 不知道这个 default 是什么意思，先放一下
+    private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+        if (!self.Handlers.ContainsKey(opcode)) {
+            self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+        }
+        self.Handlers[opcode].Add(handler);
     }
-}
-\end{minted}
-\subsection{RouterCheckComponent:}
-\label{sec-9-8}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[ComponentOf(typeof(Session))]
-public class RouterCheckComponent: Entity, IAwake {}
-\end{minted}
-\subsection{RouterCheckerComponentSystem:【局域网内网自刷新系统】}
-\label{sec-9-9}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[ObjectSystem]
-public class RouterCheckComponentAwakeSystem: AwakeSystem<RouterCheckComponent> {
-    protected override void Awake(RouterCheckComponent self) {
-        CheckAsync(self).Coroutine();
-    }
-    private static async ETTask CheckAsync(RouterCheckComponent self) {
-        Session session = self.GetParent<Session>();
-        long instanceId = self.InstanceId;
-        while (true) {
-            if (self.InstanceId != instanceId) return;
-            await TimerComponent.Instance.WaitAsync(1000);
-            if (self.InstanceId != instanceId) 
-                return;
-            long time = TimeHelper.ClientFrameTime();
-// 【路由组件】：7 秒钟检查（这里不止检查，重新建新的信道会话框？）一次，当前路由器是否掉线了？如同先前心跳包，心跳包2 秒发条最简消息。。
-            if (time - session.LastRecvTime < 7 * 1000) continue;
+    public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+        List<MessageDispatcherInfo> actions;
+        ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+        if (!self.Handlers.TryGetValue(opcode, out actions)) {
+            Log.Error($"消息没有处理: {opcode} {message}");
+            return;
+        }
+        SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
+        foreach (MessageDispatcherInfo ev in actions) {
+            if (ev.SceneType != sceneType) 
+                continue;
             try {
-                long sessionId = session.Id;
-                // 【异步方法】：网络异步调用，去拿当前客户端的网络服务的信道信息（一个信道连两个端点：一个本地端口，一个远程端口）
-                // 下面一行的疑问：当去拿【当前】会话框的信道，两端端口信息
-                (uint localConn, uint remoteConn) = await NetServices.Instance.GetChannelConn(session.ServiceId, sessionId);
-                IPEndPoint realAddress = self.GetParent<Session>().RemoteAddress; // 局域网内网下具备对外网收发消息的管理总管的地址，是当前会话框的远程地址，不变，会再用
-                Log.Info($"get recvLocalConn start: {self.ClientScene().Id} {realAddress} {localConn} {remoteConn}");
-                // RouterHelper.GetRouterAddress(): 这个方法里，感觉是重新、重建立了新的、更新了通信信道会话框，而不仅仅是每 7 秒检查先前会话框是否仍有效，或是连接着的有效状态 
-                (uint recvLocalConn, IPEndPoint routerAddress) = await RouterHelper.GetRouterAddress(self.ClientScene(), realAddress, localConn, remoteConn);
-                if (recvLocalConn == 0) {
-                    Log.Error($"get recvLocalConn fail: {self.ClientScene().Id} {routerAddress} {realAddress} {localConn} {remoteConn}");
-                    continue;
-                }
-                Log.Info($"get recvLocalConn ok: {self.ClientScene().Id} {routerAddress} {realAddress} {recvLocalConn} {localConn} {remoteConn}");
-                session.LastRecvTime = TimeHelper.ClientNow();
-                NetServices.Instance.ChangeAddress(session.ServiceId, sessionId, routerAddress); // 对新通信信道的网络服务变量参数，更新到管理单例类
+                ev.IMHandler.Handle(session, message);
             }
             catch (Exception e) {
                 Log.Error(e);
@@ -1246,171 +1400,24 @@ public class RouterCheckComponentAwakeSystem: AwakeSystem<RouterCheckComponent> 
     }
 }
 \end{minted}
-
-\subsection{HttpGetRouterHandler : IHttpHandler: 获取各路由器的地址}
-\label{sec-9-10}
-\begin{itemize}
-\item 【匹配服】：因为我想拿这个服的地址，也需要这个帮助类里作相应的修改
-\item StartSceneConfigCategory.Instance: 不明白这个实例是存放在哪里，因为可以 proto 消息进程间传递，那么可以试找，哪里调用这个帮助类拿东西？
-\item 这个模块：现在还是理解不透。需要某个上午，把所有 RouterComponent 组件及其相关，再理一遍。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[HttpHandler(SceneType.RouterManager, "/get_router")]
-public class HttpGetRouterHandler : IHttpHandler {
-    public async ETTask Handle(Entity domain, HttpListenerContext context) {
-        HttpGetRouterResponse response = new HttpGetRouterResponse();
-        response.Realms = new List<string>();
-        response.Matchs = new List<string>();// 匹配服链表  // <<<<<<<<<<<<<<<<<<<< 
-        response.Routers = new List<string>();
-        // 是去StartSceneConfigCategory 这里拿的：因为它可以 proto 消息里、进程间传递，这里还不是狠懂，这个东西存放在哪里？
-        foreach (StartSceneConfig startSceneConfig in StartSceneConfigCategory.Instance.Realms) {
-            response.Realms.Add(startSceneConfig.InnerIPOutPort.ToString());
-        }
-        foreach (StartSceneConfig startSceneConfig in StartSceneConfigCategory.Instance.Matchs) {
-            response.Matchs.Add(startSceneConfig.InnerIPOutPort.ToString());
-        }
-        foreach (StartSceneConfig startSceneConfig in StartSceneConfigCategory.Instance.Routers) {
-            response.Routers.Add($"{startSceneConfig.StartProcessConfig.OuterIP}:{startSceneConfig.OuterPort}");
-        }
-        HttpHelper.Response(context, response);
-        await ETTask.CompletedTask;
-    }
-}
-\end{minted}
-\end{itemize}
-\subsection{HttpHandler 标签系：标签自带场景类型}
-\label{sec-9-11}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-public class HttpHandlerAttribute: BaseAttribute {
-    public SceneType SceneType { get; }
-    public string Path { get; }
-    public HttpHandlerAttribute(SceneType sceneType, string path) {
-        this.SceneType = sceneType;
-        this.Path = path;
-    }
-}
-\end{minted}
-\subsection{GateSessionKeyComponent:}
-\label{sec-9-12}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[ComponentOf(typeof(Scene))]
-public class GateSessionKeyComponent : Entity, IAwake {
-    public readonly Dictionary<long, string> sessionKey = new Dictionary<long, string>();
-}
-\end{minted}
-
-\subsection{NetworkHelper.cs: 狠底层的类，只大概了解ET 空间存在这个静态帮助类}
-\label{sec-9-13}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// ET 命名空间：应该不是热更域，提供最底层最基础的帮助方法。热更域里可以实时调用。
-// 这个类，不用了解细节，太底层了
-public static class NetworkHelper {
-    // 方法的逻辑细节：极底层。现在并不想花时间去弄懂。
-    // 只了解什么情况下会调用这个底层方法：有个工监服，实时扫描服务端系统，有没有哪个宕机了掉线了WatcherComponentSystem.cs WatcherHelp.cs 里会调用这个方法
-    public static string[] GetAddressIPs() {
-        List<string> list = new List<string>();
-        foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces()) {
-            if (networkInterface.NetworkInterfaceType != NetworkInterfaceType.Ethernet) { // 必须是 Ethernet
-                continue;
-            }
-            foreach (UnicastIPAddressInformation add in networkInterface.GetIPProperties().UnicastAddresses) {
-                list.Add(add.Address.ToString());
-            }
-        }
-        return list.ToArray();
-    }
-    // 优先获取IPV4的地址
-    public static IPAddress GetHostAddress(string hostName) {
-        IPAddress[] ipAddresses = Dns.GetHostAddresses(hostName); // 通过。NET 网络底层方法，拿到地址
-        IPAddress returnIpAddress = null;
-        foreach (IPAddress ipAddress in ipAddresses) {
-            returnIpAddress = ipAddress;
-            // 遍历扫描：扫到那个对的，就返回了；扫不到，返回空
-            if (ipAddress.AddressFamily == AddressFamily.InterNetwork) { // 底层定义：相对复杂，应该也可以不需要懂
-                return ipAddress;
-            }
-        }
-        return returnIpAddress;
-    }
-    // 帮助方法：将字符串与端口等，转化成热更域里，可以使用用来拿的小服地址，或是方便建立的与各小服（IPEndPoint）的会话框等
-    public static IPEndPoint ToIPEndPoint(string host, int port) {
-        return new IPEndPoint(IPAddress.Parse(host), port);
-    }
-    public static IPEndPoint ToIPEndPoint(string address) {
-        int index = address.LastIndexOf(':');
-        string host = address.Substring(0, index);
-        string p = address.Substring(index + 1);
-        int port = int.Parse(p);
-        return ToIPEndPoint(host, port);
-    }
-    public static void SetSioUdpConnReset(Socket socket) {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            return;
-        }
-        const uint IOC_IN = 0x80000000;
-        const uint IOC_VENDOR = 0x18000000;
-        const int SIO_UDP_CONNRESET = unchecked((int)(IOC_IN | IOC_VENDOR | 12));
-        socket.IOControl(SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
-    }
-}
-\end{minted}
-\subsection{SceneFactory 里可以给【匹配服】添加组件：怎么把这个加到这里来的？逻辑上连不通呀。。。}
+\subsection{【不记得之前这里写的是什么了。。】}
 \label{sec-9-14}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public static class SceneFactory {
-    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
-        await ETTask.CompletedTask;
-        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
-        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
-        switch (scene.SceneType) {
-        case SceneType.Router:
-            scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
-            break;
-        case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
-            // 云服务器在防火墙那里做端口映射
-            scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
-            break;
-        case SceneType.Realm:
-            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
-            break;
-        case SceneType.Match: // <<<<<<<<<<<<<<<<<<<< 这里是，我可以添加【匹配服】相关功能组件的地方。【参考项目原原码】感觉被我弄丢了
-            break;
-        case SceneType.Gate:
-            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
-            scene.AddComponent<PlayerComponent>();
-            scene.AddComponent<GateSessionKeyComponent>();
-            break;
-        case SceneType.Map:
-            scene.AddComponent<UnitComponent>();
-            scene.AddComponent<AOIManagerComponent>();
-            break;
-        case SceneType.Location:
-            scene.AddComponent<LocationComponent>();
-            break;//...
-        }
-        return scene;
-    }
-}
-\end{minted}
-\section{【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}
-\label{sec-10}
 \begin{itemize}
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 前面大数是找的，框架中存在的网络处理相关的逻辑。
+\item 现在就带问题：现存的编译错误，当客户端需要发送消息，或是某个服需要发送内网消息时，可以如何把消息把出去？
+\item 带现存的编译问题，把这个发送消息相关的逻辑，分外网消息（自客户端发送）与内网消息（自某个服发送），弄明白。
+\item 【客户端】：可以通过客户端场景 ClientScene.GetComponent<SessionComponent>().Send() 的会话框，来发送消息。例子狠多。下面每一行都是一个实际使用的例子，分不同的控件？组件？去拿SessionComponent 的会话框。
 \end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+clientScene.GetComponent<SessionComponent>().Session.Send(new C2M_Stop());
+unit.ClientScene().GetComponent<SessionComponent>().Session.Send(msg);
+\end{minted}
+\begin{itemize}
+\item 【服务端】：MessageHelper 类，好像可以帮助发送不少消息到客户端，到其它服吗？这个发送消息的问题，可能就会连带Actor 相关模块，没弄懂的Rpc 进程间通信一起弄明白。
+\end{itemize}
+\subsection{MessageHelper: 不知道这个类是作什么用的，使用场景等。过会儿看下}
+\label{sec-9-15}
+\subsection{ActorHandleHelper: 是谁调用它，什么场景下使用的？}
+\label{sec-9-16}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}
