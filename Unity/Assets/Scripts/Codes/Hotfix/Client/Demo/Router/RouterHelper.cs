@@ -2,11 +2,13 @@
 using System.Net;
 using System.Net.Sockets;
 namespace ET.Client {
-    // 【路由器帮助类】：现有理解，怎么感觉更像是帮助建立【网关服】同【其它服】的通信会话框？把这个类看懂
+
+    // 【路由器帮助类】：是【客户端】与客户端局域网下的【路由器】之间获取网络地址、建立连接等，相关必要操作帮助类
     // 这个类，框架开发者的原始标记，都看不懂。能够看懂、想出自己理解的一个大概轮括。需要改天准备了必要基础知识后再读一遍
     // 框架以前版本，【客户端】只与【网关服】通信，网关服是它所管辖小区里所有【客户端】的通信代理。
     // 框架重构后的现在版本说，不要什么【网关服】代理了，【客户端】通过客户端所在的路由系统下的【路由总管？】来收发消息。这里【路由总管】感觉功能上，相当于先前随机分配给当前【客户端】的【网关服】。不知道这么理解对不对，记下，再多想一想
     public static class RouterHelper {
+
         // 【注册router】：什么叫注册 router? 为什么我觉得是在建会话框？这个方法没能看完。它是为当前【客户端场景】添加必备路由网络通信功能模块。注意添加的几个组件
         public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
 // 拿客户端场景路由器地址：
@@ -27,6 +29,7 @@ namespace ET.Client {
             // return (RandomHelper.RandUInt32(), address);
             RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>(); // 它就是在 LoginHelper 里添加的呀
 // 这里得看懂：【局域网内网下具备对外网收发消息的管理总管的地址？现感觉这里写反了呀，是局域网内网下客户端在路由系统中被分配的端口】，它的路由器的端口，是一定变化了的？
+// 【更新路由器的信息：】7 秒时间内，网络结构可能已经发生了变化，所以重新拿了一遍【路由器】的地址信息。感觉这里的路由器地址信息也，一定与上次不一样？！！
             IPEndPoint routerInfo = routerAddressComponent.GetAddress(); 
 // 就是说，【局域网内网内部，客户端接收消息的专用连接】：从局域网内网下具备对外网收发消息的管理总管，接收消息的局域网内内网连接
             uint recvLocalConn = await Connect(routerInfo, address, localConn, remoteConn); 

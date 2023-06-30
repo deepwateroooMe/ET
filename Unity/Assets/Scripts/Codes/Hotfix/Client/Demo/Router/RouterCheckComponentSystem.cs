@@ -20,7 +20,7 @@ namespace ET.Client {
                 try {
                     long sessionId = session.Id;
                     // 【异步方法】：网络异步调用，去拿当前客户端的网络服务的信道信息（一个信道连两个端点：一个本地端口，一个远程端口）
-                    // 下面一行的疑问：当去拿【当前】会话框的信道，两端端口信息
+                    // 下面一行的疑问：当去拿【当前】会话框的信道，两端端口信息，拿到的是现信道两端口的【网络异步读取】到的现存信道信息
                     (uint localConn, uint remoteConn) = await NetServices.Instance.GetChannelConn(session.ServiceId, sessionId);
                     IPEndPoint realAddress = self.GetParent<Session>().RemoteAddress; // 局域网内网下具备对外网收发消息的管理总管的地址，是当前会话框的远程地址，不变，会再用
                     Log.Info($"get recvLocalConn start: {self.ClientScene().Id} {realAddress} {localConn} {remoteConn}");

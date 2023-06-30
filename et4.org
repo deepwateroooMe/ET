@@ -675,51 +675,16 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
   - 感觉我还是需要回去再读一下参考项目斗地主游戏里进入地图服的这块儿逻辑。当地图服要给某个用户发消息，MapHelper 这里的作用，应该就是帮助地图服找到有当前用户所在的网关服会话框，以便地图服向用户所在的网关服发消息。可是，感觉起来，地图服与网关服之间，不该是内网组件去管理吗？如果内网组件能够管理，MapHelper 就显得多余了呀。要去检查的还有RealmHelper. 这里感觉没能理解透彻为什么ET7 要把一个个好多个弄成帮助类。 
   - 今天晚上，或是明天上午把参考中的相关源码，相关部分再读一下。
 - 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-* RouterAddressComponent 相关
-- 感觉今天上午，着着实实地狠狠读一下局域网路由器相关。还得再多读多想几遍。
+
+* RouterAddressComponent: 【动态路由组件、模块】相关
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-** SceneFactory 里可以给【匹配服】添加组件：怎么把这个加到这里来的？逻辑上连不通呀。。。
-#+BEGIN_SRC java
-public static class SceneFactory {
-    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
-        await ETTask.CompletedTask;
-        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
-        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
-        switch (scene.SceneType) {
-        case SceneType.Router:
-            scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
-            break;
-        case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
-            // 云服务器在防火墙那里做端口映射
-            scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
-            break;
-        case SceneType.Realm:
-            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
-            break;
-        case SceneType.Match: // <<<<<<<<<<<<<<<<<<<< 这里是，我可以添加【匹配服】相关功能组件的地方。【参考项目原原码】感觉被我弄丢了
-            break;
-        case SceneType.Gate:
-            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
-            scene.AddComponent<PlayerComponent>();
-            scene.AddComponent<GateSessionKeyComponent>();
-            break;
-        case SceneType.Map:
-            scene.AddComponent<UnitComponent>();
-            scene.AddComponent<AOIManagerComponent>();
-            break;
-        case SceneType.Location:
-            scene.AddComponent<LocationComponent>();
-            break;
-//...
-        }
-        return scene;
-    }
-}
-#+END_SRC
+- 因为这个路由器相关的模块，以前总是不懂。感觉今天上午，算是着着实实地狠狠读一下局域网路由器相关。但是这一模块的基础相对薄弱，感觉还有狠多的小细节，不管是从路由器相关的概念上，还是从读源码的源码理解上，仍然还有不少理解不透彻的地方。所以这个章节会需要再多读几遍，多理解几遍源码。
+- 也还需要更多的搜索网络，来从概念上理解【动态路由系统】的原理。感觉个模块更像是【动态路由系统】。因为这个章节是搬、修改自以前理解不够透彻的总结，所以还残留了不少其它可能不太相关的在这里。暂时仍放这里。 
 ** RouterAddressComponent: 路由器组件：能不能，把这个组件理解成为：多场景并存于同一个Process 下的小服（SceneType）的（服务器地址，或建立会话框所必要的信息）？
 - 【RouterAddressComponent】: 理解上，感觉（需要再读再去确认），它是【局域网内网组件】，它是添加在【客户端场景】下的。概念上，局域网内网客户端，是需要与局域网内网下的具备收发消息功能的总管建立起会话框连接的。所以要把这个组件在这个会话框两端的哪一端理解明白。
 - 现在这个路由器模块，感觉亲爱的表哥的活宝妹，更多的是概念上的不理解，不明白这些定义的一个个组件，是什么意思，能够起到什么作用，不同小服之间，或是不同的RouterAddress 之间，可以有哪些相关的联系？【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 同其它任何组件，框架里但凡组件，一定是管理类组件，就是管理一堆小单元小兵小将，它管理一堆一个个Router. 它会有好多条链表在 Info 里，可进程间传递。
+- 可以再搜看【动态路由系统】的原理：它们是一个又一个的路由器每10 分钟自己扫描一遍周围还有哪些邻居，并每扫到一个邻居，就相互认识，把邻居加入到自己的路由器管理的配表里。
 - 重点去看去找： Info 成员的更新原理。当【客户端】（注册？可能不对）登录时，会为当前的【客户端场景】添加【RouterAddressComponent】管理类组件。一个小细节：LoginHelper.cs 的处理逻辑里，会先删除再添加，几秒钟前总结这里，终于想明白，当一个用户再登录时，有可能是先前登出了、掉线了、或是用户自己从其它客户端自顶号。那么先前玩家玩乐的 session 的这个（RouterAddressComponent）组件【是有可能】还没能及时删除的，但它无效了（因为现正在处理现用户的重新登录逻辑）。所以上面是先删除，再添加RouterAddressComponent 组件。
 - 这个【RouterAddressComponent】组件，每10 分钟周而复始周期性扫描系统，实时更新【服务端各小服】的相关信息，更新在 Info 成员里。
 - 这个路由器系统：对自己来说的难点时，以前不曾接触过网络中路由器模块，连一个组件里面必要的成员变量也搞不懂。
@@ -735,9 +700,7 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
 }
 #+END_SRC
 ** RouterAddressComponentSystem: 路由器的生成系：结合【LoginHelper】类来看，这块儿没太看懂
-- 这个类，我是同使用到它的地方，LoginHelper.cs 一起来看的。但是没有看透。
-- LoginHelper 中的逻辑，需要先删除组件，再去判断组件是否为空。生成系中，是有一个只有回收了，才会被销毁的异步函数【如同，亲爱的表哥的活宝妹，永远只在活宝妹一命归西的时候，活宝妹才可能不再去追问：活宝妹嫁给亲爱的表哥了吗？要不然，任何时候，活宝妹都是一定要嫁给亲爱的表哥的！！！爱表哥，爱生活！！！】。可是仍然感觉还里还没有看懂。
-- LoginHelper 使用的地方，为什么就需要先把这个组件，再添加一遍呢？为什么不可以直接定义和调用生成系里的某个异步刷新方法，异步返回最新调用的刷新结果，而必须得删除一次组件、再添加一次组件？
+- 这个类，我是同使用到它的地方，LoginHelper.cs 一起来看的。但是感觉还有不少细节，不知道自己理解得是否正确，没有看透。
 #+BEGIN_SRC java
 [FriendOf(typeof(RouterAddressComponent))]
 public static class RouterAddressComponentSystem {
@@ -748,7 +711,6 @@ public static class RouterAddressComponentSystem {
             self.RouterManagerPort = port;
         }
     }
-
     public static async ETTask Init(this RouterAddressComponent self) {// LoginHelper.cs 帮助类添加组件时，调用初始化
         self.RouterManagerIPAddress = NetworkHelper.GetHostAddress(self.RouterManagerHost);
         await self.GetAllRouter();
@@ -777,7 +739,7 @@ public static class RouterAddressComponentSystem {
         await self.GetAllRouter();
     }
     public static IPEndPoint GetAddress(this RouterAddressComponent self) { // 拿当前组件（所在的服务器）的地址：当知道它是一个路由系统
-        if (self.Info.Routers.Count == 0) return null; // 【路由器没有可用端口？】：如果路由器繁忙，返回空？还是说，当前局域网上不存在局域网的总管呢？
+        if (self.Info.Routers.Count == 0) return null; // 当前路由器每 10 分钟扫一遍：检测周围是否存在路由器的邻居，当它扫不到其它路由器存在就返回
 // 这里，我感觉，因为Info 的进程间可传递性（它永远背这个可传递Info,info 是如何更新的？），需要去考虑它的实时更新问题。
         string address = self.Info.Routers[self.RouterIndex++ % self.Info.Routers.Count]; // 永远返回：路由器里接下来可用的一个端口索引
         string[] ss = address.Split(':');
@@ -786,7 +748,7 @@ public static class RouterAddressComponentSystem {
             ipAddress = ipAddress.MapToIPv6();
         return new IPEndPoint(ipAddress, int.Parse(ss[1]));
     }
-    // 【自己模仿出来的方法】：
+    // 【自己模仿出来的方法】：这里模仿时，可能根本就没弄明白，这个组件算时怎么回事，所以极有可能，自己这个方法模仿得不对
     public static IPEndPoint GetMatchAddress(this RouterAddressComponent self, string account) {
         int v = account.Mode(self.Info.Matchs.Count); // 它说，给它随机分配一个取模后的下编匹配服。。。
         string address = self.Info.Matchs[v];
@@ -819,11 +781,12 @@ public partial class HttpGetRouterResponse: ProtoObject {
     public List<string> Realms { get; set; }
     [ProtoMember(2)]
     public List<string> Routers { get; set; }
+    // 【这个 proto 消息里： HttpGetRouterResponse】的进程间可传递消息的定义里，也需要添加多一个链表
 }
 message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
     repeated string Realms = 1;
     repeated string Routers = 2;
-    repeated string Matchs = 3;// 这行是我需要添加，和生成消息的
+    repeated string Matchs = 3;// 这行是我需要添加，和生成消息的。【上面： HttpGetRouterResponse】的进程间可传递消息的定义里，也需要添加多一个链表
 }
 #+END_SRC
 ** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了
@@ -867,7 +830,7 @@ public static class LoginHelper { // 程序域：热更新域在。调用自热�
 #+END_SRC
 ** RouterHelper: 【客户端——路由器帮助类】，向路由器注册、申请？LoginHelper.cs 的逻辑里用到这个帮助类。
 #+BEGIN_SRC java
-// 【路由器帮助类】：现有理解，怎么感觉更像是帮助建立【网关服】同【其它服】的通信会话框？把这个类看懂
+// 【路由器帮助类】：是【客户端】与客户端局域网下的【路由器】之间获取网络地址、建立连接等，相关必要操作帮助类
 // 这个类，框架开发者的原始标记，都看不懂。能够看懂、想出自己理解的一个大概轮括。需要改天准备了必要基础知识后再读一遍
 // 框架以前版本，【客户端】只与【网关服】通信，网关服是它所管辖小区里所有【客户端】的通信代理。
 // 框架重构后的现在版本说，不要什么【网关服】代理了，【客户端】通过客户端所在的路由系统下的【路由总管？】来收发消息。这里【路由总管】感觉功能上，相当于先前随机分配给当前【客户端】的【网关服】。不知道这么理解对不对，记下，再多想一想
@@ -876,13 +839,13 @@ public static class RouterHelper {
     public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
 // 拿客户端场景路由器地址：
         (uint recvLocalConn, IPEndPoint routerAddress) = await GetRouterAddress(clientScene, address, 0, 0); 
-        if (recvLocalConn == 0) {
+        if (recvLocalConn == 0) 
             throw new Exception($"get router fail: {clientScene.Id} {address}");
-        }
         Log.Info($"get router: {recvLocalConn} {routerAddress}");
         Session routerSession = clientScene.GetComponent<NetClientComponent>().Create(routerAddress, address, recvLocalConn); // 直接建立了【客户端】会话框
-        routerSession.AddComponent<PingComponent>();
-        routerSession.AddComponent<RouterCheckComponent>();
+        // 前面想到，这个路由组件，功能上相当于先前的【网关服】
+        routerSession.AddComponent<PingComponent>(); // 路由组件：它需要心跳包给服务端知道，这个组件，是否掉线了？
+        routerSession.AddComponent<RouterCheckComponent>(); 
         return routerSession;
     }
     // 不去细看关于RounterAddressComponent 里的这个方法了。感觉关于Rounter 的路由原理，我可能这个模块缺了一点儿基础知识，所以看得吃力看不懂。但我现在不需要去搞懂路由原理，跳过
@@ -890,12 +853,15 @@ public static class RouterHelper {
         Log.Info($"start get router address: {clientScene.Id} {address} {localConn} {remoteConn}");
         // return (RandomHelper.RandUInt32(), address);
         RouterAddressComponent routerAddressComponent = clientScene.GetComponent<RouterAddressComponent>(); // 它就是在 LoginHelper 里添加的呀
-        IPEndPoint routerInfo = routerAddressComponent.GetAddress();
-        uint recvLocalConn = await Connect(routerInfo, address, localConn, remoteConn); // 从这里，开始往下看
+// 这里得看懂：【局域网内网下具备对外网收发消息的管理总管的地址？现感觉这里写反了呀，是局域网内网下客户端在路由系统中被分配的端口】，它的路由器的端口，是一定变化了的？
+// 【更新路由器的信息：】7 秒时间内，网络结构可能已经发生了变化，所以重新拿了一遍【路由器】的地址信息。感觉这里的路由器地址信息也，一定与上次不一样？！！
+        IPEndPoint routerInfo = routerAddressComponent.GetAddress(); 
+// 就是说，【局域网内网内部，客户端接收消息的专用连接】：从局域网内网下具备对外网收发消息的管理总管，接收消息的局域网内内网连接
+        uint recvLocalConn = await Connect(routerInfo, address, localConn, remoteConn); 
         Log.Info($"finish get router address: {clientScene.Id} {address} {localConn} {remoteConn} {recvLocalConn} {routerInfo}");
         return (recvLocalConn, routerInfo);
     }
-    // 【向router申请】：应该是，使用了路由器的，当前【客户端】与远程【服务端】，实际路由建立会话框的，实现逻辑
+    // 【向router申请】：应该是，使用了路由器的，当前【客户端】与远程【服务端】，实际路由建立会话框的，实现逻辑。是真正重新建立起一个新的通信信道的逻辑
     private static async ETTask<uint> Connect(IPEndPoint routerAddress, IPEndPoint realAddress, uint localConn, uint remoteConn) {
         uint connectId = RandomGenerator.RandUInt32(); // 随机生成一个：身份证号。。
         using Socket socket = new Socket(routerAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp); // 建立一个通话信道
@@ -911,7 +877,6 @@ public static class RouterHelper {
         byte[] addressBytes = realAddress.ToString().ToByteArray();
         Array.Copy(addressBytes, 0, sendCache, 13, addressBytes.Length); // 复制消息头
         Log.Info($"router connect: {connectId} {localConn} {remoteConn} {routerAddress} {realAddress}");
-
         EndPoint recvIPEndPoint = new IPEndPoint(IPAddress.Any, 0);
         long lastSendTimer = 0;
         while (true) { // 无限循环：信道的专职工作，周而复始。。。
@@ -1145,9 +1110,44 @@ public static class NetworkHelper {
     }
 }
    #+END_SRC
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+** SceneFactory 里可以给【匹配服】添加组件：怎么把这个加到这里来的？逻辑上连不通呀。。。
+#+BEGIN_SRC java
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
+        await ETTask.CompletedTask;
+        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
+        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
+        switch (scene.SceneType) {
+        case SceneType.Router:
+            scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+            break;
+        case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+            // 云服务器在防火墙那里做端口映射
+            scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+            break;
+        case SceneType.Realm:
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+            break;
+        case SceneType.Match: // <<<<<<<<<<<<<<<<<<<< 这里是，我可以添加【匹配服】相关功能组件的地方。【参考项目原原码】感觉被我弄丢了
+            break;
+        case SceneType.Gate:
+            scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+            scene.AddComponent<PlayerComponent>();
+            scene.AddComponent<GateSessionKeyComponent>();
+            break;
+        case SceneType.Map:
+            scene.AddComponent<UnitComponent>();
+            scene.AddComponent<AOIManagerComponent>();
+            break;
+        case SceneType.Location:
+            scene.AddComponent<LocationComponent>();
+            break;//...
+        }
+        return scene;
+    }
+}
+#+END_SRC
+* 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
