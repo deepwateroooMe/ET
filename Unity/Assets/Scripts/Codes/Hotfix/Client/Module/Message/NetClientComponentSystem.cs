@@ -19,9 +19,7 @@ namespace ET.Client {
         }
         private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
             Session session = self.GetChild<Session>(channelId); // 拿：相应的会话框
-            if (session == null) { // 空：直接返回
-                return;
-            }
+            if (session == null) return; // 空：直接返回
             session.LastRecvTime = TimeHelper.ClientNow();
             OpcodeHelper.LogMsg(self.DomainZone(), message);
 // 发布事件：事件的接收者，应该是【客户端】的Session 层面的进一步读取消息内容（内存流上读消息？），改天再去细看。
@@ -29,8 +27,7 @@ namespace ET.Client {
         }
         private static void OnError(this NetClientComponent self, long channelId, int error) {
             Session session = self.GetChild<Session>(channelId); // 同样，先去拿会话框：因为这些异步网络的消息传递，都是建立在一个个会话框的基础上的
-            if (session == null)  // 空：直接返回 
-                return;
+            if (session == null) return; // 空：直接返回 
             session.Error = error;
             session.Dispose();
         }
@@ -38,9 +35,8 @@ namespace ET.Client {
             long channelId = NetServices.Instance.CreateConnectChannelId();
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 创建必要的会话框，方便交通
             session.RemoteAddress = realIPEndPoint;
-            if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            if (self.DomainScene().SceneType != SceneType.Benchmark) 
                 session.AddComponent<SessionIdleCheckerComponent>(); // 不知道这个是干什么的，改天再看
-            }
             NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint); // 创建信道
             return session;
         }
@@ -48,9 +44,8 @@ namespace ET.Client {
             long channelId = localConn;
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
             session.RemoteAddress = realIPEndPoint;
-            if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            if (self.DomainScene().SceneType != SceneType.Benchmark) 
                 session.AddComponent<SessionIdleCheckerComponent>();
-            }
             NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
             return session;
         }

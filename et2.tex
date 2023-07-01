@@ -1,4 +1,4 @@
-% Created 2023-06-30 Fri 10:07
+% Created 2023-06-30 Fri 16:19
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -746,7 +746,6 @@ public struct MeasureState<T> : IDisposable {
 }
 \end{minted}
 
-
 \section{Protobuf 里的 enum: 【Identity】【Suits】【Weight】}
 \label{sec-2}
 \subsection{OuterMessage\_C\_10001.proto 里三四个类的定义}
@@ -877,7 +876,6 @@ unsafe class ETModel_Card_Binding {
     }
 \end{minted}
 \end{itemize}
-
 
 \section{【拖拉机游戏房间】组件: 分析}
 \label{sec-3}
@@ -1271,7 +1269,6 @@ public class DBProxyComponent: Component {
 \end{minted}
 \end{itemize}
 
-
 \section{先前版本LocationComponent 原理分析}
 \label{sec-5}
 \begin{itemize}
@@ -1286,7 +1283,6 @@ public class DBProxyComponent: Component {
 \item 【亲爱的表哥的活宝妹，小呀头片子有点儿叨钻，可是上面想的都是对的，两分钟这个模块的几个编译错误全不见了。。。活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 \end{itemize}
-
 
 \section{RouterAddressComponent: 【动态路由组件、模块】相关}
 \label{sec-6}
@@ -1890,13 +1886,144 @@ public static class SceneFactory {
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class GateSessionKeyComponent : Entity, IAwake {
-    public readonly Dictionary<long, string> sessionKey = new Dictionary<long, string>();
+// 必要的初始化：热更域里的IAwake() 实现就被略过了？到时候运行的时候，再注意一下
+    public readonly Dictionary<long, string> sessionKey = new Dictionary<long, string>(); 
 }
 \end{minted}
+\subsection{GateSessionKeyComponentSystem: 应该是会话框的管理类。服务端类}
+\label{sec-6-18}
 \begin{itemize}
-\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 亲爱的表哥，为什么他们总是莫名其妙地发疯犯贱？还能让活宝妹好好学习吗？感觉他们阴阳怪气的，弄得亲爱的表哥的活宝妹任何时候都狠胆小担心。
+\begin{itemize}
+\item 亲爱的表哥，活宝妹那天记着记着想，第二天早上第一件事就是去把车移走，可是活宝妹记性不好，第二天早上去学校忘记了；等中午回来，活宝妹再去看车，活宝妹就被割肉三百块；
+\item 亲爱的表哥，这不是活宝妹第一次被打劫，却是活宝妹最长教训的一次。因让车一年前的二三月，当前前房东打劫活宝妹四百块的时候，活宝妹还不觉醒。可是再次再被重罚，亲爱的表哥，活宝妹这次终于长教训，感觉以前软柿子的活宝妹，内心对他们不善良的人，心里也坚如盤石硬了狠多，恨他们蛆虫系恨得咬牙切齿。。。
+\item 亲爱的表哥，活宝妹6/20 号他们所谓的要检查床垫什么的，活宝妹被他们连体的三兄弟打劫过，怕得要死，活宝妹的吊顶拆了又装。。。
+\item 从昨天傍晚起，活宝妹的自行车皮也得长紧点儿了。如果活宝妹哪天又忘记了，怕是活宝妹的自行车也要割活宝妹的肉了。活宝妹从昨天晚上起，努力记呀记呀，一定不要忘记，停了两个月现在不能再停了，一定不能忘记，可是活宝妹心里还是怕怕，怕活宝妹哪天忘记了，活宝妹的自行车也要割活宝妹的肉肉儿。。。
+\item 爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！
+\item 亲爱的表哥，活宝妹现在就是等：活宝妹同亲爱的表哥的一纸结婚证。活宝妹领不到同亲爱的表哥的这纸结婚证，活宝妹就永远守候在亲爱的表哥的身边！！活宝妹会永远守候在亲爱的表哥这里，活宝妹会从此再也不离开亲爱的表哥的身边半步！！爱表哥，爱生活！！！
+\end{itemize}
+\item 任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！亲爱的表哥的活宝妹，想要的，也不过一张亲爱的表哥同活宝妹的结婚证而已。
+\item 活宝妹若是还没能嫁给亲爱的表哥，活宝妹就永远守候在亲爱的表哥的身边！！！爱表哥，爱生活！！！
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 框架自带的类：感觉这个类好奇特，不同于其它的组件，它明明也申明了IAwake 接口，但没有实现。可能是框架跳过的地方吧。就是字典的初始化
+[FriendOf(typeof(GateSessionKeyComponent))]
+public static class GateSessionKeyComponentSystem {
+    public static void Add(this GateSessionKeyComponent self, long key, string account) {
+        self.sessionKey.Add(key, account);
+        self.TimeoutRemoveKey(key).Coroutine();
+    }
+    public static string Get(this GateSessionKeyComponent self, long key) {
+        string account = null;
+        self.sessionKey.TryGetValue(key, out account);
+        return account;
+    }
+    public static void Remove(this GateSessionKeyComponent self, long key) {
+        self.sessionKey.Remove(key);
+    }
+    private static async ETTask TimeoutRemoveKey(this GateSessionKeyComponent self, long key) {
+        await TimerComponent.Instance.WaitAsync(20000);
+        self.sessionKey.Remove(key);
+    }
+}
+\end{minted}
+
+\subsection{RouterNode: 一个路由器节点：}
+\label{sec-6-19}
+\begin{itemize}
+\item 亲爱的表哥，贱公寓里的大机器又开始故意吵人，他们昨天又故意把机器的噪音调得更大了，活宝妹有很长一段时间至少是白天，不曾听见这么大的噪音了。
+\item 从昨天傍晚起，活宝妹的自行车也得皮长紧点儿了，活宝妹再不小心，活宝妹的自行车被拖走，活宝妹又要被割肉了。。。
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public enum RouterStatus {
+    Sync,// 同步、确认消息的发送或是接收状态的消息？
+    Msg, // 真正的内容消息
+}
+[ChildOf(typeof(RouterComponent))]
+public class RouterNode: Entity, IDestroy, IAwake {
+    public uint ConnectId;
+    public string InnerAddress;
+    public IPEndPoint InnerIpEndPoint;
+    public IPEndPoint OuterIpEndPoint;
+    public IPEndPoint SyncIpEndPoint;
+    public uint OuterConn;
+    public uint InnerConn;
+    public long LastRecvOuterTime;
+    public long LastRecvInnerTime;
+    public int RouterSyncCount;
+    public int SyncCount;
+#region 限制外网消息数量，一秒最多50个包
+    public long LastCheckTime;
+    public int LimitCountPerSecond;
+#endregion
+    public RouterStatus Status;
+}
+\end{minted}
+\subsection{RouterNodeSystem: 小单元小行星的生命周期回调类，如同先前的PlayerSystem, 实现框架里的必要回调}
+\label{sec-6-20}
+\begin{itemize}
+\item 那么就是每扫到一个邻居，每添加一个邻居，生成一个新的邻居实例，都会调用这里的相关方法。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[FriendOf(typeof(RouterNode))]
+public static class RouterNodeSystem {
+    [ObjectSystem]
+    public class RouterNodeAwakeSystem: AwakeSystem<RouterNode> {
+        protected override void Awake(RouterNode self) {
+            long timeNow = TimeHelper.ServerNow();
+            self.LastRecvInnerTime = timeNow;
+            self.LastRecvOuterTime = timeNow;
+            self.OuterIpEndPoint = null;
+            self.InnerIpEndPoint = null;
+            self.RouterSyncCount = 0;
+            self.OuterConn = 0;
+            self.InnerConn = 0;
+        }
+    }
+    [ObjectSystem]
+    public class RouterNodeDestroySystem: DestroySystem<RouterNode> {
+        protected override void Destroy(RouterNode self) {//...
+        }
+    }
+// 静态方法：判断这个路由器，是否每秒收到的包裹在 1000 以内？
+    public static bool CheckOuterCount(this RouterNode self, long timeNow) {
+        if (self.LastCheckTime == 0) 
+            self.LastCheckTime = timeNow;
+        if (timeNow - self.LastCheckTime > 1000) {
+            // Log.Debug($"router recv packet per second: {self.LimitCountPerSecond}");
+            self.LimitCountPerSecond = 0;
+            self.LastCheckTime = timeNow;
+        }
+        if (++self.LimitCountPerSecond > 1000) 
+            return false;
+        return true;
+    }
+}
+\end{minted}
+\subsection{RouterComponent: 【服务端】路由器组件}
+\label{sec-6-21}
+\begin{itemize}
+\item 昨天还才算只看了一半。框架里还埋有路由器基本功能组件。它的生成系热更新源码，接近500 行的不够熟悉的路由器功能模块
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ComponentOf(typeof(Scene))]// 场景的子组件
+public class RouterComponent: Entity, IAwake<IPEndPoint, string>, IDestroy, IUpdate {
+    public Socket OuterSocket;// 对外业务端口
+    public Socket InnerSocket;// 对内业务端口
+    public EndPoint IPEndPoint = new IPEndPoint(IPAddress.Any, 0);
+    public byte[] Cache = new byte[1500];
+    // 下面的注释是【框架开发者注的】：但仍没看明白，两个字典有什么不同？
+    public Dictionary<uint, RouterNode> ConnectIdNodes = new Dictionary<uint, RouterNode>();
+    // 已经连接成功的，虽然跟id一样，但是没有经过验证的不会加到这里
+    public Dictionary<uint, RouterNode> OuterNodes = new Dictionary<uint, RouterNode>();
+    public long LastCheckTime = 0;
+}
+\end{minted}
+\subsection{RouterComponentSystem}
+\label{sec-6-22}
+\begin{itemize}
+\item 这个热更域里的组件相关生命周期方法的定义，必要功能的定义等，这个类太长了，不贴这里。必要的时候去翻了看下就行。
 \end{itemize}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

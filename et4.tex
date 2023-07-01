@@ -1,4 +1,4 @@
-% Created 2023-06-30 Fri 11:18
+% Created 2023-06-30 Fri 14:57
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -879,11 +879,6 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.In
 Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
 \end{minted}
 \item InnerConfig: 可以把老版本里的 InnerConfig 类，参考对比ET7 里的ConfigSingleton<T> 泛型类，来试着理解和适配这相模块。因为同属配置类，就是分两个模块。
-\item 【今天上午】：亲爱的表哥，以后的活宝妹要做到，视三楼的贱畜牲们如无物，不存在，太恶心人了。
-\begin{itemize}
-\item 因为昨天读【路由器相关模块】，读得感觉比较懂一点儿了。今天上午所所有网络相关的模块再读一遍，什么时候添加的组件，事件的传递顺序等，都弄明白。修改补好笔记。
-\item 今天下午大概再在家里改，理出重构游戏里接下来的学习和重构思路。
-\end{itemize}
 \item 今天上午再继续看一模块。把昨天下午感觉有点儿不熟悉的：服务端如何管理随机分配给各客户端的各小服的编号等，以及客户端什么时候、如何进入地图服的弄明白。
 \item 因为上午头脑相对清醒，把遇见的凡不明白的模块，都试图理解透彻弄明白，比较RouterAddressComponent
 \item 【地图服Map 服】：在整理MapHelper.cs 的逻辑的时候，因为游戏的这块儿逻辑不够熟悉，具体原理，或说是连接过程仍然不是狠懂。
@@ -891,16 +886,21 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \item 感觉我还是需要回去再读一下参考项目斗地主游戏里进入地图服的这块儿逻辑。当地图服要给某个用户发消息，MapHelper 这里的作用，应该就是帮助地图服找到有当前用户所在的网关服会话框，以便地图服向用户所在的网关服发消息。可是，感觉起来，地图服与网关服之间，不该是内网组件去管理吗？如果内网组件能够管理，MapHelper 就显得多余了呀。要去检查的还有RealmHelper. 这里感觉没能理解透彻为什么ET7 要把一个个好多个弄成帮助类。
 \item 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 感觉我对源码的管理做得不够好。过程中为什么有很多类，过程中都没能看见呢？为什么分支里明明是有LocationComponent 类，而我先前找不到？
+\item 【今天下午】：
+\begin{itemize}
+\item 因为昨天读【路由器相关模块】，读得感觉比较懂一点儿了。今天下午所所有网络相关的模块再读一遍，什么时候添加的组件，事件的传递顺序等，都弄明白。修改补好笔记。
+\item 今天下午会手洗半小时内衣，骑行内衣傍晚会穿出去骑约1-1.5 小时。下午可能会花半小时左右手工。
+\item 今天下午家里用大显示器，会希望再读至少 2.5 小时框架里的网络模块，把上午弄得半头三桩，羞于提交上 github 的笔记事理好。
 \end{itemize}
-
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\end{itemize}
 
 \section{Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制。没理解透、总结不全，待增补}
 \label{sec-9}
 \begin{itemize}
 \item 当网络模块也改成是事件机制，可能是我先前对网络模块理解得还是不够透彻，怎么感觉 ET7 之后不知道会话框是怎么管理的？
-\item 我把可能相关的文件系统摆在一起，可是还没能真正系统性地自顶向下地梳理一遍事件传递过程。
-\item 现在整理的阶段，仍然是翻源码的过程中，看见哪里没读过，或是没理解透彻，补上改改。但是当感觉把这块儿补完时，仍然需要一两个例子【自顶向下】，或自消息的发送，到返回消息至客户端，再梳理一遍整个流程。
-\item 现在还没弄清楚：Server, Client, Inner, 好像没有Outer 了，几个相对模块算是怎么回事？
+\item 我把可能相关的文件系统摆在一起，可是还没能真正系统性地自顶向下地梳理一遍事件传递过程。现在整理的阶段，仍然是翻源码的过程中，看见哪里没读过，或是没理解透彻，补上改改。但是当感觉把这块儿补完时，仍然需要一两个例子【自顶向下】，或自消息的发送，到返回消息至客户端，再梳理一遍整个流程。
+\item 现在还没弄清楚：Server, Client, Inner, 好像没有Outer 了，几个相对模块算是怎么回事？不管是【网络服务端NetServerComponent】，还是【网络客户端 NetClientComponent】组件，它们都管理无数个与这个端建立连接的会话框。
 \end{itemize}
 \subsection{RpcInfo: 【消息的包装体】。结合NetServerComponentOnReadEvent 来读。}
 \label{sec-9-1}
@@ -978,20 +978,25 @@ public static class NetServerComponentSystem {
 \subsection{NetServerComponentOnReadEvent: NetServerComponent组件，会发布事件，触发此回调类}
 \label{sec-9-4}
 \begin{itemize}
-\item 框架里，是NetServerComponent 会发布此事件，触发这个回调类。去找，有几个订阅者？相互间有没有不同？
-\item 从这个重要事件，会被自己先前总结丢来看，先前甚至现在，还是对网络框架，框架里的这些事件机制的传送过程，没能理解透彻。今天上午再理一遍。
+\item 框架里，是NetServerComponent 会发布此事件，触发这个回调类。去找，有几个订阅者？异步网络消息的发送，与接收，大多都还是单流程，不事分支的，所以全局只有这一个订阅者。
+\item 【服务端会话框】上的：收到IResponse 回复消息的情况，调用会话框的OnResponse() 方法处理。感觉理解起来困难。觉得服务端应该不会、或是极少出现这种情况吧。感觉更可能是客户端才出现这种情况呀。（服务端的内网回复消息也是有可能的，只是现在想不到例子，或说当服务端实际行驶客户端收返回消息功能的这个功能切分，感觉理解起来困难）
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件
 public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
-    protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) {
+    protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) { // 【返回消息的发送】：仍是封装在框架底层
         Session session = args.Session;
         object message = args.Message;
-// 【回复消息】：前面的重点看错了，重点是【回复】消息，能够到达当前内网组件，就说明至少是当前进程的，所以不管IRpcResponse IRpcLocationResponse, 都会话框处理
-        if (message is IResponse response) { // 【回复消息】
-            session.OnResponse(response);
-            return;
-        }
+// 【回复消息】：前面的重点看错了，重点是【回复】消息，能够到达当前服务端组件，就说明是属于当前进程收的消息（想的话，觉得是其它服务端转过来的消息），
+        // 所以不区分IRpcResponse IRpcLocationResponse 类型, 都向下交由会话框处理
+        // 【服务端上，会话框】Session: 发，还是不发，消息到Channel 的另一头  // <<<<<<<<<<<<<<<<<<<< 【这部分没读懂】
+        if (message is IResponse response) { // 【回复消息】: 就去服务端，什么情况下会出现这种情况？
+            // 【没读懂】：服务端组件，处理回复消息，要不要【发】返回消息的步骤？找不到哪里有，发送，的这个步骤。
+            // 而会话框，若真是从其它服转过来的消息，现服务端不已经是会话框的另一端了吗（内网消息也走会话框吗？还得接着去读内网Inner.）？感觉这里哪里没懂。。。
+            session.OnResponse(response); // 【会话框】：直接处理返回消息。处理的逻辑也仅限于将RpcInfo.Tcs 异步任务的返回结果写好。并不负责将返回消息发送回去。
+            return; // 这里返回：我仍然找不到，返回消息是，如何【发送】回去的？发送的过程步骤调用，是哪里处理的？
+        } // 对于【服务端】来说，【会话框】上，只要把【异步任务TCS】的结果写好填好，异步网络Session 底层，会自动处理Channel 客户端那一头的自动读取，框架是不用管的？
         // 根据消息接口判断是不是Actor消息，不同的接口做不同的处理,比如需要转发给Chat Scene，可以做一个IChatMessage接口
         switch (message) { // 【发送消息】＋【不要求回复的消息】
             case IActorLocationRequest actorLocationRequest: { // gate session收到actor rpc消息，先向actor 发送rpc请求，再将请求结果返回客户端 
@@ -1023,8 +1028,12 @@ public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
     }
 }
 \end{minted}
-\subsection{NetClientComponent: 【网络客户端】组件}
+\subsection{NetClientComponent: 【网络客户端】组件：这个，感觉与【服务端】定义申明上看是一样的}
 \label{sec-9-5}
+\begin{itemize}
+\item 【服务端】会话框上收【返回消息】的处理时，直接会话框上返回了返回消息。这里再试着从客户端的角度来找下，有没有相关的逻辑。
+\item 以前读框架，边读边打瞌睡，现在读一遍，会感觉收获狠多。所以，今天下午还需要再接着认认真真读几个小时。
+\end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public struct NetClientComponentOnRead {
     public Session Session;
@@ -1400,24 +1409,60 @@ public static class MessageDispatcherComponentHelper { // Awake() etc...
     }
 }
 \end{minted}
-\subsection{【不记得之前这里写的是什么了。。】}
+\subsection{SessionIdleCheckerComponent: 【会话框】闲置状态管理组件}
 \label{sec-9-14}
 \begin{itemize}
-\item 前面大数是找的，框架中存在的网络处理相关的逻辑。
-\item 现在就带问题：现存的编译错误，当客户端需要发送消息，或是某个服需要发送内网消息时，可以如何把消息把出去？
-\item 带现存的编译问题，把这个发送消息相关的逻辑，分外网消息（自客户端发送）与内网消息（自某个服发送），弄明白。
-\item 【客户端】：可以通过客户端场景 ClientScene.GetComponent<SessionComponent>().Send() 的会话框，来发送消息。例子狠多。下面每一行都是一个实际使用的例子，分不同的控件？组件？去拿SessionComponent 的会话框。
-\end{itemize}
+\item 【会话框】闲置状态管理组件：当服务器太忙，一个会话框闲置太久，有没有什么逻辑会回收闲置会话框来提高服务器性能什么之类的？
+\item 框架里ET 命名空间：设置的机制是，任何会话框，超过 30 秒不曾发送和接收过（要30 秒内既发送过也接收到过消息）消息，都算作超时，回收，提到服务器性能。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-clientScene.GetComponent<SessionComponent>().Session.Send(new C2M_Stop());
-unit.ClientScene().GetComponent<SessionComponent>().Session.Send(msg);
+// 【会话框】闲置状态管理组件：当服务器太忙，一个会话框闲置太久，有没有什么逻辑会回收闲置会话框来提高服务器性能什么之类的？
+[ComponentOf(typeof(Session))]
+public class SessionIdleCheckerComponent: Entity, IAwake, IDestroy {
+    public long RepeatedTimer;
+}
 \end{minted}
+\end{itemize}
+\subsection{SessionIdleCheckerComponentSystem: SessionIdleChecker 激活类，}
+\label{sec-9-15}
 \begin{itemize}
-\item 【服务端】：MessageHelper 类，好像可以帮助发送不少消息到客户端，到其它服吗？这个发送消息的问题，可能就会连带Actor 相关模块，没弄懂的Rpc 进程间通信一起弄明白。
+\item 这是前面读过的、类似实现原理的超时机制。感觉这个类，现在读起来狠简单。没有门槛。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Invoke(TimerInvokeType.SessionIdleChecker)]
+public class SessionIdleChecker: ATimer<SessionIdleCheckerComponent> {
+    protected override void Run(SessionIdleCheckerComponent self) {
+        try {
+            self.Check();
+        } catch (Exception e) {
+            Log.Error($"move timer error: {self.Id}\n{e}");
+        }
+    }
+}
+[ObjectSystem]
+public class SessionIdleCheckerComponentAwakeSystem: AwakeSystem<SessionIdleCheckerComponent> {
+    protected override void Awake(SessionIdleCheckerComponent self) {
+        // 同样设置：【重复闹钟】：任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！
+        self.RepeatedTimer = TimerComponent.Instance.NewRepeatedTimer(SessionIdleCheckerComponentSystem.CheckInteral, TimerInvokeType.SessionIdleChecker, self);
+    }
+}// 。。。
+public static class SessionIdleCheckerComponentSystem {
+    public const int CheckInteral = 2000; // 每隔 2 秒
+    public static void Check(this SessionIdleCheckerComponent self) {
+        Session session = self.GetParent<Session>();
+        long timeNow = TimeHelper.ClientNow();
+        // 常量类定义：会话框最长每个 30 秒；
+        // 判断：30 秒内，曾经发送过消息，并且也接收过消息，直接返回；否则，算作【会话框】超时
+        if (timeNow - session.LastRecvTime < ConstValue.SessionTimeoutTime && timeNow - session.LastSendTime < ConstValue.SessionTimeoutTime) 
+            return;
+        Log.Info($"session timeout: {session.Id} {timeNow} {session.LastRecvTime} {session.LastSendTime} {timeNow - session.LastRecvTime} {timeNow - session.LastSendTime}");
+        session.Error = ErrorCore.ERR_SessionSendOrRecvTimeout; // 【会话框】超时回收
+        session.Dispose();
+    }
+}
+\end{minted}
 \end{itemize}
 \subsection{MessageHelper: 不知道这个类是作什么用的，使用场景等。过会儿看下}
-\label{sec-9-15}
-\subsection{ActorHandleHelper: 是谁调用它，什么场景下使用的？}
 \label{sec-9-16}
+\subsection{ActorHandleHelper: 是谁调用它，什么场景下使用的？}
+\label{sec-9-17}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
 namespace ET {
-
     [Flags]
     public enum EntityStatus: byte {
         None = 0,
@@ -12,22 +11,18 @@ namespace ET {
         IsCreated = 1 << 3,
         IsNew = 1 << 4,
     }
-
     public partial class Entity: DisposeObject {
 #if ENABLE_VIEW && UNITY_EDITOR
         private UnityEngine.GameObject viewGO;
 #endif
-
         [BsonIgnore]
         public long InstanceId {
             get;
             protected set;
         }
         protected Entity() {}
-
         [BsonIgnore]
         private EntityStatus status = EntityStatus.None; 
-
         [BsonIgnore]
         private bool IsFromPool {
             get => (this.status & EntityStatus.IsFromPool) == EntityStatus.IsFromPool;
@@ -36,44 +31,35 @@ namespace ET {
                 else  this.status &= ~EntityStatus.IsFromPool;
             }
         }
-
         [BsonIgnore]
         protected bool IsRegister {
             get => (this.status & EntityStatus.IsRegister) == EntityStatus.IsRegister;
             set {
-                if (this.IsRegister == value) {
+                if (this.IsRegister == value) 
                     return;
-                }
                 if (value) {
                     this.status |= EntityStatus.IsRegister;
-                }
-                else {
+                } else {
                     this.status &= ~EntityStatus.IsRegister;
                 }
-                
-                
                 if (!value) {
                     Root.Instance.Remove(this.InstanceId);
-                }
-                else {
+                } else {
                     Root.Instance.Add(this);
                     EventSystem.Instance.RegisterSystem(this);
                 }
-                
 #if ENABLE_VIEW && UNITY_EDITOR
                 if (value) {
                     this.viewGO = new UnityEngine.GameObject(this.ViewName);
                     this.viewGO.AddComponent<ComponentView>().Component = this;
                     this.viewGO.transform.SetParent(this.Parent == null? 
                                                     UnityEngine.GameObject.Find("Global").transform : this.Parent.viewGO.transform);
-                }
-                else {
+                } else {
                     UnityEngine.Object.Destroy(this.viewGO);
                 }
 #endif
             }
         }
-        
         protected virtual string ViewName {
             get {
                 return this.GetType().Name;    
@@ -85,8 +71,7 @@ namespace ET {
             set {
                 if (value) {
                     this.status |= EntityStatus.IsComponent;
-                }
-                else {
+                } else {
                     this.status &= ~EntityStatus.IsComponent;
                 }
             }
@@ -97,21 +82,18 @@ namespace ET {
             set {
                 if (value) {
                     this.status |= EntityStatus.IsCreated;
-                }
-                else {
+                } else {
                     this.status &= ~EntityStatus.IsCreated;
                 }
             }
         }
-        
         [BsonIgnore]
         protected bool IsNew {
             get => (this.status & EntityStatus.IsNew) == EntityStatus.IsNew;
             set {
                 if (value) {
                     this.status |= EntityStatus.IsNew;
-                }
-                else {
+                } else {
                     this.status &= ~EntityStatus.IsNew;
                 }
             }
@@ -120,22 +102,18 @@ namespace ET {
         public bool IsDisposed => this.InstanceId == 0;
         [BsonIgnore]
         protected Entity parent;
-        // 可以改变parent，但是不能设置为null
+// 可以改变parent，但是不能设置为null
         [BsonIgnore]
         public Entity Parent {
             get => this.parent;
             private set {
-                if (value == null) {
+                if (value == null) 
                     throw new Exception($"cant set parent null: {this.GetType().Name}");
-                }
-                
-                if (value == this) {
+                if (value == this) 
                     throw new Exception($"cant set parent self: {this.GetType().Name}");
-                }
                 // 严格限制parent必须要有domain,也就是说parent必须在数据树上面
-                if (value.Domain == null) {
+                if (value.Domain == null) 
                     throw new Exception($"cant set parent because parent domain is null: {this.GetType().Name} {value.GetType().Name}");
-                }
                 if (this.parent != null) { // 之前有parent
                     // parent相同，不设置
                     if (this.parent == value) {
@@ -144,7 +122,6 @@ namespace ET {
                     }
                     this.parent.RemoveFromChildren(this);
                 }
-                
                 this.parent = value;
                 this.IsComponent = false;
                 this.parent.AddToChildren(this);
@@ -162,23 +139,20 @@ namespace ET {
 #endif
             }
         }
-        // 该方法只能在AddComponent中调用，其他人不允许调用
+// 该方法只能在AddComponent中调用，其他人不允许调用
         [BsonIgnore]
         private Entity ComponentParent {
             set {
                 if (value == null) {
                     throw new Exception($"cant set parent null: {this.GetType().Name}");
                 }
-                
                 if (value == this) {
                     throw new Exception($"cant set parent self: {this.GetType().Name}");
                 }
-                
                 // 严格限制parent必须要有domain,也就是说parent必须在数据树上面
                 if (value.Domain == null) {
                     throw new Exception($"cant set parent because parent domain is null: {this.GetType().Name} {value.GetType().Name}");
                 }
-                
                 if (this.parent != null) { // 之前有parent
                     // parent相同，不设置
                     if (this.parent == value) {
@@ -205,9 +179,9 @@ namespace ET {
             set;
         }
         [BsonIgnore]
-        protected Entity domain;
+        protected Entity domain;// 这里 domain|Domain: 更多的是自己从概念上不懂，不知道是在干什么
         [BsonIgnore]
-        public Entity Domain {
+        public Entity Domain { 
             get {
                 return this.domain;
             }
@@ -215,30 +189,24 @@ namespace ET {
                 if (value == null) {
                     throw new Exception($"domain cant set null: {this.GetType().Name}");
                 }
-                
                 if (this.domain == value) {
                     return;
                 }
-                
                 Entity preDomain = this.domain;
                 this.domain = value;
-                
                 if (preDomain == null) {
                     this.InstanceId = IdGenerater.Instance.GenerateInstanceId();
                     this.IsRegister = true;
-                    
                     // 反序列化出来的需要设置父子关系
                     if (this.componentsDB != null) {
-                        foreach (Entity component in this.componentsDB)
-                        {
+                        foreach (Entity component in this.componentsDB) {
                             component.IsComponent = true;
                             this.Components.Add(component.GetType(), component);
                             component.parent = this;
                         }
                     }
                     if (this.childrenDB != null) {
-                        foreach (Entity child in this.childrenDB)
-                        {
+                        foreach (Entity child in this.childrenDB) {
                             child.IsComponent = false;
                             this.Children.Add(child.Id, child);
                             child.parent = this;
@@ -342,7 +310,6 @@ namespace ET {
                     }
                 }
             }
-            
             // 清理Component
             if (this.components != null) {
                 foreach (KeyValuePair<Type, Entity> kv in this.components) {
@@ -368,14 +335,12 @@ namespace ET {
             if (this.parent != null && !this.parent.IsDisposed) {
                 if (this.IsComponent) {
                     this.parent.RemoveComponent(this);
-                }
-                else {
+                } else {
                     this.parent.RemoveFromChildren(this);
                 }
             }
             this.parent = null;
             base.Dispose();
-            
             if (this.IsFromPool) {
                 ObjectPool.Instance.Recycle(this);
             }
@@ -385,7 +350,6 @@ namespace ET {
             if (!(component is ISerializeToEntity)) {
                 return;
             }
-            
             this.componentsDB ??= ObjectPool.Instance.Fetch<HashSet<Entity>>();
             this.componentsDB.Add(component);
         }
@@ -393,7 +357,6 @@ namespace ET {
             if (!(component is ISerializeToEntity)) {
                 return;
             }
-            
             if (this.componentsDB == null) {
                 return;
             }
@@ -425,7 +388,6 @@ namespace ET {
             this.children.TryGetValue(id, out Entity child);
             return child as K;
         }
-        
         public void RemoveChild(long id) {
             if (this.children == null) {
                 return;
@@ -433,7 +395,6 @@ namespace ET {
             if (!this.children.TryGetValue(id, out Entity child)) {
                 return;
             }
-            
             this.children.Remove(id);
             child.Dispose();
         }
@@ -502,15 +463,13 @@ namespace ET {
             if (!this.components.TryGetValue(type, out component)) {
                 return null;
             }
-            
             // 如果有IGetComponent接口，则触发GetComponentSystem
             if (this is IGetComponent) {
                 EventSystem.Instance.GetComponent(this, component);
             }
             return component;
         }
-        
-        // public static Entity Create(Type type, bool isFromPool) { // 我不应该随便动框架底层里的封装。现在找到解决办法了
+// public static Entity Create(Type type, bool isFromPool) { // 我不应该随便动框架底层里的封装。现在找到解决办法了
         private static Entity Create(Type type, bool isFromPool) {
             Entity component;
             if (isFromPool) {
@@ -543,7 +502,6 @@ namespace ET {
             component.Id = this.Id;
             component.ComponentParent = this;
             EventSystem.Instance.Awake(component);
-            
             if (this is IAddComponent) {
                 EventSystem.Instance.AddComponent(this, component);
             }
@@ -558,13 +516,11 @@ namespace ET {
             component.Id = this.Id;
             component.ComponentParent = this;
             EventSystem.Instance.Awake(component);
-            
             if (this is IAddComponent) {
                 EventSystem.Instance.AddComponent(this, component);
             }
             return component as K;
         }
-
         public K AddComponent<K, P1>(P1 p1, bool isFromPool = false) where K : Entity, IAwake<P1>, new() {
             Type type = typeof (K);
             if (this.components != null && this.components.ContainsKey(type)) {
@@ -588,7 +544,6 @@ namespace ET {
             component.Id = this.Id;
             component.ComponentParent = this;
             EventSystem.Instance.Awake(component, p1, p2);
-            
             if (this is IAddComponent) {
                 EventSystem.Instance.AddComponent(this, component);
             }
@@ -603,13 +558,11 @@ namespace ET {
             component.Id = this.Id;
             component.ComponentParent = this;
             EventSystem.Instance.Awake(component, p1, p2, p3);
-            
             if (this is IAddComponent) {
                 EventSystem.Instance.AddComponent(this, component);
             }
             return component as K;
         }
-        
         public Entity AddChild(Entity entity) {
             entity.Parent = this;
             return entity;

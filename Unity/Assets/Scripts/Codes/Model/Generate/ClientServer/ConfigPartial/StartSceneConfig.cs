@@ -8,7 +8,7 @@ namespace ET {
         public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
         public MultiMap<int, StartSceneConfig> ProcessScenes = new MultiMap<int, StartSceneConfig>();
         public Dictionary<long, Dictionary<string, StartSceneConfig>> ClientScenesByName = new Dictionary<long, Dictionary<string, StartSceneConfig>>();
-        public StartSceneConfig LocationConfig;
+        public StartSceneConfig LocationConfig; // 这叫什么 LocationConfig 呢？感觉完全不对应
         public List<StartSceneConfig> Realms = new List<StartSceneConfig>();
         public List<StartSceneConfig> Matchs = new List<StartSceneConfig>(); // <<<<<<<<<<<<<<<<<<<< 添加管理
         public List<StartSceneConfig> Routers = new List<StartSceneConfig>();

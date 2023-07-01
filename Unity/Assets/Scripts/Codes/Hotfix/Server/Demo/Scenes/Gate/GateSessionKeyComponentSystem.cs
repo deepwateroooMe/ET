@@ -1,8 +1,7 @@
 ﻿namespace ET.Server {
-
+    // 框架自带的类：感觉这个类好奇特，不同于其它的组件，它明明也申明了IAwake 接口，但没有实现。可能是框架跳过的地方吧。就是字典的初始化
     [FriendOf(typeof(GateSessionKeyComponent))]
     public static class GateSessionKeyComponentSystem {
-
         public static void Add(this GateSessionKeyComponent self, long key, string account) {
             self.sessionKey.Add(key, account);
             self.TimeoutRemoveKey(key).Coroutine();
