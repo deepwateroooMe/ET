@@ -16,10 +16,10 @@ namespace ET.Server {
         private static long GetLocationSceneId(long key) {
             return StartSceneConfigCategory.Instance.LocationConfig.InstanceId;
         }
+        // 就从这个方法看：从场景中，发了一条 ObjectAddRequest() 消息出去。去找，哪个服会处理这个请求消息，如何处理的？今天不看了，信息鸡飞狗跳的。。。改天再看
         public static async ETTask Add(this LocationProxyComponent self, long key, long instanceId) {
             Log.Info($"location proxy add {key}, {instanceId} {TimeHelper.ServerNow()}");
-            await ActorMessageSenderComponent.Instance
-                .Call(GetLocationSceneId(key),
+            await ActorMessageSenderComponent.Instance.Call(GetLocationSceneId(key),// 【位置服】有个专门的类，来处理 
                       new ObjectAddRequest() { Key = key, InstanceId = instanceId });
         }
         public static async ETTask Lock(this LocationProxyComponent self, long key, long instanceId, int time = 60000) {

@@ -1,5 +1,5 @@
 ﻿namespace ET.Server {
-    [Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件
+    [Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件？包含了网关服相关的消息。忘记【Event()】标签怎么回事了，改天再补
     public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
         protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) { // 【返回消息的发送】：仍是封装在框架底层
             Session session = args.Session;
@@ -15,7 +15,9 @@
             } // 对于【服务端】来说，【会话框】上，只要把【异步任务TCS】的结果写好填好，异步网络Session 底层，会自动处理Channel 客户端那一头的自动读取，框架是不用管的？
             // 根据消息接口判断是不是Actor消息，不同的接口做不同的处理,比如需要转发给Chat Scene，可以做一个IChatMessage接口
             switch (message) { // 【发送消息】＋【不要求回复的消息】
-                case IActorLocationRequest actorLocationRequest: { // gate session收到actor rpc消息，先向actor 发送rpc请求，再将请求结果返回客户端 
+                // 【下面的注释：】应该是原框架的人写的。那么参考这里，也就是说，虽然SceneType.Process, 但仍存在网关服场景下的处理情况？
+                // 【ActorLocationSenderComponent】：先把这一两个组件逻辑给理顺了
+                case IActorLocationRequest actorLocationRequest: { // gate session收到actor rpc消息，先向actor 发送rpc请求，再将请求结果返回客户端【原标注】 
                     long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
                     int rpcId = actorLocationRequest.RpcId; // 这里要保存客户端的rpcId
                     long instanceId = session.InstanceId;
@@ -26,7 +28,7 @@
                         session.Send(iResponse);
                     break;
                 }
-            case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
+                case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
                     long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
                     ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage);
                     break;

@@ -9,7 +9,8 @@ namespace ET.Server {
                 response.Error = ErrorCore.ERR_ConnectGateKeyError;
                 response.Message = "Gate key验证失败!";
                 return;
-            } 
+            }
+            // 【客户端逻辑】：客户端验证结束后，就可以删除这个组件了，服务端防挂防盗窃的
             session.RemoveComponent<SessionAcceptTimeoutComponent>();
             
 // 这个场景的获取：Root.Instance.Scene. 是后来我自己改的，不一定对

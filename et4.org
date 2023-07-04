@@ -254,6 +254,7 @@ public class ClientComponent : Component {
 - 【Gamer】：每一个玩家
 - 【拖拉机游戏房间】：多组件构成
 
+
 * 【亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！】
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
@@ -427,6 +428,7 @@ public class ClientComponent : Component {
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！爱表哥，爱生活！！！】【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+
 
 *  现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】几大版块
 - 永远把每天更新最多的，放在文件的最后最简单， emacs 操作也会方便一点儿
@@ -680,6 +682,7 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
   - 今天下午家里用大显示器，会希望再读至少 2.5 小时框架里的网络模块，把上午弄得半头三桩，羞于提交上 github 的笔记事理好。
   - 下午家里条件也方便，就把框架里的源码能爬多少爬多少出来。。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 早上读NetService.cs 里面异步线程三主要回调同步到主线程，感觉仍然读得昏昏的，要再读一遍，找下是哪里调用的。破车昨晚没补好，今天走回家。。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 
 * Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制。没理解透、总结不全，待增补
 - 当网络模块也改成是事件机制，可能是我先前对网络模块理解得还是不够透彻，怎么感觉 ET7 之后不知道会话框是怎么管理的？
@@ -757,6 +760,8 @@ public static class NetServerComponentSystem {
 - 框架里，是NetServerComponent 会发布此事件，触发这个回调类。去找，有几个订阅者？异步网络消息的发送，与接收，大多都还是单流程，不事分支的，所以全局只有这一个订阅者。
 - 【服务端会话框】上的：收到IResponse 回复消息的情况，调用会话框的OnResponse() 方法处理。感觉理解起来困难。觉得服务端应该不会、或是极少出现这种情况吧。感觉更可能是客户端才出现这种情况呀。（服务端的内网回复消息也是有可能的，只是现在想不到例子，或说当服务端实际行驶客户端收返回消息功能的这个功能切分，感觉理解起来困难）
 - 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 当是回消息IResponse【session.OnResponse(response)】：服务端的会话框上，把回复消息的异步任务的结果写好。这里没弄明白：【写好结果的异步任务，还有任何需要发送的步骤吗？找不到】
+- 其它任何非返回消息：分类处理。今天上午剩余的时候，把剩下几个分类处理的逻辑，看到底，细看一遍。
 #+BEGIN_SRC csharp
 [Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件
 public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
@@ -785,7 +790,7 @@ public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
                     session.Send(iResponse);
                 break;
             }
-        case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
+            case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
                 long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
                 ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage);
                 break;
@@ -1209,10 +1214,156 @@ public static class SessionIdleCheckerComponentSystem {
 }
    #+END_SRC
 ** MessageHelper: 不知道这个类是作什么用的，使用场景等。过会儿看下
+- 这个类，仍然是桥接，类的各个方法里，所调用的是ActorMessageSenderComponent 里所定义的方法，来实现发送Actor 消息等。
 #+BEGIN_SRC csharp
+public static class MessageHelper {
+    public static void NoticeUnitAdd(Unit unit, Unit sendUnit) {
+        M2C_CreateUnits createUnits = new M2C_CreateUnits() { Units = new List<UnitInfo>() };
+        createUnits.Units.Add(UnitHelper.CreateUnitInfo(sendUnit));
+        MessageHelper.SendToClient(unit, createUnits);
+    }
+    public static void NoticeUnitRemove(Unit unit, Unit sendUnit) {
+        M2C_RemoveUnits removeUnits = new M2C_RemoveUnits() {Units = new List<long>()};
+        removeUnits.Units.Add(sendUnit.Id);
+        MessageHelper.SendToClient(unit, removeUnits);
+    }
+    public static void Broadcast(Unit unit, IActorMessage message) {
+        Dictionary<long, AOIEntity> dict = unit.GetBeSeePlayers();
+        // 网络底层做了优化，同一个消息不会多次序列化
+        foreach (AOIEntity u in dict.Values) {
+            ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>().GateSessionActorId, message);
+        }
+    }
+    public static void SendToClient(Unit unit, IActorMessage message) {
+        SendActor(unit.GetComponent<UnitGateComponent>().GateSessionActorId, message);
+    }
+    // 发送协议给ActorLocation
+    public static void SendToLocationActor(long id, IActorLocationMessage message) {
+        ActorLocationSenderComponent.Instance.Send(id, message);
+    }
+    // 发送协议给Actor
+    public static void SendActor(long actorId, IActorMessage message) {
+        ActorMessageSenderComponent.Instance.Send(actorId, message);
+    }
+    // 发送RPC协议给Actor
+    public static async ETTask<IActorResponse> CallActor(long actorId, IActorRequest message) {
+        return await ActorMessageSenderComponent.Instance.Call(actorId, message);
+    }
+    // 发送RPC协议给ActorLocation
+    public static async ETTask<IActorResponse> CallLocationActor(long id, IActorLocationRequest message) {
+        return await ActorLocationSenderComponent.Instance.Call(id, message);
+    }
+}
 #+END_SRC
-** ActorHandleHelper: 是谁调用它，什么场景下使用的？
+** ActorHandleHelper: 是谁调用它，什么场景下使用的？这个，今天下午再补吧
 #+BEGIN_SRC csharp
+public static class ActorHandleHelper {
+    public static void Reply(int fromProcess, IActorResponse response) {
+        if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程：没明白，这里为什么就断定是同一进程的消息了？直接处理
+            // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
+            ActorMessageSenderComponent.Instance.HandleIActorResponse(response); // 【没读懂：】同一个进程内的消息，不走网络层，直接处理。什么情况下会是发给同一个进程的？ET7 重构后，同一进程下可能会有不同的先前小服：Realm 注册登录服，Gate 服等；如果不同的SceneType.Map-etc 先前场景小服只要在同一进程，就可以不走网络层吗？
+            return;
+        }
+        // 【不同进程的消息处理：】走网络层，就是调用会话框来发出消息
+        Session replySession = NetInnerComponent.Instance.Get(fromProcess); // 从内网组件单例中去拿会话框：不同进程消息，一定走网络，通过会话框把返回消息发回去
+        replySession.Send(response);
+    }
+    public static void HandleIActorResponse(IActorResponse response) {
+        ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
+    }
+    // 分发actor消息
+    [EnableAccessEntiyChild]
+    public static async ETTask HandleIActorRequest(long actorId, IActorRequest iActorRequest) {
+        InstanceIdStruct instanceIdStruct = new(actorId);
+        int fromProcess = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        long realActorId = instanceIdStruct.ToLong();
+        Entity entity = Root.Instance.Get(realActorId);
+        if (entity == null) {
+            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+            Reply(fromProcess, response);
+            return;
+        }
+        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+        if (mailBoxComponent == null) {
+            Log.Warning($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorRequest}");
+            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+            Reply(fromProcess, response);
+            return;
+        }
+        switch (mailBoxComponent.MailboxType) {
+            case MailboxType.MessageDispatcher: {
+                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
+                    if (entity.InstanceId != realActorId) {
+                        IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+                        Reply(fromProcess, response);
+                        break;
+                    } // 调用管理器组件的处理方法 
+                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
+                }
+                break;
+            }
+            case MailboxType.UnOrderMessageDispatcher: {
+                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
+                break;
+            }
+            case MailboxType.GateSession:
+            default:
+                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorRequest}");
+        }
+    }
+    // 分发actor消息
+    [EnableAccessEntiyChild]
+    public static async ETTask HandleIActorMessage(long actorId, IActorMessage iActorMessage) {
+        InstanceIdStruct instanceIdStruct = new(actorId);
+        int fromProcess = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        long realActorId = instanceIdStruct.ToLong();
+        Entity entity = Root.Instance.Get(realActorId);
+        if (entity == null) {
+            Log.Error($"not found actor: {realActorId} {iActorMessage}");
+            return;
+        }
+        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+        if (mailBoxComponent == null) {
+            Log.Error($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorMessage}");
+            return;
+        }
+        switch (mailBoxComponent.MailboxType) {
+            case MailboxType.MessageDispatcher: {
+                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
+                    if (entity.InstanceId != realActorId) 
+                        break;
+                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
+                }
+                break;
+            }
+            case MailboxType.UnOrderMessageDispatcher: {
+                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
+                break;
+            }
+            case MailboxType.GateSession: {
+                if (entity is Session gateSession) 
+                    // 发送给客户端
+                    gateSession.Send(iActorMessage);
+                break;
+            }
+            default:
+                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
+        }
+    }
+}
 #+END_SRC
-
-
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】

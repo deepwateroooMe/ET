@@ -1,4 +1,4 @@
-% Created 2023-06-30 Fri 10:04
+% Created 2023-07-04 Tue 11:57
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1892,6 +1892,9 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 \end{minted}
 \subsection{ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息 et3}
 \label{sec-11-10}
+\begin{itemize}
+\item 再后面的，MessageDispatcherComponent 相关的，因为网络部分的再次总结一遍，移过去，先系统总结一下。改天有必要的时候，再作修改。
+\end{itemize}
 
 \section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
 \label{sec-12}
@@ -1973,14 +1976,169 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 
 \section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
 \label{sec-13}
-\begin{itemize}
-\item 整个框架的场景节点如下
-\end{itemize}
 
 \includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
+\section{Coroutine 锁之类的相关总结：【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}
+\label{sec-14}
 \begin{itemize}
-\item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
-\item 【活宝妹坐等亲爱的表哥，领娶活宝妹回家！爱表哥，爱生活！！！】
+\item 整个框架，各种锁，还不曾真正读过，所以这里再看一下，总结一下遇见过的必要的。半小时到一小时的时间，简单快速地再翻一遍。以前读过，只是没作笔记，部分细节点不理解找出来，记下。
 \end{itemize}
+\subsection{CoroutineLock: 里面的 level 参数，不懂}
+\label{sec-14-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public class CoroutineLock: IDisposable { // 【协程锁】： level 是什么意思呢？
+    private int type;
+    private long key;
+    private int level;
+    public static CoroutineLock Create(int type, long k, int count) {
+        CoroutineLock coroutineLock = ObjectPool.Instance.Fetch<CoroutineLock>(); // 对象池管理，回收再利用等
+        coroutineLock.type = type;
+        coroutineLock.key = k;
+        coroutineLock.level = count;
+        return coroutineLock;
+    }
+    public void Dispose() {
+        CoroutineLockComponent.Instance.RunNextCoroutine(this.type, this.key, this.level + 1); // <<<<<<<<<<<<<<<<<<<< 跟进去
+        this.type = CoroutineLockType.None;
+        this.key = 0;
+        this.level = 0;
+        ObjectPool.Instance.Recycle(this);
+    }
+}
+\end{minted}
+\subsection{WaitCoroutineLock: 【等待协程锁】：为什么它也要设置超时机制？}
+\label{sec-14-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 【协程超时、自动检测机制】：问题是，协程原本就每桢执行一次，为什么有必要设置【 1 （毫）秒？用得多就包装一下？】超时？
+[Invoke(TimerCoreInvokeType.CoroutineTimeout)] // 自动检测超时机制：不知道为什么定义静态类 TimerCoreInvokeType ？
+public class WaitCoroutineLockTimer: ATimer<WaitCoroutineLock> {
+    protected override void Run(WaitCoroutineLock waitCoroutineLock) {
+        if (waitCoroutineLock.IsDisposed()) return; // 若已回收，再无它
+        waitCoroutineLock.SetException(new Exception("coroutine is timeout!")); // 抛超时异常
+    }
+}
+public class WaitCoroutineLock {
+    private ETTask<CoroutineLock> tcs; // 成员变量 
+    public static WaitCoroutineLock Create() {
+        WaitCoroutineLock waitCoroutineLock = new WaitCoroutineLock();
+        waitCoroutineLock.tcs = ETTask<CoroutineLock>.Create(true); // <<<<<<<<<<<<<<<<<<<< 对象池中抓壮丁
+        return waitCoroutineLock;
+    }
+    public void SetResult(CoroutineLock coroutineLock) {
+        if (this.tcs == null) 
+            throw new NullReferenceException("SetResult tcs is null");
+        var t = this.tcs;
+        this.tcs = null;
+        t.SetResult(coroutineLock);
+    }
+    public void SetException(Exception exception) {
+        if (this.tcs == null) 
+            throw new NullReferenceException("SetException tcs is null");
+        var t = this.tcs;
+        this.tcs = null;
+        t.SetException(exception);
+    }
+    public bool IsDisposed() {
+        return this.tcs == null;
+    }
+    public async ETTask<CoroutineLock> Wait() {
+        return await this.tcs;
+    }
+}
+\end{minted}
+\subsection{CoroutineLockQueue: 队列里面嵌套协程锁，没看懂}
+\label{sec-14-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public class CoroutineLockQueue { // 【协程锁队列】
+    private int type; // 类型
+    private long key; // ？
+    public static CoroutineLockQueue Create(int type, long key) {
+        CoroutineLockQueue coroutineLockQueue = ObjectPool.Instance.Fetch<CoroutineLockQueue>();
+        coroutineLockQueue.type = type;
+        coroutineLockQueue.key = key;
+        return coroutineLockQueue;
+    }
+    private CoroutineLock currentCoroutineLock; // 当前锁
+    private readonly Queue<WaitCoroutineLock> queue = new Queue<WaitCoroutineLock>(); // 【协程等待锁队列】
+    public int Count {
+        get {
+            return this.queue.Count;
+        }
+    }
+    public async ETTask<CoroutineLock> Wait(int time) { // 【这个方法】：没看懂，没理解，弄个协程等待锁，做什么有什么用？需要网上查下相关讲解
+        // 从这里开始迷糊：两个不同的返回分支：
+        if (this.currentCoroutineLock == null) {
+            this.currentCoroutineLock = CoroutineLock.Create(type, key, 1); // level: 感觉，是纪录协程桢数序号，从 1 开始， 100-Warning
+            return this.currentCoroutineLock; // 直接返回：返回一把锁，不管它时间怎么样的？。。。没懂
+        }
+        WaitCoroutineLock waitCoroutineLock = WaitCoroutineLock.Create(); // 创建等待锁
+        this.queue.Enqueue(waitCoroutineLock); // 加入队列
+        if (time > 0) { // 有等待时间：创建一个一次性闹钟。
+            long tillTime = TimeHelper.ClientFrameTime() + time;
+            // 重点去看：闹钟时间到，会做什么？【协程锁超时，自动检测回调到TimerCoreInvokeType.CoroutineTimeout 标记的类】超时后又只是回收掉。理解上逻辑连贯不起来
+            // 等待的时间到了，等待协程锁异步任务会返回？？？
+            TimerComponent.Instance.NewOnceTimer(tillTime, TimerCoreInvokeType.CoroutineTimeout, waitCoroutineLock);
+        }
+        this.currentCoroutineLock = await waitCoroutineLock.Wait();
+        return this.currentCoroutineLock;
+    }
+    public void Notify(int level) { // 哪里会调用这个方法？只更新了 level 桢数或桢序号？
+        // 有可能WaitCoroutineLock已经超时抛出异常，所以要找到一个未处理的WaitCoroutineLock
+        while (this.queue.Count > 0) { // 遍历一遍队列：队列是，入队时间升序，超时时间没有、不曾排序的
+            WaitCoroutineLock waitCoroutineLock = queue.Dequeue();
+            if (waitCoroutineLock.IsDisposed()) continue; // 已经超时回收。这里，相当于从队列中将其清除
+            CoroutineLock coroutineLock = CoroutineLock.Create(type, key, level);
+            waitCoroutineLock.SetResult(coroutineLock); // 这些，狠嵌套。也狠欠扁，看不懂。。。
+            break;
+        }
+    }
+    public void Recycle() {
+        this.queue.Clear();
+        this.key = 0;
+        this.type = 0;
+        this.currentCoroutineLock = null;
+        ObjectPool.Instance.Recycle(this);
+    }
+}
+\end{minted}
+\subsection{CoroutineLockQueueType: 字典管理一堆上面的 CoroutineLockQueue.}
+\label{sec-14-4}
+\begin{itemize}
+\item 所以这个类极简单，字典的相关操作，就可以了。Notify() 调用相关相对应的CoroutineLockQueue 的相应方法就可以
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public class CoroutineLockQueueType { // 叫个什么，类型。。。
+    private readonly int type;
+    private readonly Dictionary<long, CoroutineLockQueue> coroutineLockQueues = new Dictionary<long, CoroutineLockQueue>();
+    public CoroutineLockQueueType(int type) {
+        this.type = type;
+    }
+    private CoroutineLockQueue Get(long key) {
+        this.coroutineLockQueues.TryGetValue(key, out CoroutineLockQueue queue);
+        return queue;
+    }
+    private CoroutineLockQueue New(long key) {
+        CoroutineLockQueue queue = CoroutineLockQueue.Create(this.type, key);
+        this.coroutineLockQueues.Add(key, queue);
+        return queue;
+    }
+    private void Remove(long key) {
+        if (this.coroutineLockQueues.Remove(key, out CoroutineLockQueue queue)) 
+            queue.Recycle();
+    }
+    public async ETTask<CoroutineLock> Wait(long key, int time) {
+        CoroutineLockQueue queue = this.Get(key) ?? this.New(key);
+        return await queue.Wait(time);
+    }
+    public void Notify(long key, int level) {
+        CoroutineLockQueue queue = this.Get(key);
+        if (queue == null) return;
+        if (queue.Count == 0) this.Remove(key);
+        queue.Notify(level); // <<<<<<<<<<<<<<<<<<<< 
+    }
+}
+\end{minted}
+\subsection{CoroutineLockComponent:}
+\label{sec-14-5}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

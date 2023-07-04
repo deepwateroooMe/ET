@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 namespace ET {
+    
+    // 【协程锁组件】单例：Update() 更新回调实现
     public class CoroutineLockComponent: Singleton<CoroutineLockComponent>, ISingletonUpdate {
         private readonly Dictionary<int, CoroutineLockQueueType> dictionary = new();
         private readonly Queue<(int, long, int)> nextFrameRun = new Queue<(int, long, int)>();
@@ -15,11 +17,11 @@ namespace ET {
                 this.Notify(coroutineLockType, key, count);
             }
         }
-        public void RunNextCoroutine(int coroutineLockType, long key, int level) {
+        public void RunNextCoroutine(int coroutineLockType, long key, int level) { // 【CoroutineLock】回收时也会调用
             // 一个协程队列一帧处理超过100个,说明比较多了,打个warning,检查一下是否够正常
             if (level == 100) 
                 Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
-            this.nextFrameRun.Enqueue((coroutineLockType, key, level));
+            this.nextFrameRun.Enqueue((coroutineLockType, key, level)); // 加入到：下一桢待处理的队列中去
         }
         public async ETTask<CoroutineLock> Wait(int coroutineLockType, long key, int time = 60000) {
             CoroutineLockQueueType coroutineLockQueueType;
@@ -31,9 +33,7 @@ namespace ET {
         }
         private void Notify(int coroutineLockType, long key, int level) {
             CoroutineLockQueueType coroutineLockQueueType;
-            if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) {
-                return;
-            }
+            if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) return;
             coroutineLockQueueType.Notify(key, level);
         }
     }

@@ -1,7 +1,6 @@
 #+latex_class: cn-article
 #+title: ET 框架学习笔记（三）－－网络交互相关
 #+author: deepwaterooo 
-
 * 网关服：客户端信息发送的直接代理，中转站，组件分析 
 - SceneFactory: 【初始化】时，带如下几个组件
 #+BEGIN_SRC csharp
@@ -41,7 +40,6 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 }
    #+END_SRC
 
-
 * 服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）
 - Manager：连接客户端的外网和连接内部服务器的内网，对服务器进程进行管理，自动检测和启动服务器进程。加载有内网组件NetInnerComponent，外网组件NetOuterComponent，服务器进程管理组件。自动启动突然停止运行的服务器，保证此服务器管理的其它服务器崩溃后能及时自动启动运行。
 - Realm：对Actor消息进行管理（添加、移除、分发等），连接内网和外网，对内网服务器进程进行操作，随机分配Gate服务器地址。内网组件NetInnerComponent，外网组件NetOuterComponent，Gate服务器随机分发组件。客户端登录时连接的第一个服务器，也可称为登录服务器。
@@ -51,11 +49,9 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 - AllServer：将以上服务器功能集中合并成一个服务器。另外增加DB连接组件DBComponent
 - Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
 
-
 * Session 会话框相关
 - 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
 - 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
-
 
 * Root 客户端根场景管理以及必要的组件：【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 昨天晚上，今天上午把这个根场景下的必要的组件，疑难点大致又看了一遍过了一遍。以后再有什么不懂，或是理解一点儿新的，再添加。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
@@ -188,7 +184,6 @@ public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
     }
 }
 #+END_SRC
-
 
 * ETTask 和 ETVoid: 第三方库的ETTask, 参考ET-EUI 框架
 - 特异包装：主要是实际了异步调用的流式写法。它方法定义的内部，是封装有协程异步状态机的？IAsyncStateMachine. 当要运行协程的下一步，也是调用和运行。NET 库里的 IAsyncStateMachine.moveNext()
@@ -796,7 +791,6 @@ public sealed class AsyncMethodBuilderAttribute : Attribute {
     public Type BuilderType { get; }
 }// 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 #+END_SRC
-
 
 * StartConfigComponent: 找【各种服】的起始初始化地址
 - 【服务端】是自己最不熟悉的模块。活宝妹可以啃下安卓，可以写游戏，学习和熟悉游戏引擎都没问题。学习上或是运动上，活宝妹喜欢像运行员一样可以挑战运动极限。活宝妹只有一样，那就是活宝妹就是一定要嫁给亲爱的表哥！！！
@@ -1536,9 +1530,9 @@ public static class ActorMessageSenderComponentSystem {
    #+END_SRC
 - 几个类弄懂： ActorHandleHelper, 以及再上面的，NetInnerComponentOnReadEvent 事件发布等，上层调用的几座桥连通了，才算把整个流程弄懂了。
 - 现在不懂的就变成为：更为底层的，Session 会话框，socket 层的机制。但是因为它们更为底层，亲爱的表哥的活宝妹，现在把有限的精力投入支理解这个框架，适配自己的游戏比较重要。其它不太重要，或是更为底层的，改天有必要的时候再捡再看。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
-** LocationProxyComponent: 这个代理，什么情况下会用到？
-- 就是有个启动类管理 StartSceneConfigCategory 类，它会分门别类地管理一些什么网关、注册登录服，地址服之类的东西。然后从这个里面拿位置服务器地址？大概意思是这样。
-- 这个类先前仔细读过。还记得小伙伴搬家吗？有的小伙伴搬得狠慢，要花狠久，它搬家过程中就要上锁。大致是这类位置转移管理，位置添加、更新等相关管理操作。
+** LocationProxyComponent: 【位置代理组件】：为什么称它为代理？
+- 就是有个启动类管理 StartSceneConfigCategory 类，它会分门别类地管理一些什么网关、注册登录服，地址服之类的东西。然后从这个里面拿位置服务器地址？大概意思是这样。写得可能不对。今天剩下一点儿时间，再稍微看一下
+- 感觉先前、上面仍然是写得不伦不类。总之，位置相关组件就是管理框架里各种可收发消息的实例，他们所在的（场景？位置？服务器地址？）相关位置信息。【亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！活宝妹只是在等：亲爱的表哥同活宝妹的一纸结婚证。活宝妹若是还没能嫁给亲爱的表哥，活宝妹就永远守候在亲爱的表哥的身边！！爱表哥，爱生活！！！】
    #+BEGIN_SRC csharp
 [ComponentOf(typeof(Scene))]
 public class LocationProxyComponent: Entity, IAwake, IDestroy {
@@ -1546,50 +1540,15 @@ public class LocationProxyComponent: Entity, IAwake, IDestroy {
     public static LocationProxyComponent Instance;
 }
    #+END_SRC
-** LocationProxyComponentSystem
+** LocationProxyComponentSystem:
+- 为什么要加那堆什么也没曾看懂的源码在那里？
 #+BEGIN_SRC csharp
 // [ObjectSystem] awake() etc
-public static class LocationProxyComponentSystem {
-    private static long GetLocationSceneId(long key) {
-        return StartSceneConfigCategory.Instance.LocationConfig.InstanceId;
-    }
-    public static async ETTask Add(this LocationProxyComponent self, long key, long instanceId) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectAddRequest() { Key = key, InstanceId = instanceId });
-    }
-    public static async ETTask Lock(this LocationProxyComponent self, long key, long instanceId, int time = 60000) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectLockRequest() { Key = key, InstanceId = instanceId, Time = time });
-    }
-    public static async ETTask UnLock(this LocationProxyComponent self, long key, long oldInstanceId, long instanceId) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectUnLockRequest() { Key = key, OldInstanceId = oldInstanceId, InstanceId = instanceId });
-    }
-    public static async ETTask Remove(this LocationProxyComponent self, long key) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectRemoveRequest() { Key = key });
-    }
-    public static async ETTask<long> Get(this LocationProxyComponent self, long key) {
-        if (key == 0) 
-            throw new Exception($"get location key 0");
-        // location server配置到共享区，一个大战区可以配置N多个location server,这里暂时为1
-        ObjectGetResponse response = (ObjectGetResponse) await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                new ObjectGetRequest() { Key = key });
-        return response.InstanceId;
-    }
-    public static async ETTask AddLocation(this Entity self) {
-        await LocationProxyComponent.Instance.Add(self.Id, self.InstanceId);
-    }
-    public static async ETTask RemoveLocation(this Entity self) {
-        await LocationProxyComponent.Instance.Remove(self.Id);
-    }
-}
 #+END_SRC
+** ：一个添加位置信息的请求消息处理类，示例
+#+BEGIN_SRC csharp
+#+END_SRC
+
 ** ActorLocationSender: 知道对方的Id，使用这个类发actor消息
    #+BEGIN_SRC csharp
 [ChildOf(typeof(ActorLocationSenderComponent))]
@@ -2015,4 +1974,3 @@ public class NetInnerComponentOnReadEvent: AEvent<NetInnerComponentOnRead> {
     }
 }
 #+END_SRC
-- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】

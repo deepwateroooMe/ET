@@ -15,7 +15,7 @@ namespace ET {
             timerAction.StartTime = startTime;
             timerAction.Object = obj;
             timerAction.Time = time;
-            timerAction.Type = type;
+            timerAction.Type = type; // 回调到，框架里标签系统，标记申明过的类的类型， eg ActorLocationSenderChecker 类
             return timerAction;
         }
         public long Id;
@@ -183,9 +183,9 @@ namespace ET {
         // wait时间长不需要逻辑连贯的建议用NewOnceTimer
         public long NewOnceTimer(long tillTime, int type, object args) {
             long timeNow = GetNow();
-            if (tillTime < timeNow) {
+            if (tillTime < timeNow) 
                 Log.Error($"new once time too small: {tillTime}");
-            }
+            // 重点下面：时间到的回调包装：
             TimerAction timer = TimerAction.Create(this.GetId(), TimerClass.OnceTimer, timeNow, tillTime - timeNow, type, args);
             this.AddTimer(timer);
             return timer.Id;

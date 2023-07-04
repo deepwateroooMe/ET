@@ -40,32 +40,36 @@ namespace ET.Server {
                     if (timeNow > actorLocationMessageSender.LastSendOrRecvTime + ActorLocationSenderComponent.TIMEOUT_TIME) 
                         list.Add(key);
                 }
+                // 如果要拿位置的被请求对象， 60 秒里不活动（目标对象，60 秒内不曾发送消息或是接收消息），这里是【位置服】对所管理对象的自动消号处理
+                // 当前【全局单例位置管理器】：视其为掉线或是下线，自动移除其位置消息，视为不曾见过不知道
                 foreach (long id in list) {
                     self.Remove(id);
                 }
             }
         }
-        private static ActorLocationSender GetOrCreate(this ActorLocationSenderComponent self, long id) {
+        private static ActorLocationSender GetOrCreate(this ActorLocationSenderComponent self, long id) { // 拿，或者创建新的
             if (id == 0) 
                 throw new Exception($"actor id is 0");
-            if (self.Children.TryGetValue(id, out Entity actorLocationSender)) {
+            if (self.Children.TryGetValue(id, out Entity actorLocationSender)) { // 有就直接返回
                 return (ActorLocationSender) actorLocationSender;
-            }
-            actorLocationSender = self.AddChildWithId<ActorLocationSender>(id);
+            } // 下面，没有就创建一个新的
+            actorLocationSender = self.AddChildWithId<ActorLocationSender>(id); // 当子控件
             return (ActorLocationSender) actorLocationSender;
         }
         private static void Remove(this ActorLocationSenderComponent self, long id) {
-            if (!self.Children.TryGetValue(id, out Entity actorMessageSender)) 
+            if (!self.Children.TryGetValue(id, out Entity actorMessageSender))  // 字典里没有，就自动返回，不用管了
                 return;
+            // 这里不是字典，是【遍历真正的子控件】。字典需要清除键值对，子控件，只需要子控件回收
             actorMessageSender.Dispose();
         }
+        // 【发送：请求位置的消息】
         public static void Send(this ActorLocationSenderComponent self, long entityId, IActorRequest message) {
-            self.Call(entityId, message).Coroutine();
+            self.Call(entityId, message).Coroutine(); // 调用异步方法
         }
         public static async ETTask<IActorResponse> Call(this ActorLocationSenderComponent self, long entityId, IActorRequest iActorRequest) {
             ActorLocationSender actorLocationSender = self.GetOrCreate(entityId);
-            // 先序列化好
-            int rpcId = ActorMessageSenderComponent.Instance.GetRpcId();
+            // 【先序列化好】：前面原标注。这里序列化，是指把索要位置消息的发送者与接收者等相关必要信息，这个位置管理器组件，管理好，给每个弄个身份证就可以区分了
+            int rpcId = ActorMessageSenderComponent.Instance.GetRpcId(); // 为什么要跑去找ActorMessageSenderComponent 来拿 rpcId ？
             iActorRequest.RpcId = rpcId;
             long actorLocationSenderInstanceId = actorLocationSender.InstanceId;
             using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) {

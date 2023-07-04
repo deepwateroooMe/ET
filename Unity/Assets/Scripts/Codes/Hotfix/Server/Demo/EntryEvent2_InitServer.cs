@@ -8,7 +8,7 @@ namespace ET.Server {
             // 自已添加：【数据库管理类组件】
             Root.Instance.Scene.AddComponent<DBManagerComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
             // 发送location actor消息
-            Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>();
+            Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>(); // 【服务端】全局单例
             // 访问location server的组件
             Root.Instance.Scene.AddComponent<LocationProxyComponent>();
             Root.Instance.Scene.AddComponent<ActorMessageDispatcherComponent>();
