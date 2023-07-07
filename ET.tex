@@ -1,4 +1,4 @@
-% Created 2023-07-04 Tue 11:57
+% Created 2023-07-04 Tue 16:10
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1983,8 +1983,26 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 \begin{itemize}
 \item 整个框架，各种锁，还不曾真正读过，所以这里再看一下，总结一下遇见过的必要的。半小时到一小时的时间，简单快速地再翻一遍。以前读过，只是没作笔记，部分细节点不理解找出来，记下。
 \end{itemize}
-\subsection{CoroutineLock: 里面的 level 参数，不懂}
+\subsection{CoroutineLockType: 静态类定义的几种类型}
 \label{sec-14-1}
+\begin{itemize}
+\item 就是定义框架中用到的几种使用协程锁的情境，分成几种不同的类型
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class CoroutineLockType {
+    public const int None = 0;
+    public const int Location = 1;                  // location进程上使用
+    public const int ActorLocationSender = 2;       // ActorLocationSender中队列消息
+    public const int Mailbox = 3;                   // Mailbox中队列
+    public const int UnitId = 4;                    // Map服务器上线下线时使用
+    public const int DB = 5;
+    public const int Resources = 6;
+    public const int ResourcesLoader = 7;
+    public const int Max = 100; // 这个必须最大
+}
+\end{minted}
+\subsection{CoroutineLock: 里面的 level 参数，不懂}
+\label{sec-14-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class CoroutineLock: IDisposable { // 【协程锁】： level 是什么意思呢？
     private int type;
@@ -2007,7 +2025,7 @@ public class CoroutineLock: IDisposable { // 【协程锁】： level 是什么�
 }
 \end{minted}
 \subsection{WaitCoroutineLock: 【等待协程锁】：为什么它也要设置超时机制？}
-\label{sec-14-2}
+\label{sec-14-3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 【协程超时、自动检测机制】：问题是，协程原本就每桢执行一次，为什么有必要设置【 1 （毫）秒？用得多就包装一下？】超时？
 [Invoke(TimerCoreInvokeType.CoroutineTimeout)] // 自动检测超时机制：不知道为什么定义静态类 TimerCoreInvokeType ？
@@ -2047,7 +2065,7 @@ public class WaitCoroutineLock {
 }
 \end{minted}
 \subsection{CoroutineLockQueue: 队列里面嵌套协程锁，没看懂}
-\label{sec-14-3}
+\label{sec-14-4}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class CoroutineLockQueue { // 【协程锁队列】
     private int type; // 类型
@@ -2102,7 +2120,7 @@ public class CoroutineLockQueue { // 【协程锁队列】
 }
 \end{minted}
 \subsection{CoroutineLockQueueType: 字典管理一堆上面的 CoroutineLockQueue.}
-\label{sec-14-4}
+\label{sec-14-5}
 \begin{itemize}
 \item 所以这个类极简单，字典的相关操作，就可以了。Notify() 调用相关相对应的CoroutineLockQueue 的相应方法就可以
 \end{itemize}
@@ -2138,7 +2156,60 @@ public class CoroutineLockQueueType { // 叫个什么，类型。。。
     }
 }
 \end{minted}
-\subsection{CoroutineLockComponent:}
-\label{sec-14-5}
+\subsection{CoroutineLockComponent: 【单例组件】。源码读起来感觉简单，可是理解不透彻。那些等是等什么？}
+\label{sec-14-6}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 【协程锁组件】单例：Update() 更新回调实现
+public class CoroutineLockComponent: Singleton<CoroutineLockComponent>, ISingletonUpdate { // Update() 生命周期函数调用 
+    private readonly Dictionary<int, CoroutineLockQueueType> dictionary = new();
+    private readonly Queue<(int, long, int)> nextFrameRun = new Queue<(int, long, int)>(); // 下一桢待更新的
+
+    public override void Dispose() {
+        this.nextFrameRun.Clear();
+    }
+    public void Update() { // 更新：每桢更新，一个个处理
+        // 循环过程中会有对象继续加入队列
+        while (this.nextFrameRun.Count > 0) {
+            (int coroutineLockType, long key, int count) = this.nextFrameRun.Dequeue();
+            this.Notify(coroutineLockType, key, count);
+        }
+    }
+    public void RunNextCoroutine(int coroutineLockType, long key, int level) { // 【CoroutineLock】回收时也会调用，想想这个调用问题
+        // 一个协程队列一帧处理超过100个,说明比较多了,打个warning,检查一下是否够正常
+        if (level == 100) 
+            Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
+        this.nextFrameRun.Enqueue((coroutineLockType, key, level)); // 加入到：下一桢待处理的队列中去
+    }
+    public async ETTask<CoroutineLock> Wait(int coroutineLockType, long key, int time = 60000) {
+        CoroutineLockQueueType coroutineLockQueueType;
+        if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) {
+            coroutineLockQueueType = new CoroutineLockQueueType(coroutineLockType);
+            this.dictionary.Add(coroutineLockType, coroutineLockQueueType);
+        }
+        return await coroutineLockQueueType.Wait(key, time);
+    }
+    private void Notify(int coroutineLockType, long key, int level) {
+        CoroutineLockQueueType coroutineLockQueueType;
+        if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) return;
+        coroutineLockQueueType.Notify(key, level); // 【自顶向下】地调用，每桢更新时，自顶向下地更新
+    }
+}
+\end{minted}
+\begin{itemize}
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\end{itemize}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

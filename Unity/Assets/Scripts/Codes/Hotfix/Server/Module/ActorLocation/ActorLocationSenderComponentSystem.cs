@@ -2,13 +2,13 @@
 using System.IO;
 using MongoDB.Bson;
 namespace ET.Server {
+
     [Invoke(TimerInvokeType.ActorLocationSenderChecker)]
     public class ActorLocationSenderChecker: ATimer<ActorLocationSenderComponent> {
         protected override void Run(ActorLocationSenderComponent self) {
             try {
                 self.Check();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Log.Error($"move timer error: {self.Id}\n{e}");
             }
         }
@@ -29,11 +29,12 @@ namespace ET.Server {
             TimerComponent.Instance?.Remove(ref self.CheckTimer);
         }
     }
+
     [FriendOf(typeof(ActorLocationSenderComponent))]
     [FriendOf(typeof(ActorLocationSender))]
     public static class ActorLocationSenderComponentSystem {
         public static void Check(this ActorLocationSenderComponent self) {
-            using (ListComponent<long> list = ListComponent<long>.Create()) {
+            using (ListComponent<long> list = ListComponent<long>.Create()) { // Using: 作用是，逻辑执行完毕，会可以自动回收
                 long timeNow = TimeHelper.ServerNow();
                 foreach ((long key, Entity value) in self.Children) {
                     ActorLocationSender actorLocationMessageSender = (ActorLocationSender) value;
@@ -53,7 +54,7 @@ namespace ET.Server {
             if (self.Children.TryGetValue(id, out Entity actorLocationSender)) { // 有就直接返回
                 return (ActorLocationSender) actorLocationSender;
             } // 下面，没有就创建一个新的
-            actorLocationSender = self.AddChildWithId<ActorLocationSender>(id); // 当子控件
+            actorLocationSender = self.AddChildWithId<ActorLocationSender>(id); // 当子控件来添加的，不是加入字典里。回收时就需要回收子控件
             return (ActorLocationSender) actorLocationSender;
         }
         private static void Remove(this ActorLocationSenderComponent self, long id) {
@@ -71,12 +72,14 @@ namespace ET.Server {
             // 【先序列化好】：前面原标注。这里序列化，是指把索要位置消息的发送者与接收者等相关必要信息，这个位置管理器组件，管理好，给每个弄个身份证就可以区分了
             int rpcId = ActorMessageSenderComponent.Instance.GetRpcId(); // 为什么要跑去找ActorMessageSenderComponent 来拿 rpcId ？
             iActorRequest.RpcId = rpcId;
-            long actorLocationSenderInstanceId = actorLocationSender.InstanceId;
+            long actorLocationSenderInstanceId = actorLocationSender.InstanceId; // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！】
+            // 上午看到这里：跑去看锁了，结果看得半懂不懂的，明天上午再好好看一下锁的部分。
+            // 【协程锁组件】：等待创建协程锁异步方法，并会等 1 分钟：（这里默认是得等60 秒。活宝妹已经坐了一年冷板凳，活宝妹为了要为了能够嫁给活宝妹的亲爱的表哥，活宝妹会需要再坐一年冷板凳？）
             using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) {
-                if (actorLocationSender.InstanceId != actorLocationSenderInstanceId) 
+                if (actorLocationSender.InstanceId != actorLocationSenderInstanceId) // 上面没明白：为什么要等 60 秒。这里1 分钟前后的实例 id 不一样，说明出错出异常了 
                     throw new RpcException(ErrorCore.ERR_ActorTimeout, $"{iActorRequest}");
                 // 队列中没处理的消息返回跟上个消息一样的报错
-                if (actorLocationSender.Error == ErrorCore.ERR_NotFoundActor) 
+                if (actorLocationSender.Error == ErrorCore.ERR_NotFoundActor) // 返回出错：调用框架包装的一个简单泛用出错包装类，把出错结果写好
                     return ActorHelper.CreateResponse(iActorRequest, actorLocationSender.Error);
                 try {
                     return await self.CallInner(actorLocationSender, rpcId, iActorRequest);
@@ -95,16 +98,17 @@ namespace ET.Server {
             int failTimes = 0;
             long instanceId = actorLocationSender.InstanceId;
             actorLocationSender.LastSendOrRecvTime = TimeHelper.ServerNow();
-            while (true) {
-                if (actorLocationSender.ActorId == 0) {
+            while (true) { // 无限循环
+                if (actorLocationSender.ActorId == 0) { // 试着重新拿了一次
                     actorLocationSender.ActorId = await LocationProxyComponent.Instance.Get(actorLocationSender.Id);
                     if (actorLocationSender.InstanceId != instanceId) 
                         throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout2, $"{iActorRequest}");
                 }
-                if (actorLocationSender.ActorId == 0) {
+                if (actorLocationSender.ActorId == 0) { // 仍为 0, 写出错结果
                     actorLocationSender.Error = ErrorCore.ERR_NotFoundActor;
                     return ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
                 }
+                // 发送索要位置信息：要求不抛异常。那么就是位置消息发送组件自动移除了超时消息，不反馈给发送端。发送端收不到返回，自已决定要不要再重发索要位置的消息 
                 IActorResponse response = await ActorMessageSenderComponent.Instance.Call(actorLocationSender.ActorId, rpcId, iActorRequest, false);
                 if (actorLocationSender.InstanceId != instanceId) {
                     throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout3, $"{iActorRequest}");
@@ -123,16 +127,16 @@ namespace ET.Server {
                         await TimerComponent.Instance.WaitAsync(500);
                         if (actorLocationSender.InstanceId != instanceId)
                             throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout4, $"{iActorRequest}");
-                        actorLocationSender.ActorId = 0;
+                        actorLocationSender.ActorId = 0; // 这里先重置为0, 上面有逻辑会重新再设置一次
                         continue;
                     }
-                    case ErrorCore.ERR_ActorTimeout: 
+                case ErrorCore.ERR_ActorTimeout: // 发送索要位置信息，要求不抛异常。这里自已断定消息超时，自己手动抛异常 
                         throw new RpcException(response.Error, $"{iActorRequest}");
                 }
                 if (ErrorCore.IsRpcNeedThrowException(response.Error)) {
                     throw new RpcException(response.Error, $"Message: {response.Message} Request: {iActorRequest}");
                 }
-                return response;
+                return response; // 是返回的正常位置消息，就返回
             }
         }
     }

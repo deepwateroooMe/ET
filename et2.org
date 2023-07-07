@@ -3,6 +3,7 @@
 #+author: deepwaterooo 
 
 * IAwake 接口类系统，IStart 重构丢了
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 感觉还比较直接，就是帮助搭建热更新域与Unity 常规工程域生命周期回调的桥，搭桥连线，连能就可以了。应该可以扩散出个IStart 接口类
 ** IMessage,IRequest,IResponse: 进程内的消息类。
 - 这些接口的实现类是进程内的。一个使用的地方可以去看 NetServerComponentOnReadEvent.cs 类里的方法。

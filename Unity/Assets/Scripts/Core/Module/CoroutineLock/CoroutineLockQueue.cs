@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 namespace ET {
-    
     public class CoroutineLockQueue { // 【协程锁队列】
         private int type; // 类型
         private long key; // ？
@@ -11,14 +10,14 @@ namespace ET {
             coroutineLockQueue.key = key;
             return coroutineLockQueue;
         }
-        private CoroutineLock currentCoroutineLock; // 当前锁
+        private CoroutineLock currentCoroutineLock; // 当前锁：不懂这个成员变量 
         private readonly Queue<WaitCoroutineLock> queue = new Queue<WaitCoroutineLock>(); // 【协程等待锁队列】
         public int Count {
             get {
                 return this.queue.Count;
             }
         }
-        public async ETTask<CoroutineLock> Wait(int time) { // 【这个方法】：没看懂，没理解，弄个协程等待锁，做什么有什么用？需要网上查下相关讲解
+        public async ETTask<CoroutineLock> Wait(int time) { // 【这个方法】：协程锁在不同使用情境下需要等待的时长不一样。如特例活宝妹守着亲爱的表哥，是要是会守一辈子的
             // 从这里开始迷糊：两个不同的返回分支：
             if (this.currentCoroutineLock == null) {
                 this.currentCoroutineLock = CoroutineLock.Create(type, key, 1); // level: 感觉，是纪录协程桢数序号，从 1 开始， 100-Warning
