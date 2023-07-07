@@ -23,8 +23,8 @@ namespace ET.Server {
 // 这里先发送响应，让客户端收到后切换房间界面，否则可能会出现重连消息在切换到房间界面之前发送导致重连异常【这个应该是，别人的源标注了】
 // 这里的顺序就显得关键：因为只有网关服向客户端返回服务器的匹配响应【并不一定说已经匹配完成，但告诉客户端服务器在着手处理这个工作。。。】，客户端才能创建房间UI 控件
             // 【涉及到一定顺序的时候】：过里可能会存在一定的问题，因为ET7 的重新对回复消息的返回发送封装。就是这里是希望先把消息发回去，再处理下面的逻辑；但ET7 封装会先处理如下逻辑，再最后发返回消息。。。
-            Scene scene = session.DomainScene(); 
-            StartSceneConfig config = RealmGateAddressHelper.GetMatch(session.DomainZone()); // 随机分配一个Match 匹配服 
+            Scene scene = session.DomainScene(); // 这个例子，似乎看起来，是被自己改通了，可以用作参考
+            StartSceneConfig config = RealmGateAddressHelper.GetMatch(session.DomainZone()); // 随机分配一个Match 匹配服。【这里没记的话，就任何时候，随机分配一个Match ？】
             Log.Debug($"match address: {MongoHelper.ToJson(config)}");
             M2G_PlayerEnterMatch_Ack m2G_PlayerEnterMatch_Ack = await scene.GetComponent<NetInnerComponent>().Get(config.InstanceId).Call(new G2M_PlayerEnterMatch_Req() { // 发消息代为客户端申请：申请匹配游戏
                     PlayerID = user.InstanceId,

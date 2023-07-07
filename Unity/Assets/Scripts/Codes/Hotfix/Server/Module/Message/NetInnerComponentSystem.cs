@@ -80,6 +80,7 @@ namespace ET.Server {
             // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
             return session;
         }
+        // 去找一下：框架里是否有样例使用如下方法
         // 内网actor session，channelId是进程号。【自己的理解】：这些内网服务器间，或说重构的SceneType 间，有维护着会话框的，比如Realm 注册登录服与Gate 网关服等
         public static Session Get(this NetInnerComponent self, long channelId) {
             Session session = self.GetChild<Session>(channelId);

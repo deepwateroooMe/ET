@@ -15,7 +15,7 @@ namespace ET.Server {
         public long ActorId;
         public object Message;
     }
-    [ComponentOf(typeof(Scene))]
+    [ComponentOf(typeof(Scene))] // 这里想要去找：这个内网组件，如何可以拿到其它服的地址
     public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
         public int ServiceId;
         public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
