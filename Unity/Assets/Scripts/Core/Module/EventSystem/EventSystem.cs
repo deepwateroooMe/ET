@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-namespace ET {
+namespace ET { // 框架精髓：【事件系统】：这个类看过无数遍了，但是希望每次看的时候，能够有更多的收获 
     public class EventSystem: Singleton<EventSystem>, ISingletonUpdate, ISingletonLateUpdate {
         private class OneTypeSystems {
             public readonly UnOrderMultiMap<Type, object> Map = new();
-            // 这里不用hash，数量比较少，直接for循环速度更快
+            // 这里不用hash，数量比较少，直接for循环速度更快。（说的是下面用数量，只有几个回调： Start()-Update()-LateUpdate()-Load()-etc）
             public readonly bool[] QueueFlag = new bool[(int)InstanceQueueIndex.Max];
         }
         private class TypeSystems {
@@ -28,12 +28,10 @@ namespace ET {
             }
             public List<object> GetSystems(Type type, Type systemType) {
                 OneTypeSystems oneTypeSystems = null;
-                if (!this.typeSystemsMap.TryGetValue(type, out oneTypeSystems)) {
+                if (!this.typeSystemsMap.TryGetValue(type, out oneTypeSystems)) 
                     return null;
-                }
-                if (!oneTypeSystems.Map.TryGetValue(systemType, out List<object> systems)) {
+                if (!oneTypeSystems.Map.TryGetValue(systemType, out List<object> systems)) 
                     return null;
-                }
                 return systems;
             }
         }
@@ -464,3 +462,4 @@ namespace ET {
         }
     }
 }
+

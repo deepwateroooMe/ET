@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 namespace ET.Server {
+
     [ComponentOf(typeof(Scene))]
     public class ActorMessageSenderComponent: Entity, IAwake, IDestroy {
         public const long TIMEOUT_TIME = 40 * 1000;

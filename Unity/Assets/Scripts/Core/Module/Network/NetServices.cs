@@ -39,7 +39,6 @@ namespace ET {
         private readonly ConcurrentQueue<NetOperator> mainThreadOperators = new ConcurrentQueue<NetOperator>();
 
         public NetServices() {
-            // 以前读这里的时候，似懂非懂，没能站在一个框架高度来看待【进程间消息】【proto2CS 时所绑定的操作符】等，现在把这些全部串起来再看一遍
             // Proto2CS: 当 .proto 里自定义的消息，框架里转化为 .cs 语言消息时，会为消息分配【网络操作符】数字，作为这里 messageAttribute.Opcode
             HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageAttribute)); // 【进程间消息】【Message(OuterMessage.RouterSync)】 etc
             foreach (Type type in types) {
@@ -278,3 +277,4 @@ namespace ET {
 #endregion
     }
 }
+

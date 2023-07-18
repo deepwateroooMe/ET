@@ -108,7 +108,7 @@ namespace ET {
                 }
             }
         }
-        private void AddTimer(TimerAction timer) {
+        private void AddTimer(TimerAction timer) { // 这里是回入闹钟超时的管理体系里去，要找时间到每桢更新逻辑
             long tillTime = timer.StartTime + timer.Time;
             this.TimeId.Add(tillTime, timer.Id);
             this.timerActions.Add(timer.Id, timer);

@@ -196,14 +196,14 @@ namespace ET {
             c?.Invoke();
         }
         [DebuggerHidden]
-        public void SetException(Exception e) {
+        public void SetException(Exception e) { // 我上次读，以为设置好异常，ETTask 库是会自动抛出异常的；
             if (this.state != AwaiterStatus.Pending) {
                 throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
             }
             this.state = AwaiterStatus.Faulted;
             Action c = this.callback as Action;
-            this.callback = ExceptionDispatchInfo.Capture(e);
-            c?.Invoke();
+            this.callback = ExceptionDispatchInfo.Capture(e); // 这里看，感觉它仍然只是包装了一下，哪里真正抛出的呢
+            c?.Invoke(); // 这里，更多的是，去执行协程状态机的下一步，不是真正意义上的回调
         }
     }
 }

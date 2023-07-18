@@ -1,13 +1,13 @@
 ﻿using System;
 using CommandLine;
 namespace ET {
+    
     public static class Init {
         public static void Start() {
             try {    
                 AppDomain.CurrentDomain.UnhandledException += (sender, e) => {
                     Log.Error(e.ExceptionObject.ToString());
                 };
-                
                 // 异步方法全部会回掉到主线程
                 Game.AddSingleton<MainThreadSynchronizationContext>();
                 // 命令行参数
@@ -24,11 +24,9 @@ namespace ET {
                 Game.AddSingleton<CoroutineLockComponent>();
                 
                 ETTask.ExceptionHandler += Log.Error;
-                
                 Log.Console($"{Parser.Default.FormatCommandLine(Options.Instance)}");
                 Game.AddSingleton<CodeLoader>().Start();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Log.Error(e);
             }
         }

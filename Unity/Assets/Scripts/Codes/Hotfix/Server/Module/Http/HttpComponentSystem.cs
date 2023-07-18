@@ -38,7 +38,7 @@ namespace ET.Server {
         public static void Load(this HttpComponent self) {
             self.dispatcher = new Dictionary<string, IHttpHandler>();
             HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (HttpHandlerAttribute)); // 实则，全局只有一个
-            SceneType sceneType = self.GetParent<Scene>().SceneType;
+            SceneType sceneType = self.GetParent<Scene>().SceneType; // 【RouterManager】场景，才会添加这个组件。框架里只有这个场景，添加过这个组件
             foreach (Type type in types) {
                 object[] attrs = type.GetCustomAttributes(typeof(HttpHandlerAttribute), false);
                 if (attrs.Length == 0) 

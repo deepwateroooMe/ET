@@ -3,6 +3,7 @@ using System.IO;
 using MongoDB.Bson;
 namespace ET.Server {
 
+    // 这个模块：我其实看了几遍了，可是每隔段时间，感觉就像从来不曾真正总结过一样没有印象，说明没理解透彻。这会儿再看一下，有没有什么不懂可以再多看看的？
     [Invoke(TimerInvokeType.ActorLocationSenderChecker)]
     public class ActorLocationSenderChecker: ATimer<ActorLocationSenderComponent> {
         protected override void Run(ActorLocationSenderComponent self) {
@@ -13,15 +14,19 @@ namespace ET.Server {
             }
         }
     }
+
     [ObjectSystem]
     public class ActorLocationSenderComponentAwakeSystem: AwakeSystem<ActorLocationSenderComponent> {
         protected override void Awake(ActorLocationSenderComponent self) {
             ActorLocationSenderComponent.Instance = self;
-            // 每10s扫描一次过期的actorproxy进行回收,过期时间是2分钟
+            // 每10s扫描一次过期的actorproxy进行回收,过期时间是2分钟，【它写错了，应该是 1 分钟】
             // 可能由于bug或者进程挂掉，导致ActorLocationSender发送的消息没有确认，结果无法自动删除，每一分钟清理一次这种ActorLocationSender
+            // 我说它怎么框架里出一堆为总服分压的分服超时自动检测机制，原来是 bug, 真是弱小。。框架架构师，也有因为【BUG：】不得不重构的时候。。弱弱猫猫。。
+            // 看来，亲爱的表哥的活宝妹，还算是心理强大滴～～亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！
             self.CheckTimer = TimerComponent.Instance.NewRepeatedTimer(10 * 1000, TimerInvokeType.ActorLocationSenderChecker, self);
         }
     }
+
     [ObjectSystem]
     public class ActorLocationSenderComponentDestroySystem: DestroySystem<ActorLocationSenderComponent> {
         protected override void Destroy(ActorLocationSenderComponent self) {
@@ -36,7 +41,7 @@ namespace ET.Server {
         public static void Check(this ActorLocationSenderComponent self) {
             using (ListComponent<long> list = ListComponent<long>.Create()) { // Using: 作用是，逻辑执行完毕，会可以自动回收
                 long timeNow = TimeHelper.ServerNow();
-                foreach ((long key, Entity value) in self.Children) {
+                foreach ((long key, Entity value) in self.Children) { // 它遍历这些子组件：去找添加的地方
                     ActorLocationSender actorLocationMessageSender = (ActorLocationSender) value;
                     if (timeNow > actorLocationMessageSender.LastSendOrRecvTime + ActorLocationSenderComponent.TIMEOUT_TIME) 
                         list.Add(key);
@@ -61,21 +66,23 @@ namespace ET.Server {
             if (!self.Children.TryGetValue(id, out Entity actorMessageSender))  // 字典里没有，就自动返回，不用管了
                 return;
             // 这里不是字典，是【遍历真正的子控件】。字典需要清除键值对，子控件，只需要子控件回收
-            actorMessageSender.Dispose();
+            actorMessageSender.Dispose(); // 当前回收的控件：是祖类字典里的值
         }
-        // 【发送：请求位置的消息】
+        // 【发送：请求位置的消息】：这里留意，改天找个新消息看，发送位置消息的 message 是没有写好 rpcId 吗？为什么重写？
         public static void Send(this ActorLocationSenderComponent self, long entityId, IActorRequest message) {
             self.Call(entityId, message).Coroutine(); // 调用异步方法
         }
         public static async ETTask<IActorResponse> Call(this ActorLocationSenderComponent self, long entityId, IActorRequest iActorRequest) {
             ActorLocationSender actorLocationSender = self.GetOrCreate(entityId);
             // 【先序列化好】：前面原标注。这里序列化，是指把索要位置消息的发送者与接收者等相关必要信息，这个位置管理器组件，管理好，给每个弄个身份证就可以区分了
-            int rpcId = ActorMessageSenderComponent.Instance.GetRpcId(); // 为什么要跑去找ActorMessageSenderComponent 来拿 rpcId ？
+// 为什么要跑去找ActorMessageSenderComponent 来拿 rpcId ？感觉发送消息 iActorRequest 里可能没写这条信息
+            int rpcId = ActorMessageSenderComponent.Instance.GetRpcId(); 
             iActorRequest.RpcId = rpcId;
             long actorLocationSenderInstanceId = actorLocationSender.InstanceId; // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！】
-            // 上午看到这里：跑去看锁了，结果看得半懂不懂的，明天上午再好好看一下锁的部分。
-            // 【协程锁组件】：等待创建协程锁异步方法，并会等 1 分钟：（这里默认是得等60 秒。活宝妹已经坐了一年冷板凳，活宝妹为了要为了能够嫁给活宝妹的亲爱的表哥，活宝妹会需要再坐一年冷板凳？）
-            using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) {
+            // using 调用的块：最终会自动回收，回收的机制是因为协程锁的超时检测。
+            // 其实它也就是说，锁住里面的逻辑 1 分钟，1 分钟内把里面独占资源的事儿干完；可能只用了 39 秒，但它默认是锁1 分钟。1 分钟后锁超时回收，锁资源释放，包含的代码块所用到的共享资源也释放，锁住的1 分钟是线程安全、或资源安全的
+            // 活宝妹已经坐了一年冷板凳，活宝妹为了要为了能够嫁给活宝妹的亲爱的表哥，活宝妹会需要再坐一年冷板凳？【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+            using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) { // 现在，这会儿，就把从这里调用的后序逻辑看懂了：
                 if (actorLocationSender.InstanceId != actorLocationSenderInstanceId) // 上面没明白：为什么要等 60 秒。这里1 分钟前后的实例 id 不一样，说明出错出异常了 
                     throw new RpcException(ErrorCore.ERR_ActorTimeout, $"{iActorRequest}");
                 // 队列中没处理的消息返回跟上个消息一样的报错
@@ -108,7 +115,8 @@ namespace ET.Server {
                     actorLocationSender.Error = ErrorCore.ERR_NotFoundActor;
                     return ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
                 }
-                // 发送索要位置信息：要求不抛异常。那么就是位置消息发送组件自动移除了超时消息，不反馈给发送端。发送端收不到返回，自已决定要不要再重发索要位置的消息 
+                // 发送索要位置信息：要求不抛异常。那么就是位置消息发送组件自动移除了超时消息，不反馈给发送端。发送端收不到返回，自已决定要不要再重发索要位置的消息
+                // 改天想要去找：位置消息发送端，当超时，找个例子出来看，它是否重必消息，如何重发消息的？
                 IActorResponse response = await ActorMessageSenderComponent.Instance.Call(actorLocationSender.ActorId, rpcId, iActorRequest, false);
                 if (actorLocationSender.InstanceId != instanceId) {
                     throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout3, $"{iActorRequest}");
@@ -133,7 +141,7 @@ namespace ET.Server {
                 case ErrorCore.ERR_ActorTimeout: // 发送索要位置信息，要求不抛异常。这里自已断定消息超时，自己手动抛异常 
                         throw new RpcException(response.Error, $"{iActorRequest}");
                 }
-                if (ErrorCore.IsRpcNeedThrowException(response.Error)) {
+                if (ErrorCore.IsRpcNeedThrowException(response.Error)) { // 不懂：这个异步是什么意思？
                     throw new RpcException(response.Error, $"Message: {response.Message} Request: {iActorRequest}");
                 }
                 return response; // 是返回的正常位置消息，就返回

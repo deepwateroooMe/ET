@@ -1,4 +1,5 @@
 ﻿namespace ET.Server {
+
     // 匹配对象: 匹配的玩家系统
     [ChildOf(typeof(MatchComponent))]
     public sealed class Matcher : Entity, IAwake<long> {

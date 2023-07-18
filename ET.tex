@@ -1,4 +1,4 @@
-% Created 2023-07-04 Tue 16:10
+% Created 2023-07-17 Mon 16:58
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1978,10 +1978,35 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 \label{sec-13}
 
 \includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
+\subsection{ET6 Beta(master) 设计的几点儿思路【帮助自己理解和梳理框架】}
+\label{sec-13-1}
+\begin{itemize}
+\item 之前每个功能是一个进程，比如realm gate location map，现在改成每个功能是一个Scene，一个Scene可以放到一个进程中。这样一台物理机先启动固定的进程，然后各个scene放到进程中运行。非常类似docker。
+\item 所有的Scene放在一个进程就变成了AllServer模式。（【所以，自己没能体会透彻的时候，手动再添加一个什么 AllServer 是不对的。。】）
+\item 服务器内部全部使用actor发送消息，比如realm发给gate，其实是发个actor消息到gate scene( 【这个，大概是Actor 消息的帮助类里，需要手动序列化，手动添加发送消息与返回消息的 actorId 的原因，内网消息手动序列化。。】)
+\item dbserver将取消，每个进程直连mongodb，使用异步调用存取数据（这是，自己还没能想透的【区】的概念，一个小区里，有哪些小服？）
+\item 协程锁简化了很多实现，例如location队列，actor队列，mailbox消息队列，全部使用协程锁实现，代码非常精简。（没理解透）
+\item Scene可以开服前配置好在哪个进程（比如realm gate）也可以动态创建（比如副本，分线场景）。动态创建Scene回收Scene非常简单。
+\end{itemize}
+\subsection{Domain: 这个东西，不知道它是什么}
+\label{sec-13-2}
+\begin{itemize}
+\item domain就是指这个entity属于哪个scene，毕竟一个进程上可以容纳多个scene
+\item domain还有个很重要的作用，就是设置domain的时候才会执行反序列化system，还有注册eventsystem
+\item domain简单说是指属于哪个scene, 每个entity都有个domain字段，这样写逻辑方便能拿到自己scene上的数据
+\end{itemize}
+\subsection{AppType ＝＝》 SceneType 重构}
+\label{sec-13-3}
+\begin{itemize}
+\item 多进程多scene，具体scene放到那个进程完全取决于配制，全放到一个进程就是allserver了
+\item 如果是个很大的scene，需要容纳很多人，可能就需要单独占用一个进程，这样才能完全利用一个核
+\item 把每个scene都分配一个进程，就跟5.0差不多了
+\end{itemize}
 \section{Coroutine 锁之类的相关总结：【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}
 \label{sec-14}
 \begin{itemize}
 \item 整个框架，各种锁，还不曾真正读过，所以这里再看一下，总结一下遇见过的必要的。半小时到一小时的时间，简单快速地再翻一遍。以前读过，只是没作笔记，部分细节点不理解找出来，记下。
+\item 重构后的模块，是单例类管理组件，不同于框架里其它组件，热更域里自带生成系或说更新系。它是单例，是定义死了的。【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！活宝妹还没能嫁给亲爱的表哥，就时间停止，世界不转，直到活宝妹可以嫁给亲爱的表哥的这一天！！】
 \end{itemize}
 \subsection{CoroutineLockType: 静态类定义的几种类型}
 \label{sec-14-1}
@@ -2066,6 +2091,11 @@ public class WaitCoroutineLock {
 \end{minted}
 \subsection{CoroutineLockQueue: 队列里面嵌套协程锁，没看懂}
 \label{sec-14-4}
+\begin{itemize}
+\item 这里面有个以 WaitCoroutineLock 为元素的队列。还有一把当前锁。【不明白这个当前锁，要这个成员变量可以作什么？】
+\item 当前锁为空时，直接创建返回一把新锁，不管时间什么的；当非空，创建新的等待锁，加入队列，赋值给当前锁，并返回。。
+\item 队列，这里面的队列是做什么的？
+\end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class CoroutineLockQueue { // 【协程锁队列】
     private int type; // 类型
@@ -2119,7 +2149,7 @@ public class CoroutineLockQueue { // 【协程锁队列】
     }
 }
 \end{minted}
-\subsection{CoroutineLockQueueType: 字典管理一堆上面的 CoroutineLockQueue.}
+\subsection{CoroutineLockQueueType: 【协程锁队列：分不同类型的】。字典管理一堆上面的 CoroutineLockQueue.}
 \label{sec-14-5}
 \begin{itemize}
 \item 所以这个类极简单，字典的相关操作，就可以了。Notify() 调用相关相对应的CoroutineLockQueue 的相应方法就可以

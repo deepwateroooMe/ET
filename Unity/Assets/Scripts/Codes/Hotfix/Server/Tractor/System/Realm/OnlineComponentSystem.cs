@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+
 namespace ET.Server {
+
     [FriendOfAttribute(typeof(ET.Server.OnlineComponent))]    // 在线组件，用于记录在线玩家
     public static class OnlineComponentSystem {
         // 添加在线玩家

@@ -1,4 +1,5 @@
 ﻿namespace ET.Server {
+    // 【Process: 】场景，没弄明白，为什么Realm 注册登录服，与Gate 网关服里【服务端】组件发布的事情，会有这个场景的订阅者接收事件？
     [Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件？包含了网关服相关的消息。忘记【Event()】标签怎么回事了，改天再补
     public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
         protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) { // 【返回消息的发送】：仍是封装在框架底层
@@ -46,3 +47,4 @@
         }
     }
 }
+

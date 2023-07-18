@@ -1,6 +1,7 @@
 using System.Net.Sockets;
 namespace ET.Client { 
     public static class SceneFactory {
+        
         public static async ETTask<Scene> CreateClientScene(int zone, string name) {
             await ETTask.CompletedTask;
 

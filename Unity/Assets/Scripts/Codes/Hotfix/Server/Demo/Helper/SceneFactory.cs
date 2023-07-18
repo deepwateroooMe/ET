@@ -6,7 +6,7 @@ namespace ET.Server {
         // 这里搞搞明白：这些服务器场景，也是异步任务，根据配置文件来创建的
         // 【添加全服：】这里自己加一个全服
         public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
-            await ETTask.CompletedTask;
+            await ETTask.CompletedTask; // 感觉这句，可以拿掉。还没执行任何逻辑？就在等。。。
             Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
             // 任何场景：无序消息分发器，可接收消息，队列处理；发呢？
             scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher); // 重构？应该是对进程间消息发收的浓缩与提练

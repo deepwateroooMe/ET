@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 namespace ET.Server {
-
     [FriendOf(typeof(UserComponent))]
     public static class UserComponentSystem { // User对象管理组件生成系
         [ObjectSystem]

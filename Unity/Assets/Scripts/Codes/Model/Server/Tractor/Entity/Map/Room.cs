@@ -2,7 +2,6 @@
 using System.Linq;
 using ET.Server;
 namespace ET {
-
     // 房间状态
     public enum RoomState : byte {
         Idle,       

@@ -236,7 +236,7 @@ namespace ET {
         [BsonIgnore]
         private Dictionary<long, Entity> children;
         [BsonIgnore]
-        public Dictionary<long, Entity> Children {
+        public Dictionary<long, Entity> Children { // 这里仍然是通用的字典管理：管理所有子控件
             get {
                 return this.children ??= ObjectPool.Instance.Fetch<Dictionary<long, Entity>>();
             }
@@ -288,9 +288,7 @@ namespace ET {
             }
         }
         public override void Dispose() {
-            if (this.IsDisposed) {
-                return;
-            }
+            if (this.IsDisposed) return; // 已经回收了，这里什么也不做
             this.IsRegister = false;
             this.InstanceId = 0;
             // 清理Children
@@ -611,8 +609,8 @@ namespace ET {
             Type type = typeof (T);
             T component = Entity.Create(type, isFromPool) as T;
             component.Id = id;
-            component.Parent = this;
-            EventSystem.Instance.Awake(component);
+            component.Parent = this; // 作为子控件添加的
+            EventSystem.Instance.Awake(component); // 调用仅只一次的 Awake()
             return component;
         }
         public T AddChildWithId<T, A>(long id, A a, bool isFromPool = false) where T : Entity, IAwake<A> {

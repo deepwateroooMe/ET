@@ -5,13 +5,13 @@ namespace ET.Server {
     public static class BenchmarkClientComponentSystem {
         public class AwakeSystem: AwakeSystem<BenchmarkClientComponent> {
             protected override void Awake(BenchmarkClientComponent self) {
-                for (int i = 0; i < 50; ++i) {
+                // 意思：这里说，同时开 50 个不同的场景，来运行，进行必要的压力测试？
+                for (int i = 0; i < 50; ++i) 
                     self.Start().Coroutine();
-                }
             }
         }
         private static async ETTask Start(this BenchmarkClientComponent self) {
-            await TimerComponent.Instance.WaitAsync(1000);
+            await TimerComponent.Instance.WaitAsync(1000); // 等 1 秒钟
             Scene scene = await SceneFactory.CreateServerScene(self, IdGenerater.Instance.GenerateId(), IdGenerater.Instance.GenerateInstanceId(),
                                                                self.DomainZone(), "bechmark", SceneType.Benchmark);
             NetClientComponent netClientComponent = scene.AddComponent<NetClientComponent, AddressFamily>(AddressFamily.InterNetwork);

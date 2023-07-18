@@ -36,7 +36,7 @@ namespace ET.Client {
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 创建必要的会话框，方便交通
             session.RemoteAddress = realIPEndPoint;
             if (self.DomainScene().SceneType != SceneType.Benchmark) 
-                session.AddComponent<SessionIdleCheckerComponent>(); // 不知道这个是干什么的，改天再看
+                session.AddComponent<SessionIdleCheckerComponent>(); 
             NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint); // 创建信道
             return session;
         }

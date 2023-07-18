@@ -4,7 +4,7 @@ namespace ET {
     // 【协程超时、自动检测机制】：问题是，协程原本就每桢执行一次，为什么有必要设置【 1 （毫）秒？？还是只是标注特殊类型】超时？
     [Invoke(TimerCoreInvokeType.CoroutineTimeout)] // 自动检测超时机制：不知道为什么定义静态类 TimerCoreInvokeType ？
     public class WaitCoroutineLockTimer: ATimer<WaitCoroutineLock> {
-        protected override void Run(WaitCoroutineLock waitCoroutineLock) {
+        protected override void Run(WaitCoroutineLock waitCoroutineLock) { // 设置回调：抛超时异常。为什么设计为抛超时异常？
             if (waitCoroutineLock.IsDisposed()) return; // 若已回收，再无它
             waitCoroutineLock.SetException(new Exception("coroutine is timeout!")); // 抛超时异常
         }
@@ -27,14 +27,14 @@ namespace ET {
             if (this.tcs == null) 
                 throw new NullReferenceException("SetException tcs is null");
             var t = this.tcs;
-            this.tcs = null;
+            this.tcs = null; // 回收异步任务
             t.SetException(exception);
         }
         public bool IsDisposed() {
             return this.tcs == null;
         }
         public async ETTask<CoroutineLock> Wait() {
-            return await this.tcs;
+            return await this.tcs; // 等待异步任务的创建完成 ? 类里没有等待方法
         }
     }
 }

@@ -17,13 +17,12 @@ namespace ET {
                 }
             }
             this.LoadHotfix();
-            
             IStaticMethod start = new StaticMethod(this.model, "ET.Entry", "Start");
             start.Run();
         }
         public void LoadHotfix() {
             assemblyLoadContext?.Unload();
-            GC.Collect();
+            GC.Collect(); // 【自己管理】：手动调用一次垃圾回收
             assemblyLoadContext = new AssemblyLoadContext("Hotfix", true);
             byte[] dllBytes = File.ReadAllBytes("./Hotfix.dll");
             byte[] pdbBytes = File.ReadAllBytes("./Hotfix.pdb");
