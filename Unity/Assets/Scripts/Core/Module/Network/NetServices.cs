@@ -11,7 +11,6 @@ namespace ET {
         KCP,
         Websocket,
     }
-
     public enum NetOp: byte { // 定义几种不同的网络操作
         AddService = 1,
         RemoveService = 2,
@@ -38,7 +37,7 @@ namespace ET {
         private readonly ConcurrentQueue<NetOperator> netThreadOperators = new ConcurrentQueue<NetOperator>();
         private readonly ConcurrentQueue<NetOperator> mainThreadOperators = new ConcurrentQueue<NetOperator>();
 
-        public NetServices() {
+        public NetServices() { // 【原理】：扫描框架里所有消息，把消息的操作符记字典里
             // Proto2CS: 当 .proto 里自定义的消息，框架里转化为 .cs 语言消息时，会为消息分配【网络操作符】数字，作为这里 messageAttribute.Opcode
             HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageAttribute)); // 【进程间消息】【Message(OuterMessage.RouterSync)】 etc
             foreach (Type type in types) {
@@ -82,6 +81,7 @@ namespace ET {
             NetOperator netOperator = new NetOperator() { Op = NetOp.ChangeAddress, ServiceId = serviceId, ChannelId = channelId, Object = ipEndPoint};
             this.netThreadOperators.Enqueue(netOperator);
         }
+        // 【双端都用的单例类】：会话框上发消息：封装为进程间网络异步调用，也就是开启一个异步线程来完成任务，结果同步到主线程中去
         public void SendMessage(int serviceId, long channelId, long actorId, object message) {
             NetOperator netOperator = new NetOperator() { Op = NetOp.SendMessage, ServiceId = serviceId, ChannelId = channelId, ActorId = actorId, Object = message };
             this.netThreadOperators.Enqueue(netOperator);
@@ -233,8 +233,8 @@ namespace ET {
                 }
             }
         }
-        // 【异步线程】每桢更新逻辑：异步线程呀，每桢就遍历那几个服务 id(Service 层面， id 相区分), 要每个服务去更新它们自己的
-        public void UpdateInNetThread() {
+        // 【异步线程】每桢更新逻辑：异步线程，每桢就遍历那几个服务 id(Service 层面， id 相区分), 要每个服务去更新它们自己的
+        public void UpdateInNetThread() { // 往上找一下：Update() 生命周期回调，哪里调用这个方法？也是公用方法，怎么会没有调用的地方呢？
             int count = this.queue.Count;
             while (count-- > 0) {
                 int serviceId = this.queue.Dequeue();
@@ -277,4 +277,3 @@ namespace ET {
 #endregion
     }
 }
-

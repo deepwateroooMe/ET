@@ -87,8 +87,8 @@ namespace ET.Server {
             if (session != null) { // 有已经创建过，就直接返回
                 return session;
             } // 下面，还没创建过，就创建一个会话框
-            IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
-            session = self.CreateInner(channelId, ipEndPoint);
+            IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort; // 这里拿的是：内网另一进程，可用来接收消息的端口
+            session = self.CreateInner(channelId, ipEndPoint); // 当前服务器，与内网其它服务器的接收消息端口，建立会话框
             return session;
         }
     }

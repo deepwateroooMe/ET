@@ -19,7 +19,7 @@ namespace ET {
         Match
     }
     
-    public class Options: Singleton<Options> {
+    public class Options: Singleton<Options> { // 这个类：如何鉴别是，当前场景所属的进程，以前没有看懂过。【这个类，还是稀里糊涂】
         [Option("AppType", Required = false, Default = AppType.Server, HelpText = "AppType enum")]
         public AppType AppType { get; set; }
         [Option("StartConfig", Required = false, Default = "StartConfig/Localhost")]

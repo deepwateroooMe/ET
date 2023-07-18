@@ -27,7 +27,7 @@ namespace ET.Server {
         private static void Awake(this ActorMessageDispatcherComponent self) {
             self.Load();
         }
-        private static void Load(this ActorMessageDispatcherComponent self) { // 加载：程序域回载的时候
+        private static void Load(this ActorMessageDispatcherComponent self) { // 加载：程序域加载的时候
             self.ActorMessageHandlers.Clear(); // 清空
             var types = EventSystem.Instance.GetTypes(typeof (ActorMessageHandlerAttribute)); // 扫描程序域里的特定消息处理器标签 
             foreach (Type type in types) {
@@ -75,3 +75,6 @@ namespace ET.Server {
         }
     }
 }
+
+
+

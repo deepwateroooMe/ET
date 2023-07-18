@@ -80,13 +80,13 @@ namespace ET {
             self.Send(request);    // <<<<<<<<<<<<<<<<<<<< 调用上面：这个类里的方法 
             return await rpcInfo.Tcs;
         }
-        public static void Send(this Session self, IMessage message) {
+        public static void Send(this Session self, IMessage message) { // 【会话框上发消息】：
             self.Send(0, message);
         }
         public static void Send(this Session self, long actorId, IMessage message) {
             self.LastSendTime = TimeHelper.ClientNow();
             OpcodeHelper.LogMsg(self.DomainZone(), message);
-            NetServices.Instance.SendMessage(self.ServiceId, self.Id, actorId, message);
+            NetServices.Instance.SendMessage(self.ServiceId, self.Id, actorId, message); // 调用网络操作，最底层服务的主线程与网络线程封装来发消息
         }
     }
     [ChildOf]
