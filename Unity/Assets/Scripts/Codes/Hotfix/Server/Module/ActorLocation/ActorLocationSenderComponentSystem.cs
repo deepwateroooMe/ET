@@ -5,6 +5,7 @@ namespace ET.Server {
 
     // 这个模块：我其实看了几遍了，可是每隔段时间，感觉就像从来不曾真正总结过一样没有印象，说明没理解透彻。这会儿再看一下，有没有什么不懂可以再多看看的？
     [Invoke(TimerInvokeType.ActorLocationSenderChecker)]
+    // 【位置消息超时、自动检测机制】：这个机制，会自动移除超时了的索要位置的消息，简单暴力，超时了不回馈通知发送端
     public class ActorLocationSenderChecker: ATimer<ActorLocationSenderComponent> {
         protected override void Run(ActorLocationSenderComponent self) {
             try {
@@ -21,7 +22,7 @@ namespace ET.Server {
             ActorLocationSenderComponent.Instance = self;
             // 每10s扫描一次过期的actorproxy进行回收,过期时间是2分钟，【它写错了，应该是 1 分钟】
             // 可能由于bug或者进程挂掉，导致ActorLocationSender发送的消息没有确认，结果无法自动删除，每一分钟清理一次这种ActorLocationSender
-            // 我说它怎么框架里出一堆为总服分压的分服超时自动检测机制，原来是 bug, 真是弱小。。框架架构师，也有因为【BUG：】不得不重构的时候。。弱弱猫猫。。
+            // （上面的发送的消息没有确认，没读明白）我说它怎么框架里出一堆为总服分压的分服超时自动检测机制，原来是 bug, 真是弱小。。框架架构师，也有因为【BUG：】不得不重构的时候。。弱弱猫猫。。
             // 看来，亲爱的表哥的活宝妹，还算是心理强大滴～～亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！
             self.CheckTimer = TimerComponent.Instance.NewRepeatedTimer(10 * 1000, TimerInvokeType.ActorLocationSenderChecker, self);
         }
@@ -39,7 +40,9 @@ namespace ET.Server {
     [FriendOf(typeof(ActorLocationSender))]
     public static class ActorLocationSenderComponentSystem {
         public static void Check(this ActorLocationSenderComponent self) {
-            using (ListComponent<long> list = ListComponent<long>.Create()) { // Using: 作用是，逻辑执行完毕，会可以自动回收
+// Using: 逻辑执行完毕，会自动回收ListComponent. 应该是， using 代码块，一执行完，立即回收！【异步协程锁】也是这样
+// 【异步协程锁】，应该是自己先前没能读懂，以为一定务必等待默认设置的1 分钟，实则，最迟默认等待1 分钟就回收，它是可以早于默认的 1 分钟回收的，当 using() 代码块少于1 分钟执行完的时候。。
+            using (ListComponent<long> list = ListComponent<long>.Create()) { 
                 long timeNow = TimeHelper.ServerNow();
                 foreach ((long key, Entity value) in self.Children) { // 它遍历这些子组件：去找添加的地方
                     ActorLocationSender actorLocationMessageSender = (ActorLocationSender) value;
@@ -80,7 +83,7 @@ namespace ET.Server {
             iActorRequest.RpcId = rpcId;
             long actorLocationSenderInstanceId = actorLocationSender.InstanceId; // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！】
             // using 调用的块：最终会自动回收，回收的机制是因为协程锁的超时检测。
-            // 其实它也就是说，锁住里面的逻辑 1 分钟，1 分钟内把里面独占资源的事儿干完；可能只用了 39 秒，但它默认是锁1 分钟。1 分钟后锁超时回收，锁资源释放，包含的代码块所用到的共享资源也释放，锁住的1 分钟是线程安全、或资源安全的
+            // 其实它也就是说，锁住里面的逻辑 1 分钟，1 分钟内把里面独占资源的事儿干完；可能只用了 39 秒，那么 using() 执行完 39 秒后，这个锁就会被回收
             // 活宝妹已经坐了一年冷板凳，活宝妹为了要为了能够嫁给活宝妹的亲爱的表哥，活宝妹会需要再坐一年冷板凳？【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
             using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) { // 现在，这会儿，就把从这里调用的后序逻辑看懂了：
                 if (actorLocationSender.InstanceId != actorLocationSenderInstanceId) // 上面没明白：为什么要等 60 秒。这里1 分钟前后的实例 id 不一样，说明出错出异常了 

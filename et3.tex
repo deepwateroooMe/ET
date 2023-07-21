@@ -1,4 +1,4 @@
-% Created 2023-06-30 Fri 14:47
+% Created 2023-07-18 Tue 10:25
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -33,7 +33,6 @@
 
 \maketitle
 \tableofcontents
-
 
 \section{网关服：客户端信息发送的直接代理，中转站，组件分析}
 \label{sec-1}
@@ -78,7 +77,6 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 }
 \end{minted}
 
-
 \section{服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）}
 \label{sec-2}
 \begin{itemize}
@@ -91,14 +89,12 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 \item Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
 \end{itemize}
 
-
 \section{Session 会话框相关}
 \label{sec-3}
 \begin{itemize}
 \item 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
 \item 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
 \end{itemize}
-
 
 \section{Root 客户端根场景管理以及必要的组件：【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】}
 \label{sec-4}
@@ -239,7 +235,6 @@ public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
     }
 }
 \end{minted}
-
 
 \section{ETTask 和 ETVoid: 第三方库的ETTask, 参考ET-EUI 框架}
 \label{sec-5}
@@ -882,7 +877,6 @@ public sealed class AsyncMethodBuilderAttribute : Attribute {
 }// 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{minted}
 \end{itemize}
-
 
 \section{StartConfigComponent: 找【各种服】的起始初始化地址}
 \label{sec-6}
@@ -1673,11 +1667,11 @@ public static class ActorMessageSenderComponentSystem {
 \item 几个类弄懂： ActorHandleHelper, 以及再上面的，NetInnerComponentOnReadEvent 事件发布等，上层调用的几座桥连通了，才算把整个流程弄懂了。
 \item 现在不懂的就变成为：更为底层的，Session 会话框，socket 层的机制。但是因为它们更为底层，亲爱的表哥的活宝妹，现在把有限的精力投入支理解这个框架，适配自己的游戏比较重要。其它不太重要，或是更为底层的，改天有必要的时候再捡再看。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
-\subsection{LocationProxyComponent: 这个代理，什么情况下会用到？}
+\subsection{LocationProxyComponent: 【位置代理组件】：为什么称它为代理？}
 \label{sec-7-4}
 \begin{itemize}
-\item 就是有个启动类管理 StartSceneConfigCategory 类，它会分门别类地管理一些什么网关、注册登录服，地址服之类的东西。然后从这个里面拿位置服务器地址？大概意思是这样。
-\item 这个类先前仔细读过。还记得小伙伴搬家吗？有的小伙伴搬得狠慢，要花狠久，它搬家过程中就要上锁。大致是这类位置转移管理，位置添加、更新等相关管理操作。
+\item 就是有个启动类管理 StartSceneConfigCategory 类，它会分门别类地管理一些什么网关、注册登录服，地址服之类的东西。然后从这个里面拿位置服务器地址？大概意思是这样。写得可能不对。今天剩下一点儿时间，再稍微看一下
+\item 感觉先前、上面仍然是写得不伦不类。总之，位置相关组件就是管理框架里各种可收发消息的实例，他们所在的（场景？位置？服务器地址？）相关位置信息。【亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！活宝妹只是在等：亲爱的表哥同活宝妹的一纸结婚证。活宝妹若是还没能嫁给亲爱的表哥，活宝妹就永远守候在亲爱的表哥的身边！！爱表哥，爱生活！！！】
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class LocationProxyComponent: Entity, IAwake, IDestroy {
@@ -1686,53 +1680,19 @@ public class LocationProxyComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \end{itemize}
-\subsection{LocationProxyComponentSystem}
+\subsection{LocationProxyComponentSystem:}
 \label{sec-7-5}
+\begin{itemize}
+\item 为什么要加那堆什么也没曾看懂的源码在那里？
+\end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // [ObjectSystem] awake() etc
-public static class LocationProxyComponentSystem {
-    private static long GetLocationSceneId(long key) {
-        return StartSceneConfigCategory.Instance.LocationConfig.InstanceId;
-    }
-    public static async ETTask Add(this LocationProxyComponent self, long key, long instanceId) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectAddRequest() { Key = key, InstanceId = instanceId });
-    }
-    public static async ETTask Lock(this LocationProxyComponent self, long key, long instanceId, int time = 60000) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectLockRequest() { Key = key, InstanceId = instanceId, Time = time });
-    }
-    public static async ETTask UnLock(this LocationProxyComponent self, long key, long oldInstanceId, long instanceId) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectUnLockRequest() { Key = key, OldInstanceId = oldInstanceId, InstanceId = instanceId });
-    }
-    public static async ETTask Remove(this LocationProxyComponent self, long key) {
-        await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                  new ObjectRemoveRequest() { Key = key });
-    }
-    public static async ETTask<long> Get(this LocationProxyComponent self, long key) {
-        if (key == 0) 
-            throw new Exception($"get location key 0");
-        // location server配置到共享区，一个大战区可以配置N多个location server,这里暂时为1
-        ObjectGetResponse response = (ObjectGetResponse) await ActorMessageSenderComponent.Instance
-            .Call(GetLocationSceneId(key),
-                new ObjectGetRequest() { Key = key });
-        return response.InstanceId;
-    }
-    public static async ETTask AddLocation(this Entity self) {
-        await LocationProxyComponent.Instance.Add(self.Id, self.InstanceId);
-    }
-    public static async ETTask RemoveLocation(this Entity self) {
-        await LocationProxyComponent.Instance.Remove(self.Id);
-    }
-}
 \end{minted}
-\subsection{ActorLocationSender: 知道对方的Id，使用这个类发actor消息}
+\subsection{：一个添加位置信息的请求消息处理类，示例}
 \label{sec-7-6}
+
+\subsection{ActorLocationSender: 知道对方的Id，使用这个类发actor消息}
+\label{sec-7-7}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ChildOf(typeof(ActorLocationSenderComponent))]
 public class ActorLocationSender: Entity, IAwake, IDestroy {
@@ -1742,7 +1702,7 @@ public class ActorLocationSender: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{ActorLocationSenderComponent: 位置发送组件}
-\label{sec-7-7}
+\label{sec-7-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
  [ComponentOf(typeof(Scene))]
  public class ActorLocationSenderComponent: Entity, IAwake, IDestroy {
@@ -1752,7 +1712,7 @@ public class ActorLocationSender: Entity, IAwake, IDestroy {
  }
 \end{minted}
 \subsection{ActorLocationSenderComponentSystem: 这个类，也要明天上午再看一下}
-\label{sec-7-8}
+\label{sec-7-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke(TimerInvokeType.ActorLocationSenderChecker)]
 public class ActorLocationSenderChecker: ATimer<ActorLocationSenderComponent> {
@@ -1870,7 +1830,7 @@ public static class ActorLocationSenderComponentSystem {
 }
 \end{minted}
 \subsection{ActorHelper: 帮助创建IActorResponse 回复消息。狠简单}
-\label{sec-7-9}
+\label{sec-7-10}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class ActorHelper {
     public static IActorResponse CreateResponse(IActorRequest iActorRequest, int error) {
@@ -1883,7 +1843,7 @@ public static class ActorHelper {
 }
 \end{minted}
 \subsection{Actor 消息处理器：基本原理}
-\label{sec-7-10}
+\label{sec-7-11}
 \begin{itemize}
 \item 消息到达MailboxComponent，MailboxComponent是有类型的，不同的类型邮箱可以做不同的处理。目前有两种邮箱类型GateSession跟MessageDispatcher。
 \begin{itemize}
@@ -1892,7 +1852,7 @@ public static class ActorHelper {
 \end{itemize}
 \end{itemize}
 \subsection{MailboxType}
-\label{sec-7-11}
+\label{sec-7-12}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public enum MailboxType {
     MessageDispatcher, // 消息分发器
@@ -1902,7 +1862,7 @@ public enum MailboxType {
 \end{minted}
 
 \subsection{ActorMessageDispatcherInfo | ActorMessageDispatcherComponent: 【消息分发器组件】}
-\label{sec-7-12}
+\label{sec-7-13}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ActorMessageDispatcherInfo {
     public SceneType SceneType { get; }
@@ -1945,7 +1905,7 @@ public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
 }
 \end{minted}
 \subsection{ActorMessageDispatcherComponentHelper: 帮助类}
-\label{sec-7-13}
+\label{sec-7-14}
 \begin{itemize}
 \item Actor消息分发组件：对于管理器里的，对同一发送消息类型，不同场景下不同处理器的链表管理，多看几遍
 \item 这里，对于同一发送消息类型, 是会、是可能存在【从不同的场景类型中返回，带不同的消息处理器】 以致于必须得链表管理同一发送消息类型的不同可能处理情况。
@@ -2003,7 +1963,7 @@ public static class ActorMessageDispatcherComponentHelper {// Awake() Load() Des
 \end{minted}
 \end{itemize}
 \subsection{ActorMessageHandlerAttribute 标签系: 去找几个典型标签看看}
-\label{sec-7-14}
+\label{sec-7-15}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class ActorMessageHandlerAttribute: BaseAttribute {
     public SceneType SceneType { get; }
@@ -2012,10 +1972,11 @@ public class ActorMessageHandlerAttribute: BaseAttribute {
     }
 }
 \end{minted}
-\subsection{[ActorMessageHandler(SceneType.Gate)] 标签使用举例}
-\label{sec-7-15}
+\subsection{[ActorMessageHandler(SceneType.Gate)] 标签使用举例:}
+\label{sec-7-16}
 \begin{itemize}
 \item 是以前框架中或是参考项目中的例子。标签使用申明说，这是【网关服】上的一个Actor 消息处理器定义类。
+\item 框架中这个标签的例子还有很多。这里是随便抓一个出来。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ActorMessageHandler(SceneType.Gate)]
 public class Actor_MatchSucess_NttHandler : AMActorHandler<User, Actor_MatchSucess_Ntt> {
@@ -2028,7 +1989,7 @@ public class Actor_MatchSucess_NttHandler : AMActorHandler<User, Actor_MatchSuce
 \end{minted}
 \end{itemize}
 \subsection{MailBoxComponent: 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理}
-\label{sec-7-16}
+\label{sec-7-17}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 挂上这个组件表示该Entity是一个Actor,接收的消息将会队列处理
 [ComponentOf]
@@ -2038,7 +1999,7 @@ public class MailBoxComponent: Entity, IAwake, IAwake<MailboxType> {
 }
 \end{minted}
 \subsection{【服务端】ActorHandleHelper 帮助类：连接上下层的中间层桥梁}
-\label{sec-7-17}
+\label{sec-7-18}
 \begin{itemize}
 \item 读了ActorMessageSenderComponentSystem.cs 的具体的消息内容处理、发送，以及计时器消息的超时自动抛超时错误码过滤等底层逻辑处理，
 \item 读上下面的顶层的 NetInnerComponentOnReadEvent.cs 的顶层某个某些服，读到消息后的消息处理逻辑
@@ -2146,7 +2107,7 @@ public static class ActorHandleHelper {
 \end{minted}
 \end{itemize}
 \subsection{NetInnerComponentOnReadEvent:}
-\label{sec-7-18}
+\label{sec-7-19}
 \begin{itemize}
 \item 框架相对顶层的：某个某些服，读到消息后，发布读到消息事件后，触发的消息处理逻辑
 \item 这个，应该是服务端发布读事件后，触发的订阅者处理读到消息的回调逻辑：分消息类型，进行不同的处理

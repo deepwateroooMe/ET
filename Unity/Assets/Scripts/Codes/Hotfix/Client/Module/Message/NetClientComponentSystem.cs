@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 namespace ET.Client { 
-    [FriendOf(typeof(NetClientComponent))] // 把这个【网络客户端】组件的主要笔记要点，再快速写一遍
+    [FriendOf(typeof(NetClientComponent))] 
     public static class NetClientComponentSystem {
         [ObjectSystem]
         public class AwakeSystem: AwakeSystem<NetClientComponent, AddressFamily> {
@@ -20,9 +20,10 @@ namespace ET.Client {
         private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
             Session session = self.GetChild<Session>(channelId); // 拿：相应的会话框
             if (session == null) return; // 空：直接返回
-            session.LastRecvTime = TimeHelper.ClientNow();
+// 更新：一个会话框的最后活动时间，因为有个组件会自动检测闲置会话框（30 秒内没活动），回收长时间不用的废弃会话框
+            session.LastRecvTime = TimeHelper.ClientNow(); 
             OpcodeHelper.LogMsg(self.DomainZone(), message);
-// 发布事件：事件的接收者，应该是【客户端】的Session 层面的进一步读取消息内容（内存流上读消息？），改天再去细看。
+// 发布事件：事件的接收者，应该是【客户端】的 NetClientComponentOnReadEvent 订阅回调类。这个类会区分回复消息，与客户端请求消息来分别处理。
             EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message}); 
         }
         private static void OnError(this NetClientComponent self, long channelId, int error) {

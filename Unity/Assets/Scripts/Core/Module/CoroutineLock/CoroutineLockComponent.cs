@@ -25,8 +25,13 @@ namespace ET {
                 Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
             this.nextFrameRun.Enqueue((coroutineLockType, key, level)); // 加入到：下一桢待处理的队列中去
         }
-        // 【今天下午：】这个不懂的模块再仔细读一遍。默认等待1 分钟。【活宝妹待亲爱的表哥，活宝妹一定会等到活宝妹可以嫁给亲爱的表哥！！爱表哥，爱生活！！！】
-        // 等待锁：异步等待，与回收释放，两套机制，都要看懂
+        // 【活宝妹待亲爱的表哥，活宝妹一定会等到活宝妹可以嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+        // 等待锁：异步等待，与回收释放，两套机制.
+        // 【异步等待】： using() 调用的地方，只是异步等待【协程异步等待锁】的创建完成，返回锁的引用；并非等待锁的超时时间时长。。
+        // 【回收释放】：两套机制，
+        // using() 代码块一执行完，是可以早于默认的1 分钟后自动回收的；如果使用完毕，由于using的特性，会调用获取到的CoroutineLock的dispose （后半句，网上抄来的）
+            // 由于【BUG：】或是进程挂掉，队列里的异步锁无法正常回收情况下的第二套自制，默认等待1 分钟后自动回收
+        // Wait() 方法，自CoroutinelockComponent 单例组件，【自顶向下】，实现的都是，当前某把锁实例，等待方法【创建过程与分层管理】，也就是单例组件【自顶向下】创建一把异步锁的过程
         public async ETTask<CoroutineLock> Wait(int coroutineLockType, long key, int time = 60000) { // 所有几种不同的类型，都是等待1 分钟 
             CoroutineLockQueueType coroutineLockQueueType;
             if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) {
@@ -35,8 +40,8 @@ namespace ET {
             }
             return await coroutineLockQueueType.Wait(key, time);
         }
-        // 释放锁：
-        private void Notify(int coroutineLockType, long key, int level) { // 
+        // 释放锁：部分还没能看懂。 level 是从哪里传来的值？这个变量，锁的层级，还不太懂。【什么情况下调用释放锁，也不明白】
+        private void Notify(int coroutineLockType, long key, int level) { // level ： 
             CoroutineLockQueueType coroutineLockQueueType;
             if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) return;
             coroutineLockQueueType.Notify(key, level); // 【自顶向下】地调用，每桢更新时，自顶向下地更新

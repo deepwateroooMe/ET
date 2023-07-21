@@ -23,7 +23,7 @@
                     int rpcId = actorLocationRequest.RpcId; // 这里要保存客户端的rpcId
                     long instanceId = session.InstanceId;
                     IResponse iResponse = await ActorLocationSenderComponent.Instance.Call(unitId, actorLocationRequest);
-                    iResponse.RpcId = rpcId;
+                    iResponse.RpcId = rpcId; // 【发送消息】与【返回消息】的 rpcId 是一样的
                     // session可能已经断开了，所以这里需要判断
                     if (session.InstanceId == instanceId) 
                         session.Send(iResponse);
@@ -31,7 +31,7 @@
                 }
                 case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
                     long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
-                    ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage);
+                    ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage); // 把这里发送位置消息再看一遍，快速看一遍，总记不住
                     break;
                 }
                 case IActorRequest actorRequest:  // 分发IActorRequest消息，目前没有用到，需要的自己添加 

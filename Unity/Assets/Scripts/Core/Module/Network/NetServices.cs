@@ -105,7 +105,8 @@ namespace ET {
             this.netThreadOperators.Enqueue(netOperator);
         }
 // 【主线程三大回调逻辑】：可想而知，应该是【客户端】异步线程向【主线程】订阅注册回调。那么Action<X,Y> 是会回调到异步线程【客户端】中去的
-        public void RegisterAcceptCallback(int serviceId, Action<long, IPEndPoint> action) {
+    // 试着框架里，找一个：客户端注册回调的实例使用的例子。瓣瓣脚趾头：网络客户端、内网消息，凡需要拿到服务端回调的地方，如同Demon-client 模式，都需要向服务端注册 
+        public void RegisterAcceptCallback(int serviceId, Action<long, IPEndPoint> action) { 
             this.acceptCallback.Add(serviceId, action);
         }
         public void RegisterReadCallback(int serviceId, Action<long, long, object> action) {
@@ -120,12 +121,12 @@ namespace ET {
                     return;
                 }
                 try {
-                    switch (op.Op) { // 【主线程中】：只处理了最主要的【必须主线程执行的】三类回调。回调的注册方法在前面。
+// 不同的操作符，传入不同的参数。不同操作符的 action 回调，不同的回调类型与参数，是定义在上面，【主线程的字典回调管理里】
+                    switch (op.Op) { // 【主线程中】：只处理了最主要的【必须主线程执行的】三类回调。回调的注册方法在前面。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！】
                         case NetOp.OnAccept: {
-                            if (!this.acceptCallback.TryGetValue(op.ServiceId, out var action)) {
-                                return;
-                            }
-                            action.Invoke(op.ChannelId, op.Object as IPEndPoint);
+                            if (!this.acceptCallback.TryGetValue(op.ServiceId, out var action)) // 拿到先前，网络线程客户端，曾经向服务端注册过的回调
+                                return; // 客户端注册过的回调，被服务端主线程这里，加字典里记着
+                            action.Invoke(op.ChannelId, op.Object as IPEndPoint); // 这里回调，真正调用的是网络线程中，他们各客户端自己的不同的实现方法
                             break;
                         }
                         case NetOp.OnRead: {
@@ -245,13 +246,13 @@ namespace ET {
             }
             this.RunNetThreadOperator();
         }
-// 【三大主要事件方法】：前面，主线程封装异步任务到网络线程中来执行；现在网络线程，把三大主要回调、封装、投放、同步到主线程队列中去执行？而主线程中的逻辑，仍然是回调到异步线程相应的服务中去调用回调，执行，比如某个客户端服务被主线程？被服务端接收，客户端服务？会去执行相应的OnAccept 功能的回调。就是多了步把结果【同步到主线程】的过程？
-// 这里服务端可能也在异步线程（因为并存多个或类型相同或类型不同的Service, 每个Service 执行【服务端客户端交互】）。
-// 不是说服务端接受了某个客户端，主线程就一定知道哪个服务端接受了某个客户端的结果，服务端也在异步线程的话，没有如下三个方法，主线程就是不知道，什么哪个服务端接受没有哪个什么客户端。
-// 不知道想对了没有。去找哪里调用了这三个方法
+// 【三大主要事件方法】：前面，主线程封装异步任务到网络线程中来执行；现在网络线程，把三大主要回调、封装、投放、同步到主线程队列中去执行？而主线程中的逻辑，仍然是回调到异步线程相应的服务中去调用回调，执行，比如某个客户端服务被主线程？被服务端接收，客户端服务？会去执行相应的OnAccept 功能的回调。就是多了步把结果【同步到主线程】的过程
+// 这里服务端可能也在异步线程（因为并存多个或类型相同或类型不同的Service, 每个Service 执行【服务端客户端交互】，这里每个 Service 应该都是客户端？）。
+// 不是说服务端接受了某个客户端，主线程就一定知道哪个服务端接受了某个客户端的结果，服务端也在异步线程的话，不投递到主线程，异步线程的结果主线程不知道
+// 【投到主线程】：前个游戏的ET-EUI 服务端与不用ET 框架的客户端交互的时候，曾经出现过主线程不知道，客户端使用第三方库来实现同步到主线程中
         public void OnAccept(int serviceId, long channelId, IPEndPoint ipEndPoint) {
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnAccept, ServiceId = serviceId, ChannelId = channelId, Object = ipEndPoint };
-            this.mainThreadOperators.Enqueue(netOperator);
+            this.mainThreadOperators.Enqueue(netOperator); // 投到主线程中去：【让主线程知晓】。可是去看主线程Update() 里的执行调用。。
         }
         public void OnRead(int serviceId, long channelId, long actorId, object message) {
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnRead, ServiceId = serviceId, ChannelId = channelId, ActorId = actorId, Object = message };

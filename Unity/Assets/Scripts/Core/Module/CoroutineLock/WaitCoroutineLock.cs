@@ -34,7 +34,7 @@ namespace ET {
             return this.tcs == null;
         }
         public async ETTask<CoroutineLock> Wait() {
-            return await this.tcs; // 等待异步任务的创建完成 ? 类里没有等待方法
+            return await this.tcs; // 等待异步任务的创建完成
         }
     }
 }

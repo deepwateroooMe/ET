@@ -4,7 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 namespace ET {
-    public readonly struct RpcInfo { // 【消息】包装体：可以是进程内的。可是它包装的是基类接口，与扩展接口如何区分？
+    // 这个类：之前，【客户端】会话框上发回复消息的底层原理没能看懂。这个部分要再多看几遍
+    public readonly struct RpcInfo { // 【消息】包装体：可以是进程内的。它包装的是基类接口，也适用于所有的继承类接口 RpcMessage RpcLocationMsg-etc
         public readonly IRequest Request;
         public readonly ETTask<IResponse> Tcs;
         public RpcInfo(IRequest request) {
@@ -16,24 +17,24 @@ namespace ET {
     public static class SessionSystem {
         [ObjectSystem]
         public class SessionAwakeSystem: AwakeSystem<Session, int> {
-            protected override void Awake(Session self, int serviceId) {
+            protected override void Awake(Session self, int serviceId) { // 【会话框创建】：会调用一次
                 self.ServiceId = serviceId;
                 long timeNow = TimeHelper.ClientNow();
-                self.LastRecvTime = timeNow;
+                self.LastRecvTime = timeNow; // 记录：初始化活动时间
                 self.LastSendTime = timeNow;
-                self.requestCallbacks.Clear();
+                self.requestCallbacks.Clear(); // 字典是什么时间创建的？
                 Log.Info($"session create: zone: {self.DomainZone()} id: {self.Id} {timeNow} ");
             }
         }
         [ObjectSystem]
         public class SessionDestroySystem: DestroySystem<Session> {
             protected override void Destroy(Session self) {
-                NetServices.Instance.RemoveChannel(self.ServiceId, self.Id, self.Error);
-                foreach (RpcInfo responseCallback in self.requestCallbacks.Values.ToArray()) {
+                NetServices.Instance.RemoveChannel(self.ServiceId, self.Id, self.Error); // 先取消：从服务总管单例处的注册（否则它会持有当前会话框的索引）
+                foreach (RpcInfo responseCallback in self.requestCallbacks.Values.ToArray()) { // 对于所有注册过的回调：一一抛异常，会话框销毁了。。
                     responseCallback.Tcs.SetException(new RpcException(self.Error, $"session dispose: {self.Id} {self.RemoteAddress}"));
                 }
                 Log.Info($"session dispose: {self.RemoteAddress} id: {self.Id} ErrorCode: {self.Error}, please see ErrorCode.cs! {TimeHelper.ClientNow()}");
-                self.requestCallbacks.Clear();
+                self.requestCallbacks.Clear(); // 清理所有回调：这个字典是永久长存的？？
             }
         }
         // 【往回去找】：会话框上发IRequest 消息时，是如何注册回调到会话框的管理字典的？
