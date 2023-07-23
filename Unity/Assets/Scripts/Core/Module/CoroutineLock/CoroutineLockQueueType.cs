@@ -29,11 +29,9 @@ namespace ET {
             CoroutineLockQueue queue = this.Get(key);
             if (queue == null) return;
             // 1.如果对应的queue中没有其他人再请求了，则直接在CoroutineLockQueueType中删除这个key（即对应的CoroutineLockQueue释放了），这样后续又有请求这个key对应锁时，会发现对应的CoroutineLockQueue没有，可以直接获取锁了，
-            if (queue.Count == 0) this.Remove(key);
-            // 【下面：释放锁】：还需要再多想几遍，不太懂。。
-            // 【下面：释放锁】理解上感觉，像是，想要释放协程的某个 await 的分支，让调用异步协程锁的地方，把程序逻辑往下一个分支执行，像是移到异步状态机的下一步，锁上的操作
-            // 2.如果队列中还有其他请求过【这个协程锁对应的key的协程锁】，则从队列中拿出对应的协程锁信息类CoroutineLockInfo，然后新建一个协程锁对象，并设置CoroutineLockInfo内部对应的ETTASK的Tcs.SetResult，让之前请求锁的异步继续执行。这样就是释放锁，让下一个等待相同key值的协程继续往下运行了。
-            queue.Notify(level); // <<<<<<<<<<<<<<<<<<<< 【自顶向下】的调用
+            if (queue.Count == 0) this.Remove(key); // 【共享资源，没人在排队，没人要用】
+            // 2.如果队列中还有其他请求过【这个协程锁对应的key的协程锁】，则从队列中拿出对应的协程锁信息类CoroutineLockInfo，然后新建一个协程锁对象，并设置CoroutineLockInfo内部对应的ETTASK的Tcs.SetResult，让之前请求锁的异步继续执行。这样就是释放锁，让下一个等待相同key值的协程（或是using(){代码块}代码块，的逻辑）继续往下运行了。
+            queue.Notify(level); 
         }
     }
 }
