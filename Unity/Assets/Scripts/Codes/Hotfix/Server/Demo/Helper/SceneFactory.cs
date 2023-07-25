@@ -3,13 +3,13 @@ using System.Net.Sockets;
 
 namespace ET.Server {
     public static class SceneFactory {
-        // 这里搞搞明白：这些服务器场景，也是异步任务，根据配置文件来创建的
-        // 【添加全服：】这里自己加一个全服
+        // 根据配置文件来创建的 ??? 
+        // 【添加全服：】（自己加一个全服） 全服是：当所有的【服务端】场景SceneType集中在同一个进程上，这个进程（服务器）它就是一个全服了。所以我不需要再添加任何全服。之前想错了，说明先前没能想明天这个游戏框架的架构
         public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
-            await ETTask.CompletedTask; // 感觉这句，可以拿掉。还没执行任何逻辑？就在等。。。
+            await ETTask.CompletedTask; // 当框架限定了这个方法的 async ETTask<Scene> 返回类型，加这句，可以骗过编译器别报错。。。
             Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
-            // 任何场景：无序消息分发器，可接收消息，队列处理；发呢？
-            scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher); // 重构？应该是对进程间消息发收的浓缩与提练
+            // 任何场景：无序消息分发器，可接收消息，队列处理；【发呢？去想，网关服，转发客户端发向地图服的消息，的过程？】
+            scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher); 
 
             switch (scene.SceneType) {
                 case SceneType.Router:
@@ -41,29 +41,29 @@ namespace ET.Server {
                 case SceneType.Location: // 现在也没有位置服吧。。。有要求位置服处理的消息，所以要保留
                     scene.AddComponent<LocationComponent>(); // 暂时还没有添加这个组件: 可是明明那个分支上是有这个组件的
                     break;
-// 下面的：先去掉，太多报错，会吓死人的。。。
-                case SceneType.AllServer: // 我想要自己添加这个全服：方便模仿参考项目，对必要的服务器组件进行管理 
-                    scene.AddComponent<ActorMessageSenderComponent>();
-                    scene.AddComponent<ActorLocationSenderComponent>();
-                    scene.AddComponent<PlayerComponent>();
-                    scene.AddComponent<UnitComponent>();
-                    // PS：如果启动闪退有可能是服务器配置文件没有填数据库配置，请正确填写
-                    // 这里需要将DBComponent的Awake注释去掉才能连接MongoDB
-                    // scene.AddComponent<DBComponent>(); // 这个，就成为服务器端的一个重点，但是是最简单的重点，因为相比其它，它最容易
-                    // 这里需要加上DBCacheComponent才能操作MongoDB
-                    // scene.AddComponent<DBCacheComponent>();
-                    // scene.AddComponent<DBProxyComponent>(); // 【服务端启动时】：自动扫描加载四大单例管理类。数据库模块会在各小区下加载，用时若不配置，也会小区下自动添加DBComponent 组件
-                    // scene.AddComponent<LocationComponent>();
-                    // scene.AddComponent<ActorMessageDispatherComponent>();
-                    //scene.AddComponent<NetInnerComponent, string>(innerConfig.Address);
-                    // scene.AddComponent<NetOuterComponent, string>(outerConfig.Address);
-                    scene.AddComponent<LocationProxyComponent>();
-                    // scene.AddComponent<AppManagerComponent>();
-                    // scene.AddComponent<RealmGateAddressComponent>(); // <<<<<<<<<<<<<<<<<<<< 
-                    scene.AddComponent<GateSessionKeyComponent>();
-                    // scene.AddComponent<ConfigComponent>();
-                    // scene.AddComponent<ServerFrameComponent>();
-                    // scene.AddComponent<HttpComponent>();
+// // 下面的：先去掉，太多报错，会吓死人的。。。【这里是以前想错的】，完全不必要！！！
+//                 case SceneType.AllServer: // 我想要自己添加这个全服：方便模仿参考项目，对必要的服务器组件进行管理 
+//                     scene.AddComponent<ActorMessageSenderComponent>();
+//                     scene.AddComponent<ActorLocationSenderComponent>();
+//                     scene.AddComponent<PlayerComponent>();
+//                     scene.AddComponent<UnitComponent>();
+//                     // PS：如果启动闪退有可能是服务器配置文件没有填数据库配置，请正确填写
+//                     // 这里需要将DBComponent的Awake注释去掉才能连接MongoDB
+//                     // scene.AddComponent<DBComponent>(); // 这个，就成为服务器端的一个重点，但是是最简单的重点，因为相比其它，它最容易
+//                     // 这里需要加上DBCacheComponent才能操作MongoDB
+//                     // scene.AddComponent<DBCacheComponent>();
+//                     // scene.AddComponent<DBProxyComponent>(); // 【服务端启动时】：自动扫描加载四大单例管理类。数据库模块会在各小区下加载，用时若不配置，也会小区下自动添加DBComponent 组件
+//                     // scene.AddComponent<LocationComponent>();
+//                     // scene.AddComponent<ActorMessageDispatherComponent>();
+//                     //scene.AddComponent<NetInnerComponent, string>(innerConfig.Address);
+//                     // scene.AddComponent<NetOuterComponent, string>(outerConfig.Address);
+//                     scene.AddComponent<LocationProxyComponent>();
+//                     // scene.AddComponent<AppManagerComponent>();
+//                     // scene.AddComponent<RealmGateAddressComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+//                     scene.AddComponent<GateSessionKeyComponent>();
+//                     // scene.AddComponent<ConfigComponent>();
+//                     // scene.AddComponent<ServerFrameComponent>();
+//                     // scene.AddComponent<HttpComponent>();
 
 // 以下是【拖拉机服务端】自定义全局组件
                     // GateGlobalComponent

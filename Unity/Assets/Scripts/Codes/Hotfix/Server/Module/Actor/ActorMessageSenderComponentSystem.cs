@@ -81,12 +81,12 @@ namespace ET.Server {
             }
             self.TimeoutActorMessageSenders.Clear();
         }
-
-        public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息：这个方法，发所有类型的消息，最基接口
+        // 【发送消息】：框架里所有消息的发送，都走这个方法 
+        public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息：这个方法，发所有类型的消息，最基接口IMessage
             if (actorId == 0) 
                 throw new Exception($"actor id is 0: {message}");
             ProcessActorId processActorId = new(actorId); // 这里是聪明的实例 id 的好处：可以自带进程信息，可以通过位操作拿到
-            // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
+            // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层。（前面源者注。这里理解为同一进程，不同SceneType 场景上的消息，不需要走网络层）
             if (processActorId.Process == Options.Instance.Process) { // 【左边】：消息发出方的进程号；【右边】：应该是当前进程号。【右边】没能看懂
                 NetInnerComponent.Instance.HandleMessage(actorId, message); // 原理清楚：本进程消息，直接交由本进程内网组件处理
                 return;

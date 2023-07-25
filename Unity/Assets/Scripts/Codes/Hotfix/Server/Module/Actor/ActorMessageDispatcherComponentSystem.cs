@@ -61,20 +61,18 @@ namespace ET.Server {
             self.ActorMessageHandlers[type].Add(handler);
         }
         public static async ETTask Handle(this ActorMessageDispatcherComponent self, Entity entity, int fromProcess, object message) {
-            List<ActorMessageDispatcherInfo> list;
+            List<ActorMessageDispatcherInfo> list;  // 脑补逻辑： eg, 当一个场景创建，如何封装，加入管理体系的？
             if (!self.ActorMessageHandlers.TryGetValue(message.GetType(), out list)) // 根据消息的发送类型，来取所有可能的处理器包装链表 
                 throw new Exception($"not found message handler: {message}");
-            SceneType sceneType = entity.DomainScene().SceneType; // 定位：当前消息的场景类型
+            SceneType sceneType = entity.DomainScene().SceneType; // 定位：发送消息的实体，所在的场景类型
             foreach (ActorMessageDispatcherInfo actorMessageDispatcherInfo in list) { // 遍历：这个发送消息类型，所有存在注册过的消息处理器封装
                 if (actorMessageDispatcherInfo.SceneType != sceneType)  // 场景不符就跳过
                     continue;
-                // 定位：是当前特定场景下的消息处理器，那么，就调用这个处理器，要它去干事。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
-                actorMessageDispatcherInfo.IMActorHandler.Handle(entity, fromProcess, message);   
+                // 定位：这个作用于进程上的【消息分发器组件】，是同一进程上所有场景的总管。当需要【发送消息】（过会儿看返回消息走这里吗？其它普通消息？应该走）时
+                // 总管，仍是去找对应于【发送消息实体场景的特定场景（SceneType）】下的【IMActorHandler】实现实体，来处理相应逻辑。就是框架封装实现了相对条理化的管理
+                actorMessageDispatcherInfo.IMActorHandler.Handle(entity, fromProcess, message); // 再住下跟：就需要找一个接口的实体实现类来看，改天再看。。   
             }
             await ETTask.CompletedTask;
         }
     }
-}
-
-
-
+}// 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】

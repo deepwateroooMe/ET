@@ -23,7 +23,7 @@ namespace ET.Server {
             
             // 对新生成玩家的【通信会话框】进行管理：使其具备收发消息功能。会话框与玩家一一对应
             session.AddComponent<SessionPlayerComponent>().PlayerId = player.Id;
-            session.AddComponent<MailBoxComponent, MailboxType>(MailboxType.GateSession);
+            session.AddComponent<MailBoxComponent, MailboxType>(MailboxType.GateSession); // 给这个【客户端】与【网关服】的【会话框】添加邮箱，借助【网关服】中介，就能收发（甚至跨进程）消息了
             
             response.PlayerId = player.Id; // 写回复消息，玩家特异身份证传客户端
             await ETTask.CompletedTask;
