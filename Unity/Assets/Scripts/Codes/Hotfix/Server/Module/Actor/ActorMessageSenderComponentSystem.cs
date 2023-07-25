@@ -36,27 +36,26 @@ namespace ET.Server {
             }
         }
 
-// Run() 方法：通过同步异常到ETTask, 通过ETTask 封装的抛异常方式抛出两类异常并返回；和对正常非异常返回消息，同步结果到ETTask, ETTask() 用触发调用注册过的非空回调
-// 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量：异常类型）、【写了个半好】的结果（异常）。结果还没同步到异步任务，待写；返回消息，待发送
+// Run() 方法：通过同步异常到ETTask, 通过ETTask 封装的抛异常方式抛出两类异常并返回；和对正常非异常【返回消息】，同步结果到ETTask
+// 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量：异常类型）、【写了个半好】的结果（异常）。结果还没同步到异步任务，待写
+        // 【返回消息】的返回过程：是在下面的Call() 方法【发送消息的过程】的调用逻辑里，直接返回给调用方
         private static void Run(ActorMessageSender self, IActorResponse response) { 
-            // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout, 所以会从发送消息超时异常里抛出异常，不用发送错误码【消息】回去，是抛异常
+            // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout, 所以会从异步任务模块里抛出异常，不用发送错误码【消息】回去，是抛异常
             if (response.Error == ErrorCore.ERR_ActorTimeout) { // 写：发送消息超时异常。因为同步到异步任务 ETTask 里，所以异步任务模块 ETTask会自动抛出异常
                 self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
                 return;
             }
-// 这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用。什么情况下的调用，会走到下面的分支？文件尾，有正常消息同步结果到ETTask 的调用 
-// ActorMessageSenderComponent 一个组件，一次只执行一个（返回）消息发送任务，成员变量永远只管当前任务，
-// 也是因为Actor 机制是并行的，一个使者一次只能发一个消息 ...
-// 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？去搜索下面调用 Run() 方法的正常结果消息的调用处理频率。。。
+// 这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用。什么情况下的调用，会走到下面的分支？文件尾，有正常【返回消息，写框架组件ActorMessageAender 封装的异步任务 Tcs】同步结果到ETTask 的调用 
+// ActorMessageSenderComponent 一个组件，一次只执行一个（返回？不明白自己当初这里写的是什么意思）消息发送任务，成员变量永远只管当前任务，
+// 也是因为Actor 机制是并发的，一个使者一次只能发一个消息 ...? 这些是在说什么呢？现在说不懂
+// 【组件管理器的执行频率， Run() 方法的调用频率】：Run() 这个方法，是写【返回消息】结果到异步任务，用于桥接返回给调用方。每有一个返回Actor消息，都会执行一次这个写结果的方法
             if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常（判断条件：消息要抛异常否？是否真有异常？），就先抛异常
                 self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
                 return;
             }
-            self.Tcs.SetResult(response); // 【写结果】：将【写了个半好】的消息，写进同步到异步任务的结果里；把异步任务的状态设置为完成；并触发必要的非空回调到发送者
-            // 上面【异步任务 ETTask.SetResult()】，会调用注册过的一个回调，所以ETTask 封装，设置结果这一步，会自动触发调用注册过的一个回调（如果没有设置回调，因为空，就不会调用）
-            // ETTask.SetResult() 异步任务写结果了，非空回调是会调用。非空回调是什么，是把返回消息发回去吗？不是。因为有独立的发送逻辑。
-            // 再去想 IMHandler: 它是消息处理器。问题就变成是，当返回消息写好了，写好了一个完整的可以发送、待发送的消息，谁来处理的？有某个更底层的封装会调用这个类的发送逻辑。去把这个更底层的封装找出来，就是框架封装里，调用这个生成类Send() 方法的地方。
-            // 这个服，这个自带计时器减压装配装置自带的消息处理器逻辑会处理？不是这个。减压装置，有发送消息超时，只触发最小检测，并抛发送消息超时异常给发送者告知，不写任何结果消息 
+            self.Tcs.SetResult(response); // 【写结果】：将【写了个半好】的消息，写进同步到异步任务的结果里；把异步任务的状态设置为完成；
+            // 发送需要【返回消息】的逻辑里，借助临时异步任务变量 tcs, 桥接给ActorMessageSender.
+            // 当这里的结果写好，发送需要【返回消息】的调用逻辑【下面的Call() 方法】里，就可以把 tcs 异步结果返回给调用方。后续逻辑是在调用处桥接好了的
         }
         private static void Check(this ActorMessageSenderComponent self) {
             long timeNow = TimeHelper.ServerNow();
@@ -86,9 +85,9 @@ namespace ET.Server {
         public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息：这个方法，发所有类型的消息，最基接口
             if (actorId == 0) 
                 throw new Exception($"actor id is 0: {message}");
-            ProcessActorId processActorId = new(actorId);
+            ProcessActorId processActorId = new(actorId); // 这里是聪明的实例 id 的好处：可以自带进程信息，可以通过位操作拿到
             // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层
-            if (processActorId.Process == Options.Instance.Process) { // 没看懂：这里怎么就说，消息是发向同一进程的了？
+            if (processActorId.Process == Options.Instance.Process) { // 【左边】：消息发出方的进程号；【右边】：应该是当前进程号。【右边】没能看懂
                 NetInnerComponent.Instance.HandleMessage(actorId, message); // 原理清楚：本进程消息，直接交由本进程内网组件处理
                 return;
             }
@@ -120,17 +119,17 @@ namespace ET.Server {
             if (actorId == 0) 
                 throw new Exception($"actor id is 0: {iActorRequest}");
 // 对象池里：取一个异步任务。用这个异步作务实例，去创建下面的消息发送器实例。这里的 IActorResponse T 应该只是一个索引。因为前面看见系统扫描标签系创建返回实例，套到这个索引
-            var tcs = ETTask<IActorResponse>.Create(true);
-            // 下面，封装好消息发送器，交由消息发送组件管理；交由其管理，就自带消息发送计时超时过滤机制，实现服务器超负荷时的自动分压减压处理。一旦超时自动报废。。。
-            self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException)); 
-            self.Send(actorId, iActorRequest); // 把请求消息发出去：所有消息，都调用这个 
+            var tcs = ETTask<IActorResponse>.Create(true); // 【逻辑的连接在这个变量】：组件（相对来说是，框架的相对底层）创建一个本地变量，用来桥接异步网络调用的结果
+            // 封装好消息发送器，交由消息发送组件管理；交由其管理，就自带消息发送计时超时过滤机制，实现服务器超负荷时的自动分压减压处理。一旦超时自动报废。。。忘记了它返不返回什么超时异常？
+            self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException));  // 【tcs 异步网络调用桥接变量：】
+            self.Send(actorId, iActorRequest); // 把请求消息发出去：组件的更底层封装里，会把异步调用的异步返回结果，写进 tcs 里
             long beginTime = TimeHelper.ServerFrameTime();
 // 自己想一下的话：异步消息发出去，某个服会处理，有返回消息的话，这个服处理后会返回一个返回消息。
-// 那么下面一行，不是等待创建 Create() 异步任务（同步方法狠快），而是等待这个处理发送消息的服，处理并返回来返回消息（是说，那个服，把处理结果同步到异步任务）
-// 不是等异步任务的创建完成（同步方法狠快），实际是等处理发送消息的服，处理完并写好返回消息，同步到异步任务。
-// 那个ETTask 里的回调 callback，是怎么回调的？这里Tcs 没有设置任何回调。ETTask 里所谓回调，是执行异步状态机的下一步，没有实际应用层面的回调意义
-// 或说把返回消息的内容填好，【应该还没发回到消息发送者？？？】返回消息填好了，ETTask 异步任务的结果同步到位了，底层会自动发回来
-// 【异步任务结果是怎么回来的？】是前面看过的IMHandler 的底层封装（AMRpcHandler 的抽象逻辑里）发送回来的。ET7 IMHandler 不是重构实现了返回消息的自动发送回复给发送者吗？再去看一遍。
+// 那么下面一行，不是等待创建 Create() 异步任务（同步方法狠快），而是【等待这个处理发送消息的服，处理并返回来返回消息（是说，那个服，把处理结果写好、同步到异步任务）】【在上面 Send() 方法里】
+// 不是等异步任务的创建完成（同步方法狠快），实际是【等处理发送消息的服，处理完并写好返回消息，同步到异步任务】【在上面 Send() 方法里】
+// 那个ETTask 里的回调 callback，是怎么回调的？这里的Tcs 没有设置任何回调。ETTask 里所谓回调，是执行异步状态机的下一步，没有实际应用层面的回调意义
+// 或说把返回消息的内容填好，【应该还没发回到消息发送者？是的】返回消息填好了，ETTask 异步任务 tcs的结果同步到位了，就可以把【返回消息】给返回回给调用方了呀
+// 【异步任务结果是怎么回来的？】这个方法里，不是定义了内部临时变量 tcs, 用来桥接异步网络调用的结果吗？当ActorMessageSender 【 line 128 Send()】
             IActorResponse response = await tcs;  // 等待消息处理服处理完，写好同步好结果到异步任务、异步任务执行完成，状态为 Succeed
             long endTime = TimeHelper.ServerFrameTime();
             long costTime = endTime - beginTime;
@@ -148,7 +147,7 @@ namespace ET.Server {
             if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) // 这里取不到，是说，这个返回消息的发送已经被处理了？
                 return;
             self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除
-            Run(actorMessageSender, response); // <<<<<<<<<<<<<<<<<<<< 
+            Run(actorMessageSender, response); // 写自身组件的；【返回消息】异步任务的结果。只是写好结果了，并没有发送结果呀，去找哪里发送的？
         }
     }
 }

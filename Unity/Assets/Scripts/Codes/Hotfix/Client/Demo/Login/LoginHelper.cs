@@ -20,6 +20,7 @@ namespace ET.Client {
                 IPEndPoint realmAddress = routerAddressComponent.GetRealmAddress(account);
                 R2C_Login r2CLogin;
                 using (Session session = await RouterHelper.CreateRouterSession(clientScene, realmAddress)) {
+                    // 这里，先去细看一下，写在 R2C_Login 里的返回消息内容是些什么？去找请求消息的服务端处理器
                     r2CLogin = (R2C_Login) await session.Call(new C2R_Login() { Account = account, Password = password });
                 }
                 // 创建一个gate Session,并且保存到SessionComponent中: 与网关服的会话框。主要负责用户下线后会话框的自动移除销毁

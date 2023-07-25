@@ -25,7 +25,7 @@ namespace ET {
             CoroutineLockQueue queue = this.Get(key) ?? this.New(key); // 先取出队列，没有就创建一个新的队列
             return await queue.Wait(time);
         }
-        public void Notify(long key, int level) { // 上面是(管理组件 CoroutineLockComponent)，调用这个方法，才自顶向下的
+        public void Notify(long key, int level) { // 【管理组件 CoroutineLockComponent】，调用这个方法，才自顶向下的：【通知排队中的下一个：它可以持有共享资源，开始使用了】
             CoroutineLockQueue queue = this.Get(key);
             if (queue == null) return;
             // 1.如果对应的queue中没有其他人再请求了，则直接在CoroutineLockQueueType中删除这个key（即对应的CoroutineLockQueue释放了），这样后续又有请求这个key对应锁时，会发现对应的CoroutineLockQueue没有，可以直接获取锁了，

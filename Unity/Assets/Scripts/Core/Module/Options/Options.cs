@@ -19,7 +19,8 @@ namespace ET {
         Match
     }
     
-    public class Options: Singleton<Options> { // 这个类：如何鉴别是，当前场景所属的进程，以前没有看懂过。【这个类，还是稀里糊涂】
+    public class Options: Singleton<Options> { // 这个【单例类】，确实还没能看懂。单例类，不是组件添加形式。把【OptionAttribute】标签看懂
+        // 看懂了标签：仍然不明白，这个类是在干什么？
         [Option("AppType", Required = false, Default = AppType.Server, HelpText = "AppType enum")]
         public AppType AppType { get; set; }
         [Option("StartConfig", Required = false, Default = "StartConfig/Localhost")]

@@ -10,6 +10,7 @@ namespace ET.Client {
     public static class RouterHelper {
 
         // 【注册router】：什么叫注册 router? 为什么我觉得是在建会话框？这个方法没能看完。它是为当前【客户端场景】添加必备路由网络通信功能模块。注意添加的几个组件
+        // 以前这里，好像，就是建一个【客户端】与【网关服】的【会话框】就可以了呀。这里为什么需要借助路由模块呢？
         public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
 // 拿客户端场景路由器地址：
             (uint recvLocalConn, IPEndPoint routerAddress) = await GetRouterAddress(clientScene, address, 0, 0); 

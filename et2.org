@@ -1252,6 +1252,7 @@ public static class RouterAddressComponentSystem {
 ** HttpGetRouterResponse: 这个 ProtoBuf 的消息类型
 - 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
 - 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
+- 是个部分类。它管理了三条链表，自增自动扫描和加载各小区下的三类场景：Realm, Routers, Matches. 先前它们有说得极诡异的路由模块，感觉不太懂，自己没太读懂
 #+BEGIN_SRC java
 [Message(OuterMessage.HttpGetRouterResponse)]
 [ProtoContract]

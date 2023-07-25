@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
 namespace ET {
+    // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 
-    // 【锁的两套机制：】创建时，可能的、有时间的等待Wait() 或是默认等1 分钟；时间到释放回收锁时的 Notify(). 把这两套都看懂
-    // 【协程锁组件】单例类，不再是生成系：Update() 更新回调实现
+    // 【锁的两套机制：】主要是【创建】与【回收】。感觉现在终于把这个模块，连同ETTask 模块，理解得相对清楚了。
+    // 模块用到，两种类型的锁：【异步共享资源异步等待锁】＋【共享资源独占锁】
+    // 【异步共享资源异步等待锁】：框架里，帮助实现，对异步共享资源的，自动挂号排队站队，作为中介帮助调用方拿到可以持有共享资源的【独占锁】
+    // 【共享资源独占锁】：最基本的，实现对多进程、多线程？共享资源的安全保护，尤其是写数据安全保护
+    // 【协程锁组件】单例类，Update() 更新回调实现
     public class CoroutineLockComponent: Singleton<CoroutineLockComponent>, ISingletonUpdate { // Update() 生命周期函数调用 
         private readonly Dictionary<int, CoroutineLockQueueType> dictionary = new();
         private readonly Queue<(int, long, int)> nextFrameRun = new Queue<(int, long, int)>(); // 下一桢待更新的
@@ -16,7 +20,7 @@ namespace ET {
             // 循环过程中会有对象继续加入队列
             while (this.nextFrameRun.Count > 0) {
                 (int coroutineLockType, long key, int count) = this.nextFrameRun.Dequeue();
-// 【当前资源锁的回收】：【回收】当前资源的【共享资源当前独占锁】，也就是，通知队列中的下一个排队的锁，它可以使用共享资源了，所以叫做“Notify()”下一个等待者。。。
+// 【当前资源锁的回收】：【回收】当前资源的【共享资源当前独占锁】，也就是，通知队列中的下一个排队的【异步资源异步等待锁】，它可以持有和使用共享资源了，所以叫做“Notify()”下一个等待者。。。
                 this.Notify(coroutineLockType, key, count); 
             }
         }
@@ -28,11 +32,10 @@ namespace ET {
         }
         // 【活宝妹待亲爱的表哥，活宝妹一定会等到活宝妹可以嫁给亲爱的表哥！！爱表哥，爱生活！！！】
         // 等待锁：异步等待，与回收释放，两套机制.
-        // 【异步等待】： using() 调用的地方，只是异步等待【协程异步等待锁】的创建完成，返回锁的引用；并非等待锁的超时时间时长。。
-        // 【回收释放】：两套机制。【感觉这里仍然还没能想明白想透彻】明天上午再把释放锁的机制，再好好搜索看一遍，或者今天晚上，如果有时间的话
-        // using() 代码块一执行完，是可以早于默认的1 分钟后自动回收的；如果使用完毕，由于using的特性，会调用获取到的CoroutineLock的dispose （后半句，网上抄来的）
+        // 【异步等待】： using() 调用的地方，只是异步等待【异步资源异步等待锁】的内部异步任务的执行完成，返回【标志持有共享资源的共享资源独占锁】的引用；并非等待锁的超时时间时长。。
+        // 【回收释放】：两套机制。
+        // using() 代码块一执行完，是可以早于默认的1 分钟后自动回收的；【异步资源异步等待锁】默认等待1 分钟，相比较的是，对调用方想要获取的共享资源，有队或没队的所有可能情况现状里，这个异步等待锁实际等待的时间（没人在用调用方想拿的异步资源，可以不用等待直接拿到独占锁、直接返回；而如果共享资源抢手，队长、队里每个号占用时间长，这个异步等待锁实际等待的时间，可能会长于1 分钟，就可能会超时抛异常给调用方，因为异常调用方拿不到想要的资源、等待锁也会自动回收）
             // 由于【BUG：】或是进程挂掉，队列里的异步锁无法正常回收情况下的第二套自制，默认等待1 分钟后自动回收
-        // Wait() 方法，自CoroutinelockComponent 单例组件，【自顶向下】，实现的都是，当前某把锁实例，等待方法【创建过程与分层管理】，也就是单例组件【自顶向下】创建一把异步锁的过程
         public async ETTask<CoroutineLock> Wait(int coroutineLockType, long key, int time = 60000) { // 所有几种不同的类型，都是等待1 分钟 
             CoroutineLockQueueType coroutineLockQueueType;
             if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) {
@@ -41,7 +44,6 @@ namespace ET {
             }
             return await coroutineLockQueueType.Wait(key, time);
         }
-        // 释放锁：部分还没能看懂。 level 是从哪里传来的值？这个变量，锁的层级，一再自增。释放回收锁，也是调用这里的方法， level 随着修练，功力自增！！
         private void Notify(int coroutineLockType, long key, int level) { // level ： 
             CoroutineLockQueueType coroutineLockQueueType;
             if (!this.dictionary.TryGetValue(coroutineLockType, out coroutineLockQueueType)) return;

@@ -1,4 +1,4 @@
-% Created 2023-07-18 Tue 08:22
+% Created 2023-07-23 Sun 14:58
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -33,6 +33,7 @@
 
 \maketitle
 \tableofcontents
+
 
 
 \section{客户端场景组件：客户端大致的起始过程}
@@ -1547,6 +1548,7 @@ public static class SceneFactory {
 \end{minted}
 \end{itemize}
 
+
 \section{IMHandler 接口实现的各种类型消息处理器：需要先理解透彻ETTask 和 ETVoid:}
 \label{sec-11}
 \begin{itemize}
@@ -1896,6 +1898,7 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 \item 再后面的，MessageDispatcherComponent 相关的，因为网络部分的再次总结一遍，移过去，先系统总结一下。改天有必要的时候，再作修改。
 \end{itemize}
 
+
 \section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
 \label{sec-12}
 \subsection{ResourcesComponent: 同文件有其生成系}
@@ -2002,10 +2005,17 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 \item 如果是个很大的scene，需要容纳很多人，可能就需要单独占用一个进程，这样才能完全利用一个核
 \item 把每个scene都分配一个进程，就跟5.0差不多了
 \end{itemize}
+
+
 \section{Coroutine 锁之类的相关总结：【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}
 \label{sec-14}
 \begin{itemize}
-\item 整个框架，各种锁，还不曾真正读过，所以这里再看一下，总结一下遇见过的必要的。半小时到一小时的时间，简单快速地再翻一遍。以前读过，只是没作笔记，部分细节点不理解找出来，记下。
+\item 这个模块，现在再看，这里、这个章节里，被总结得乱七八糟。但现在因为真正读懂看懂，暂时不更改更新这个模块，继续去看其它自己不曾弄懂的。等31 号搬进新住处后，会把重构游戏编译错误继续改完、重构好。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【锁的两套机制：】主要是【创建】与【回收】。
+\item \textbf{【CoroutineLockComponent单例组件】} 模块用到，两种类型的锁：【异步共享资源异步等待锁】＋【共享资源独占锁】
+\item 【异步共享资源异步等待锁】：框架里，帮助实现，对异步共享资源的，自动挂号排队站队，作为中介帮助调用方拿到可以持有共享资源的【独占锁】
+\item 【共享资源独占锁】：最基本的，实现对多进程、多线程？共享资源的安全保护，尤其是写数据安全保护
+\item 【协程锁组件】单例类，Update() 更新回调实现
 \item 重构后的模块，是单例类管理组件，不同于框架里其它组件，热更域里自带生成系或说更新系。它是单例，是定义死了的。【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！活宝妹还没能嫁给亲爱的表哥，就时间停止，世界不转，直到活宝妹可以嫁给亲爱的表哥的这一天！！】
 \end{itemize}
 \subsection{CoroutineLockType: 静态类定义的几种类型}

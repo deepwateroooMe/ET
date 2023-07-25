@@ -61,7 +61,7 @@ namespace ET {
         public SceneType Type; // 场景类型
 
         public StartProcessConfig StartProcessConfig {
-            get { // 从下面这行来看，每台小服、专职服都有他们各自的初始化场景？
+            get { // 从下面这行来看，每台小服、专职服都有他们各自的初始化场景？这里问得什么牛头不对马尾的？！！明明是，Process 进程的配置
                 return StartProcessConfigCategory.Instance.Get(this.Process); // 通过进程号，去拿各小服专职服的【进程初始化配置】
             }
         }
@@ -70,7 +70,7 @@ namespace ET {
                 return StartZoneConfigCategory.Instance.Get(this.Zone);
             }
         }
-        // 内网地址外网端口，通过防火墙映射端口过来
+        // 内网地址外网端口，通过防火墙映射端口过来：【通过防火墙映射端口过来】没看懂。。
         private IPEndPoint innerIPOutPort;
         public IPEndPoint InnerIPOutPort {
             get {

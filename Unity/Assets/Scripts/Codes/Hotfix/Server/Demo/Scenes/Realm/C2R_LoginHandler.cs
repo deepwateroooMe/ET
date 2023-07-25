@@ -10,7 +10,8 @@ namespace ET.Server {
 			StartSceneConfig config = RealmGateAddressHelper.GetGate(session.DomainZone());
 			Log.Debug($"gate address: {MongoHelper.ToJson(config)}");
 			
-			// 向gate请求一个key,客户端可以拿着这个key连接gate
+			// 向gate请求一个key,客户端可以拿着这个key连接gate.
+            // 这里，使用【消息发送器单例类】为桥梁再封装调用。【消息发送器单例类】会帮助框架，自动封装返回消息
 			G2R_GetLoginKey g2RGetLoginKey = (G2R_GetLoginKey) await ActorMessageSenderComponent.Instance.Call(
 				config.InstanceId, new R2G_GetLoginKey() {Account = request.Account});
 
