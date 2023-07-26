@@ -7,7 +7,7 @@ namespace ET.Client {
             CheckAsync(self).Coroutine();
         }
         private static async ETTask CheckAsync(RouterCheckComponent self) {
-            Session session = self.GetParent<Session>();
+            Session session = self.GetParent<Session>(); // 路由器专用会话框
             long instanceId = self.InstanceId;
             while (true) {
                 if (self.InstanceId != instanceId) return;

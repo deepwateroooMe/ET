@@ -1,11 +1,11 @@
 ﻿namespace ET.Server {
-    // 【Process: 】场景，没弄明白，为什么Realm 注册登录服，与Gate 网关服里【服务端】组件发布的事情，会有这个场景的订阅者接收事件？
-    [Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件？包含了网关服相关的消息。忘记【Event()】标签怎么回事了，改天再补
+    // 为什么Realm 注册登录服，与Gate 网关服里【服务端】组件发布的事情，会有这个场景的订阅者接收事件？内网间这种消息，不是狠多吗？源作者说【客户端】的发送消息是狠少的。。。
+    [Event(SceneType.Process)]  // 【进程】场景？：来处理这个服务端组件事件？外网组件添加的地方是在：【Realm 注册登录服】与【网关服】。是自己写错了？
     public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
         protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) { // 【返回消息的发送】：仍是封装在框架底层
             Session session = args.Session;
             object message = args.Message;
-// 【回复消息】：前面的重点看错了，重点是【回复】消息，能够到达当前服务端组件，就说明是属于当前进程收的消息（想的话，觉得是其它服务端转过来的消息），
+// 【回复消息】：前面的重点看错了，重点是【回复】消息，能够到达当前服务端组件，就说明是属于当前进程收的消息，就是内网消息到达【网关服】，【网关服】下发给【客户端】
             // 所以不区分IRpcResponse IRpcLocationResponse 类型, 都向下交由会话框处理
             // 【服务端上，会话框】Session: 发，还是不发，消息到Channel 的另一头
             if (message is IResponse response) { // 【回复消息】: 就去服务端，什么情况下会出现这种情况？
@@ -38,7 +38,7 @@
                     break;
                 case IActorMessage actorMessage:  // 分发IActorMessage消息，目前没有用到，需要的自己添加 
                     break;
-                default: {
+            default: { // 非Actor消息的话：应该就是本进程消息，不走网络层，进程内处理
                     // 非Actor消息： MessageDispatcherComponent 全局单例吗？是的
                     MessageDispatcherComponent.Instance.Handle(session, message);
                     break;
@@ -47,4 +47,3 @@
         }
     }
 }
-

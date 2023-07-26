@@ -7,11 +7,12 @@ namespace ET.Client {
     // 这个类，框架开发者的原始标记，都看不懂。能够看懂、想出自己理解的一个大概轮括。需要改天准备了必要基础知识后再读一遍
     // 框架以前版本，【客户端】只与【网关服】通信，网关服是它所管辖小区里所有【客户端】的通信代理。
     // 框架重构后的现在版本说，不要什么【网关服】代理了，【客户端】通过客户端所在的路由系统下的【路由总管？】来收发消息。这里【路由总管】感觉功能上，相当于先前随机分配给当前【客户端】的【网关服】。不知道这么理解对不对，记下，再多想一想
-    public static class RouterHelper {
+    public static class RouterHelper { // 路由器帮助类：要把这个类的功能，想明白
 
         // 【注册router】：什么叫注册 router? 为什么我觉得是在建会话框？这个方法没能看完。它是为当前【客户端场景】添加必备路由网络通信功能模块。注意添加的几个组件
         // 以前这里，好像，就是建一个【客户端】与【网关服】的【会话框】就可以了呀。这里为什么需要借助路由模块呢？
-        public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) {
+        // 专线【路由器会话框】：服务于【客户端】。作用，传心跳包，标记【客户端】是否掉线了；传路由器的心跳包，路由器是否掉线了？。。。
+        public static async ETTask<Session> CreateRouterSession(Scene clientScene, IPEndPoint address) { // 创建了一个专用的【路由器会话框】
 // 拿客户端场景路由器地址：
             (uint recvLocalConn, IPEndPoint routerAddress) = await GetRouterAddress(clientScene, address, 0, 0); 
             if (recvLocalConn == 0) {

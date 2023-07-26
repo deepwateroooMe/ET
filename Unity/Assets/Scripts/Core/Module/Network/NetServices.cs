@@ -199,10 +199,10 @@ namespace ET {
                                 service.Remove(op.ChannelId, (int)op.ActorId);
                             break;
                         }
-                        case NetOp.SendMessage: {
+                    case NetOp.SendMessage: { // 【会话框上发消息】的最底层：可以追到这里。
                             AService service = this.Get(op.ServiceId);
                             if (service != null) 
-                                service.Send(op.ChannelId, op.ActorId, op.Object);
+                                service.Send(op.ChannelId, op.ActorId, op.Object); // 再接着就是最底层了。。可以不用弄懂。接着去想：【服务端】处理好后，消息返回的过程
                             break;
                         }
                         case NetOp.GetChannelConn: {

@@ -1,8 +1,6 @@
 #+latex_class: cn-article
 #+title: ET 框架学习笔记－－自己需要这样一个总结文档来帮助总结与急速重构自己的游戏 
 #+author: deepwaterooo 
-
-
 * 客户端场景组件：客户端大致的起始过程
 ** Entry.cs: 指定的起始类，会触发三类回调，公用组件类的加载，和其它
    #+BEGIN_SRC csharp
@@ -299,7 +297,6 @@ public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFini
     #+END_SRC
 - 感觉接下来就是相对熟悉的程序。再跟就去跟不熟悉的其它细节程序
 
-
 * ClientComponent ClientScene 等客户端相关：有点儿理不清
 
 ** ClientSceneManagerComponent: 是否，相当于，它是SceneType 的管理者，就是先前各种服，注册登录服，网关服、匹配服等的管理者，大概主要还是地址传送
@@ -310,7 +307,6 @@ public class ClientSceneManagerComponent: Entity, IAwake, IDestroy {
     public static ClientSceneManagerComponent Instance;
 }
     #+END_SRC
-
 
 * 客户端场景与客户端场景加工厂
 ** SceneChangeHelper: 场景切换协程
@@ -510,7 +506,6 @@ public static class UnitFactory {
 }
     #+END_SRC
 
-
 * 标签系: 标签系统重构了，现分为几个类型
 ** ComponentOfAttribute : Attribute
 #+BEGIN_SRC csharp
@@ -545,7 +540,6 @@ public class ComponentViewEditor: Editor {
     }
 }
 #+END_SRC
-
 
 * UI 上的事件驱动系统：
 ** EventType
@@ -605,7 +599,6 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 }
    #+END_SRC
 - 场景加载结束的时候，好像相对做的事情不多。
-
 
 * Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？
 ** LoginHelper.cs
@@ -748,7 +741,6 @@ public static class SceneChangeHelper {
     }
 }
    #+END_SRC
-
 
 * UI 控件的生产事件机制流程：以前的专用工厂再包装为UI 上的事件机制
 - 一般是由某个事件的发布，因为订阅（使用订阅标签系），所以会被触发创建视图
@@ -1023,7 +1015,6 @@ public class TractorRoomEvent: AUIEvent {
 #+END_SRC
 - 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 
-
 * Session 相关：进行间通信
 ** SessionComponent
    #+BEGIN_SRC csharp
@@ -1076,7 +1067,6 @@ public static class OperaComponentSystem { // 生命周期感知，生成系统
     }
 }
    #+END_SRC
-
 
 * Player: 玩家相关，添加的地方，以及使用
 - 感觉有点儿糊涂，是因为用的时候不知道怎么连。那么，就应该是去把一个客户端注册登录，一个客户端玩家的产生，以及所有玩家的后续，前世今生前前后后都明白了，就不会糊涂了。。。
@@ -1387,6 +1377,29 @@ public static class SceneFactory {
     }
 }
    #+END_SRC
+
+
+* 整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI
+      
+[[./pic/ET_20230512_143227.png]]
+
+** ET6 Beta(master) 设计的几点儿思路【帮助自己理解和梳理框架】【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 之前每个功能是一个进程，比如realm gate location map，现在改成每个功能是一个Scene，一个Scene可以放到一个进程中。这样一台物理机先启动固定的进程，然后各个scene放到进程中运行。非常类似docker。【这个地方，有个早在ET6 时就如此重构的初衷，要看明白】
+  - 小伙伴问: et一开始就是多进程嘛…没毛病.不过现在是在进程内又开辟了相对独立的容器.熊猫能说说这么改的实际应用场景吗…什么实际需求促使了你做这个大刀阔斧的改动
+  - 原因是【很多动态副本跟分线的需求】，现在可以16核机器起16个进程，然后【动态分配副本跟分线到进程上】（这里是说，必须重构为每个功能是一个Scene，一个Scene可以放到一个进程中之后，才可以实现，【动态分配副本跟分线到进程上】！而重构之前，就是动态副本到了每台物理机的多进程上，性能上会是极大的浪费）。比如很多单人副本，没必要一下子开很多进程来支持。（重构后，可以实现）需要的时候找一个负载低的进程动态创建一个（是动态创建一个到了一个核一个已经有任务在身的低消耗的在用进程上，而不需要再占用一台物理机N 多核与N 多进程，或弄新进程。也就是说，最大限度地发挥了每台物理机、每个核每个进程的性能表现）就行了，用完就可以回收了。
+- 所有的Scene放在一个进程就变成了AllServer模式。（【所以，自己没能体会透彻的时候，手动再添加一个什么 AllServer 是不对的。。】）
+- 服务器内部全部使用actor发送消息，比如realm发给gate，其实是发个actor消息到gate scene( 【这个，大概是Actor 消息的帮助类里，需要手动序列化，手动添加发送消息与返回消息的 actorId 的原因，内网消息手动序列化。。】)
+- dbserver将取消，每个进程直连mongodb，使用异步调用存取数据（这是，自己还没能想透的【区】的概念，一个小区里，有哪些小服？）
+- 协程锁简化了很多实现，例如location队列，actor队列，mailbox消息队列，全部使用协程锁实现，代码非常精简。（没理解透）
+- Scene可以开服前配置好在哪个进程（比如realm gate）也可以动态创建（比如副本，分线场景）。动态创建Scene回收Scene非常简单。
+** Domain: 这个东西，不知道它是什么
+- domain就是指这个entity属于哪个scene，毕竟一个进程上可以容纳多个scene
+- domain还有个很重要的作用，就是设置domain的时候才会执行反序列化system，还有注册eventsystem
+- domain简单说是指属于哪个scene, 每个entity都有个domain字段，这样写逻辑方便能拿到自己scene上的数据
+** AppType ＝＝》 SceneType 重构
+- 多进程多scene，具体scene放到那个进程完全取决于配制，全放到一个进程就是allserver了
+- 如果是个很大的scene，需要容纳很多人，可能就需要单独占用一个进程，这样才能完全利用一个核
+- 把每个scene都分配一个进程，就跟5.0差不多了
 
 
 * IMHandler 接口实现的各种类型消息处理器：需要先理解透彻ETTask 和 ETVoid:
@@ -1775,26 +1788,6 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
     }
 }
    #+END_SRC
-
-
-* 整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI
-      
-[[./pic/ET_20230512_143227.png]]
-** ET6 Beta(master) 设计的几点儿思路【帮助自己理解和梳理框架】
-- 之前每个功能是一个进程，比如realm gate location map，现在改成每个功能是一个Scene，一个Scene可以放到一个进程中。这样一台物理机先启动固定的进程，然后各个scene放到进程中运行。非常类似docker。
-- 所有的Scene放在一个进程就变成了AllServer模式。（【所以，自己没能体会透彻的时候，手动再添加一个什么 AllServer 是不对的。。】）
-- 服务器内部全部使用actor发送消息，比如realm发给gate，其实是发个actor消息到gate scene( 【这个，大概是Actor 消息的帮助类里，需要手动序列化，手动添加发送消息与返回消息的 actorId 的原因，内网消息手动序列化。。】)
-- dbserver将取消，每个进程直连mongodb，使用异步调用存取数据（这是，自己还没能想透的【区】的概念，一个小区里，有哪些小服？）
-- 协程锁简化了很多实现，例如location队列，actor队列，mailbox消息队列，全部使用协程锁实现，代码非常精简。（没理解透）
-- Scene可以开服前配置好在哪个进程（比如realm gate）也可以动态创建（比如副本，分线场景）。动态创建Scene回收Scene非常简单。
-** Domain: 这个东西，不知道它是什么
-- domain就是指这个entity属于哪个scene，毕竟一个进程上可以容纳多个scene
-- domain还有个很重要的作用，就是设置domain的时候才会执行反序列化system，还有注册eventsystem
-- domain简单说是指属于哪个scene, 每个entity都有个domain字段，这样写逻辑方便能拿到自己scene上的数据
-** AppType ＝＝》 SceneType 重构
-- 多进程多scene，具体scene放到那个进程完全取决于配制，全放到一个进程就是allserver了
-- 如果是个很大的scene，需要容纳很多人，可能就需要单独占用一个进程，这样才能完全利用一个核
-- 把每个scene都分配一个进程，就跟5.0差不多了
 
 
 * Coroutine 锁之类的相关总结：【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】

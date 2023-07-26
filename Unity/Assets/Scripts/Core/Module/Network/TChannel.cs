@@ -63,33 +63,32 @@ namespace ET {
             this.outArgs = null;
             this.socket = null;
         }
-        public void Send(long actorId, MemoryStream stream) {
+        public void Send(long actorId, MemoryStream stream) { // 【发送过程】：把内存流上的消息，从【内存缓存区】转移到【发送缓存区】的过程
             if (this.IsDisposed) {
                 throw new Exception("TChannel已经被Dispose, 不能发送消息");
             }
-            switch (this.Service.ServiceType) {
-            case ServiceType.Inner: {
-                int messageSize = (int) (stream.Length - stream.Position);
-                if (messageSize > ushort.MaxValue * 16)
-                {
-                    throw new Exception($"send packet too large: {stream.Length} {stream.Position}");
+            switch (this.Service.ServiceType) { // 这里不明白：内外的区别。【这个方法暂时看不通】，去看服务上读到消息的过程
+                case ServiceType.Inner: { // 信道【服务端】的内网消息？好像这里没理解两个服务类型的区别
+                    int messageSize = (int) (stream.Length - stream.Position);
+                    if (messageSize > ushort.MaxValue * 16)
+                        throw new Exception($"send packet too large: {stream.Length} {stream.Position}");
+                    this.sendCache.WriteTo(0, messageSize);
+                    this.sendBuffer.Write(this.sendCache, 0, PacketParser.InnerPacketSizeLength);
+                    // actorId: 写进内存流里
+                    stream.GetBuffer().WriteTo(0, actorId); // Inner 类型：在开头的 0 位置，写 actorId. 这个号，【发送消息】与【返回消息】一一对应不变
+                    this.sendBuffer.Write(stream.GetBuffer(), (int)stream.Position, (int)(stream.Length - stream.Position));
+                    break;
                 }
-                this.sendCache.WriteTo(0, messageSize);
-                this.sendBuffer.Write(this.sendCache, 0, PacketParser.InnerPacketSizeLength);
-                // actorId
-                stream.GetBuffer().WriteTo(0, actorId);
-                this.sendBuffer.Write(stream.GetBuffer(), (int)stream.Position, (int)(stream.Length - stream.Position));
-                break;
-            }
-            case ServiceType.Outer: {
-                stream.Seek(Packet.ActorIdLength, SeekOrigin.Begin); // 外网不需要actorId
-                ushort messageSize = (ushort) (stream.Length - stream.Position);
-                this.sendCache.WriteTo(0, messageSize);
-                this.sendBuffer.Write(this.sendCache, 0, PacketParser.OuterPacketSizeLength);
-                    
-                this.sendBuffer.Write(stream.GetBuffer(), (int)stream.Position, (int)(stream.Length - stream.Position));
-                break;
-            }
+                case ServiceType.Outer: {
+                    // 【不明白这里为什么不需要】。会话框上注册过的回调呢？将来的回复消息，没有这个号，如何找到对应回调？
+                    stream.Seek(Packet.ActorIdLength, SeekOrigin.Begin); // 外网不需要actorId: 
+                    ushort messageSize = (ushort) (stream.Length - stream.Position);
+                    this.sendCache.WriteTo(0, messageSize);
+                    this.sendBuffer.Write(this.sendCache, 0, PacketParser.OuterPacketSizeLength);
+
+                    this.sendBuffer.Write(stream.GetBuffer(), (int)stream.Position, (int)(stream.Length - stream.Position));
+                    break;
+                }
             }
             if (!this.isSending) {
                 // this.StartSend();
@@ -257,23 +256,25 @@ namespace ET {
                 long channelId = this.Id;
                 object message = null;
                 long actorId = 0;
-                switch (this.Service.ServiceType) {
-                case ServiceType.Outer:
-                {
-                    ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.KcpOpcodeIndex);
-                    Type type = NetServices.Instance.GetType(opcode);
-                    message = SerializeHelper.Deserialize(type, memoryStream);
-                    break;
+                // ServiceType.Outer 与 Inner: 不知道自己区分对了没有；
+                // 但跨进程 rpcId 发送消息与返回消息永远一一对应，这里可以不用写入头，它(actorId) 包含在发送消息 IRpcRequest 里。
+                // 除非其它 IMessage 有其它需求处理，可能需要将 rpcId 写入消息头？
+                switch (this.Service.ServiceType) { // 这里 Outer: 更像是本进程内的消息？发送前，与收到后的 actorId ＝ 0 手动写的 
+                    case ServiceType.Outer: { // actorId ＝ 0: 前面【会话框Session.cs】上发送消息的时候，也曾自动写 actorId ＝ 0 过。没能理解这个细节是什么意思 0 ？
+                            ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.KcpOpcodeIndex);
+                            Type type = NetServices.Instance.GetType(opcode);
+                            message = SerializeHelper.Deserialize(type, memoryStream);
+                            break;
+                        }
+                    case ServiceType.Inner: { // 这个类型，更像是务必走网络层的内网消息，保留各原发送消息的 actorId
+                        actorId = BitConverter.ToInt64(memoryStream.GetBuffer(), Packet.ActorIdIndex); // 这个应该就是从 0 位开始读号  // <<<<<<<<<<<<<<<<<<<< 
+                            ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.OpcodeIndex);
+                            Type type = NetServices.Instance.GetType(opcode);
+                            message = SerializeHelper.Deserialize(type, memoryStream);
+                            break;
+                        }
                 }
-                case ServiceType.Inner:
-                {
-                    actorId = BitConverter.ToInt64(memoryStream.GetBuffer(), Packet.ActorIdIndex);
-                    ushort opcode = BitConverter.ToUInt16(memoryStream.GetBuffer(), Packet.OpcodeIndex);
-                    Type type = NetServices.Instance.GetType(opcode);
-                    message = SerializeHelper.Deserialize(type, memoryStream);
-                    break;
-                }
-                }
+                // 把这里【收到消息】时，actorId 重新生成的过程，弄明白 
                 NetServices.Instance.OnRead(this.Service.Id, channelId, actorId, message);
             }
             catch (Exception e) {

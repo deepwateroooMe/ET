@@ -1,4 +1,4 @@
-% Created 2023-07-23 Sun 14:58
+% Created 2023-07-25 Tue 14:01
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -33,8 +33,6 @@
 
 \maketitle
 \tableofcontents
-
-
 
 \section{客户端场景组件：客户端大致的起始过程}
 \label{sec-1}
@@ -356,7 +354,6 @@ public class AppStartInitFinish_CreateLoginUI: AEvent<EventType.AppStartInitFini
 \item 感觉接下来就是相对熟悉的程序。再跟就去跟不熟悉的其它细节程序
 \end{itemize}
 
-
 \section{ClientComponent ClientScene 等客户端相关：有点儿理不清}
 \label{sec-2}
 
@@ -369,7 +366,6 @@ public class ClientSceneManagerComponent: Entity, IAwake, IDestroy {
     public static ClientSceneManagerComponent Instance;
 }
 \end{minted}
-
 
 \section{客户端场景与客户端场景加工厂}
 \label{sec-3}
@@ -579,7 +575,6 @@ public static class UnitFactory {
 }
 \end{minted}
 
-
 \section{标签系: 标签系统重构了，现分为几个类型}
 \label{sec-4}
 \subsection{ComponentOfAttribute : Attribute}
@@ -618,7 +613,6 @@ public class ComponentViewEditor: Editor {
     }
 }
 \end{minted}
-
 
 \section{UI 上的事件驱动系统：}
 \label{sec-5}
@@ -687,7 +681,6 @@ public class SceneChangeStart_AddComponent: AEvent<EventType.SceneChangeStart> {
 \begin{itemize}
 \item 场景加载结束的时候，好像相对做的事情不多。
 \end{itemize}
-
 
 \section{Helper 类的总结: 【但凡点击回调方法，就变成Helper 类！】为什么就变成了这么一个个的帮助类呢？}
 \label{sec-6}
@@ -843,7 +836,6 @@ public static class SceneChangeHelper {
     }
 }
 \end{minted}
-
 
 \section{UI 控件的生产事件机制流程：以前的专用工厂再包装为UI 上的事件机制}
 \label{sec-7}
@@ -1135,7 +1127,6 @@ public class TractorRoomEvent: AUIEvent {
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 
-
 \section{Session 相关：进行间通信}
 \label{sec-8}
 \subsection{SessionComponent}
@@ -1192,7 +1183,6 @@ public static class OperaComponentSystem { // 生命周期感知，生成系统
     }
 }
 \end{minted}
-
 
 \section{Player: 玩家相关，添加的地方，以及使用}
 \label{sec-9}
@@ -1549,8 +1539,43 @@ public static class SceneFactory {
 \end{itemize}
 
 
-\section{IMHandler 接口实现的各种类型消息处理器：需要先理解透彻ETTask 和 ETVoid:}
+\section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
 \label{sec-11}
+
+\includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
+
+\subsection{ET6 Beta(master) 设计的几点儿思路【帮助自己理解和梳理框架】【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
+\label{sec-11-1}
+\begin{itemize}
+\item 之前每个功能是一个进程，比如realm gate location map，现在改成每个功能是一个Scene，一个Scene可以放到一个进程中。这样一台物理机先启动固定的进程，然后各个scene放到进程中运行。非常类似docker。【这个地方，有个早在ET6 时就如此重构的初衷，要看明白】
+\begin{itemize}
+\item 小伙伴问: et一开始就是多进程嘛…没毛病.不过现在是在进程内又开辟了相对独立的容器.熊猫能说说这么改的实际应用场景吗…什么实际需求促使了你做这个大刀阔斧的改动
+\item 原因是【很多动态副本跟分线的需求】，现在可以16核机器起16个进程，然后【动态分配副本跟分线到进程上】（这里是说，必须重构为每个功能是一个Scene，一个Scene可以放到一个进程中之后，才可以实现，【动态分配副本跟分线到进程上】！而重构之前，就是动态副本到了每台物理机的多进程上，性能上会是极大的浪费）。比如很多单人副本，没必要一下子开很多进程来支持。（重构后，可以实现）需要的时候找一个负载低的进程动态创建一个（是动态创建一个到了一个核一个已经有任务在身的低消耗的在用进程上，而不需要再占用一台物理机N 多核与N 多进程，或弄新进程。也就是说，最大限度地发挥了每台物理机、每个核每个进程的性能表现）就行了，用完就可以回收了。
+\end{itemize}
+\item 所有的Scene放在一个进程就变成了AllServer模式。（【所以，自己没能体会透彻的时候，手动再添加一个什么 AllServer 是不对的。。】）
+\item 服务器内部全部使用actor发送消息，比如realm发给gate，其实是发个actor消息到gate scene( 【这个，大概是Actor 消息的帮助类里，需要手动序列化，手动添加发送消息与返回消息的 actorId 的原因，内网消息手动序列化。。】)
+\item dbserver将取消，每个进程直连mongodb，使用异步调用存取数据（这是，自己还没能想透的【区】的概念，一个小区里，有哪些小服？）
+\item 协程锁简化了很多实现，例如location队列，actor队列，mailbox消息队列，全部使用协程锁实现，代码非常精简。（没理解透）
+\item Scene可以开服前配置好在哪个进程（比如realm gate）也可以动态创建（比如副本，分线场景）。动态创建Scene回收Scene非常简单。
+\end{itemize}
+\subsection{Domain: 这个东西，不知道它是什么}
+\label{sec-11-2}
+\begin{itemize}
+\item domain就是指这个entity属于哪个scene，毕竟一个进程上可以容纳多个scene
+\item domain还有个很重要的作用，就是设置domain的时候才会执行反序列化system，还有注册eventsystem
+\item domain简单说是指属于哪个scene, 每个entity都有个domain字段，这样写逻辑方便能拿到自己scene上的数据
+\end{itemize}
+\subsection{AppType ＝＝》 SceneType 重构}
+\label{sec-11-3}
+\begin{itemize}
+\item 多进程多scene，具体scene放到那个进程完全取决于配制，全放到一个进程就是allserver了
+\item 如果是个很大的scene，需要容纳很多人，可能就需要单独占用一个进程，这样才能完全利用一个核
+\item 把每个scene都分配一个进程，就跟5.0差不多了
+\end{itemize}
+
+
+\section{IMHandler 接口实现的各种类型消息处理器：需要先理解透彻ETTask 和 ETVoid:}
+\label{sec-12}
 \begin{itemize}
 \item 这个模块感觉还没有总结完。但因为还有111 个编译错误，很多我还不知道算是怎么回事。这个版块的总结放在后面，再改错误的时候带着问题来看更有效率。
 \item 可以回去参考前一个游戏参考过的ET-EUI 里有一部分ETVoid 的相关使用，可以用作自己理解 ETTask ETVoid 的源码参考。ET-EUI 现笔记本里没有，可以拉一个下来。
@@ -1568,7 +1593,7 @@ public static class SceneFactory {
 \end{itemize}
 \end{itemize}
 \subsection{IMHandler: interface 消息处理器接口类。它有2 个实现抽象类：AMHandler，AMRpcHandler}
-\label{sec-11-1}
+\label{sec-12-1}
 \begin{itemize}
 \item 实现这个接口类型主要分为两个抽象类：AMHandler，AMRpcHandler. 所以ET 框架里现有一个接口IMHandler, 两个抽象实现类。其它是参考自ET-EUI.
 \item 今天上午暂时只看取了这个接口，和两个抽象方法这里。后面任何的个体实现类，都还没有细看，不太懂。
@@ -1586,7 +1611,7 @@ public interface IMHandler {
 }
 \end{minted}
 \subsection{AMHandler<Message>: abstract 抽象基类：两个方法的返回类型，成为现在全框架的理解与实现难点}
-\label{sec-11-2}
+\label{sec-12-2}
 \begin{itemize}
 \item AMHandler类，这个类相比AMRpcHandler更加简单一些，因为这个类型的处理，不需要关心回消息
 \item 实现了接口IMHandler的Handle异步方法，具体逻辑为：
@@ -1625,7 +1650,7 @@ public abstract class AMHandler<Message>: IMHandler where Message : class {
 \end{itemize}
 \end{itemize}
 \subsection{AMRpcHandler: 去抓的ET7 框架的源码，可以用来【校正】其它被自己改错的}
-\label{sec-11-3}
+\label{sec-12-3}
 \begin{itemize}
 \item 注意，在ET7 框架里，IMHandler 接口，与AMHandler 是定义在Share 双端共用。而AMRpcHandler 是定义在服务器端的，只有服务端存在进程间通信 Rpc 消息？
 \item 去抓的ET7 框架的源码，可以用来校正其它被自己改错的类，或是方法定义。
@@ -1684,7 +1709,7 @@ public abstract class AMRpcHandler<Request, Response>: IMHandler where Request :
 }
 \end{minted}
 \subsection{C2R\_LoginHandler: AMRpcHandler 的一个实体类，前后版本封装对比}
-\label{sec-11-4}
+\label{sec-12-4}
 \begin{itemize}
 \item 上面的 AMRpcHandler 抽象方法 Run() 不是看不懂吗，找到一个例子，有前后两个版本的对比，可以参看理解一下
 \item 感觉今天下午，终于可以把先前这个自己总感觉迷迷糊糊的各种服的消息处理弄明白了
@@ -1739,7 +1764,7 @@ public class C2R_LoginHandler : AMRpcHandler<C2R_Login, R2C_Login> {
 \end{minted}
 
 \subsection{IMHandler 【ET-EUI】：主要是与上面对比}
-\label{sec-11-5}
+\label{sec-12-5}
 \begin{itemize}
 \item 因为对于ET-EUI 里，它为什么要再多自定义几个接口，这个版块不够熟悉
 \item 我觉得把两个框架的几个接口与抽象实体类提出来对比理解一下是对的，因为没明白，为什么ET7 里会重构成那个样子。可能也网上查下再帮助理解一下。
@@ -1753,7 +1778,7 @@ public interface IMHandler {
 }
 \end{minted}
 \subsection{IMActorHandler: 【ET-EUI:仅作参考】大概参考 ET-EUI 来的，它的目的应该是把最基类的接口，与其它两类的接口相区分开来}
-\label{sec-11-6}
+\label{sec-12-6}
 \begin{itemize}
 \item 从这个小节开始，主要是整理的ET-EUI 里面的接口与抽象实现类。可能主要两个实现扩展类：（A|I）MHandler, （A|I）MRpcHandler, 都看一下
 \item 大概参考 ET-EUI 来的，它的目的应该是把最基类的接口，与其它两类的接口相区分开来。但是，我想、猜测、理解的话，应该是上面一个接口，如果能够把ETTask 与ETVoid 狠好地统一的话，应该一个接口可能可以足以整个框架使用的。
@@ -1770,7 +1795,7 @@ public interface IMActorHandler {
 }
 \end{minted}
 \subsection{AMActorLocationHandler: 源码被我改动了}
-\label{sec-11-7}
+\label{sec-12-7}
 \begin{itemize}
 \item 源码被我改动了，正确性与否没有关系，主要是帮助自己梳理一下几大不同的类型，到改编译错误的时候，能够边修改边弄明白。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -1803,7 +1828,7 @@ public abstract class AMActorLocationHandler<E, Message>: IMActorHandler where E
 \end{minted}
 \end{itemize}
 \subsection{AMActorLocationRpcHandler: 上面接口实现类的一个使用例子。我把返回参数改了}
-\label{sec-11-8}
+\label{sec-12-8}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [EnableClass]
 public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
@@ -1849,7 +1874,7 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 }
 \end{minted}
 \subsection{AMActorLocationRpcHandler: Rpc 就是进程间消息（或是ET7 重构为SceneType 之后的多核间消息）}
-\label{sec-11-9}
+\label{sec-12-9}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [EnableClass]
 public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHandler where E : Entity where Request : class, IActorLocationRequest where Response : class, IActorLocationResponse {
@@ -1893,16 +1918,16 @@ public abstract class AMActorLocationRpcHandler<E, Request, Response>: IMActorHa
 }
 \end{minted}
 \subsection{ActorHandleHelper 静态帮助类：包装了必要的方法，帮助自动化回复相关回调消息 et3}
-\label{sec-11-10}
+\label{sec-12-10}
 \begin{itemize}
 \item 再后面的，MessageDispatcherComponent 相关的，因为网络部分的再次总结一遍，移过去，先系统总结一下。改天有必要的时候，再作修改。
 \end{itemize}
 
 
 \section{ResourcesComponent 资源包管理器相关：有时候，拖拉机游戏里会需要拿它来加载图片}
-\label{sec-12}
+\label{sec-13}
 \subsection{ResourcesComponent: 同文件有其生成系}
-\label{sec-12-1}
+\label{sec-13-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf]
 public class ResourcesComponent: Entity, IAwake, IDestroy {
@@ -1919,7 +1944,7 @@ public class ResourcesComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{客户端 ConfigLoader 的Invoke 标签下：在根控件 Root 下添加资源管理器组件}
-\label{sec-12-2}
+\label{sec-13-2}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke]
 public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
@@ -1975,36 +2000,6 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
     }
 }
 \end{minted}
-
-
-\section{整个框架： ET 7.2 ＋ YooAssets ＋ luban ＋ FairGUI}
-\label{sec-13}
-
-\includegraphics[width=.9\linewidth]{./pic/ET_20230512_143227.png}
-\subsection{ET6 Beta(master) 设计的几点儿思路【帮助自己理解和梳理框架】}
-\label{sec-13-1}
-\begin{itemize}
-\item 之前每个功能是一个进程，比如realm gate location map，现在改成每个功能是一个Scene，一个Scene可以放到一个进程中。这样一台物理机先启动固定的进程，然后各个scene放到进程中运行。非常类似docker。
-\item 所有的Scene放在一个进程就变成了AllServer模式。（【所以，自己没能体会透彻的时候，手动再添加一个什么 AllServer 是不对的。。】）
-\item 服务器内部全部使用actor发送消息，比如realm发给gate，其实是发个actor消息到gate scene( 【这个，大概是Actor 消息的帮助类里，需要手动序列化，手动添加发送消息与返回消息的 actorId 的原因，内网消息手动序列化。。】)
-\item dbserver将取消，每个进程直连mongodb，使用异步调用存取数据（这是，自己还没能想透的【区】的概念，一个小区里，有哪些小服？）
-\item 协程锁简化了很多实现，例如location队列，actor队列，mailbox消息队列，全部使用协程锁实现，代码非常精简。（没理解透）
-\item Scene可以开服前配置好在哪个进程（比如realm gate）也可以动态创建（比如副本，分线场景）。动态创建Scene回收Scene非常简单。
-\end{itemize}
-\subsection{Domain: 这个东西，不知道它是什么}
-\label{sec-13-2}
-\begin{itemize}
-\item domain就是指这个entity属于哪个scene，毕竟一个进程上可以容纳多个scene
-\item domain还有个很重要的作用，就是设置domain的时候才会执行反序列化system，还有注册eventsystem
-\item domain简单说是指属于哪个scene, 每个entity都有个domain字段，这样写逻辑方便能拿到自己scene上的数据
-\end{itemize}
-\subsection{AppType ＝＝》 SceneType 重构}
-\label{sec-13-3}
-\begin{itemize}
-\item 多进程多scene，具体scene放到那个进程完全取决于配制，全放到一个进程就是allserver了
-\item 如果是个很大的scene，需要容纳很多人，可能就需要单独占用一个进程，这样才能完全利用一个核
-\item 把每个scene都分配一个进程，就跟5.0差不多了
-\end{itemize}
 
 
 \section{Coroutine 锁之类的相关总结：【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}

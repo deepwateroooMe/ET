@@ -61,7 +61,7 @@ namespace ET.Server {
             self.ActorMessageHandlers[type].Add(handler);
         }
         public static async ETTask Handle(this ActorMessageDispatcherComponent self, Entity entity, int fromProcess, object message) {
-            List<ActorMessageDispatcherInfo> list;  // 脑补逻辑： eg, 当一个场景创建，如何封装，加入管理体系的？
+            List<ActorMessageDispatcherInfo> list;  // 当一个场景创建，如何封装，加入管理体系的？【跟进这里去看】，把进程启动时的这此框架自动化，看明白
             if (!self.ActorMessageHandlers.TryGetValue(message.GetType(), out list)) // 根据消息的发送类型，来取所有可能的处理器包装链表 
                 throw new Exception($"not found message handler: {message}");
             SceneType sceneType = entity.DomainScene().SceneType; // 定位：发送消息的实体，所在的场景类型

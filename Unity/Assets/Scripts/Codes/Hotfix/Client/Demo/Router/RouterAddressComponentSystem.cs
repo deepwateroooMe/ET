@@ -41,7 +41,7 @@ namespace ET.Client {
         }
         public static IPEndPoint GetAddress(this RouterAddressComponent self) { // 拿当前组件（所在的服务器）的地址：当知道它是一个路由系统
             if (self.Info.Routers.Count == 0) return null; // 当前路由器每 10 分钟扫一遍：检测周围是否存在路由器的邻居，当它扫不到其它路由器存在就返回
-// 这里，我感觉，因为Info 的进程间可传递性（它永远背这个可传递Info,info 是如何更新的？），需要去考虑它的实时更新问题。
+// 这里，我感觉，因为Info 的进程间可传递性（它永远背这个可传递Info)
             string address = self.Info.Routers[self.RouterIndex++ % self.Info.Routers.Count]; // 永远返回：路由器里接下来可用的一个端口索引
             string[] ss = address.Split(':');
             IPAddress ipAddress = IPAddress.Parse(ss[0]);

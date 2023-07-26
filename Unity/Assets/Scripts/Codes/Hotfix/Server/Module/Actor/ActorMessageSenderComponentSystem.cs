@@ -94,10 +94,11 @@ namespace ET.Server {
             Session session = NetInnerComponent.Instance.Get(processActorId.Process); // 非本进程消息，去走网络层
             session.Send(processActorId.ActorId, message);
         }
-        public static int GetRpcId(this ActorMessageSenderComponent self) {
+        public static int GetRpcId(this ActorMessageSenderComponent self) { // 自家组件的局部身份证索引号管理：自增局部变量，维护管理体系里注册过的各种回调
             return ++self.RpcId;
         }
         // 这个方法：只对当前进程的发送要求IActorResponse 的消息，封装自家进程的 rpcId, 也就是标明本进程发的消息，来自其它进程的返回消息，到时发到本进程。是特殊使用
+        // 上面，不知道自己写的是什么？好像上面写的不对，要再检查
         public static async ETTask<IActorResponse> Call(
             this ActorMessageSenderComponent self,
             long actorId,

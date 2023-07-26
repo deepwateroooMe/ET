@@ -4,11 +4,10 @@ using System.Net;
 namespace ET {
     // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！这一点儿，活宝妹永远清晰明确确定。爱表哥，爱生活！！！】
     // 【把这个注释看懂想透，感觉这个缓存问题就理解透彻了。爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
-    public abstract class AService: IDisposable {
+    public abstract class AService: IDisposable { // 现在重点找：网络服务，读到消息后的大致过程
         public int Id { get; set; }
         public ServiceType ServiceType { get; protected set; }
         private (object Message, MemoryStream MemoryStream) lastMessageInfo;
-
         // 缓存上一个发送的消息，这样广播消息的时候省掉多次序列化。【在方法逻辑里，可以看懂】
         // 这样有个另外的问题,客户端就不能保存发送的消息来减少gc 【客户端GC 多的潜在问题。。。这一句，今天，暂时，难倒亲爱的表哥的弱弱活宝妹了。。。】改天会把它想明白的！！
         // 【上面一句，应该可以理解为，使用场景如客户端需要重复发某条消息时（如索要位置信息，但小伙伴搬家搬狠久发一次还要不到，客户端连发 10 次索要位置信息，每次消息内容完全相同）
@@ -41,6 +40,7 @@ namespace ET {
         public abstract void Remove(long id, int error = 0);
         public abstract bool IsDispose();
         public abstract void Create(long id, IPEndPoint address);
+        // Send(): 找一个具体实现类，来看【发送消息】的逻辑
         public abstract void Send(long channelId, long actorId, object message);
         public virtual (uint, uint) GetChannelConn(long channelId) {
             throw new Exception($"default conn throw Exception! {channelId}");

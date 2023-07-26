@@ -13,11 +13,11 @@ namespace ET.Server {
                     throw new Exception($"消息类型转换错误: {message.GetType().Name} to {typeof (Request).Name}");
                 int rpcId = request.RpcId;
                 long instanceId = session.InstanceId;
-                Response response = Activator.CreateInstance<Response>(); // 创建一个消息的回复实例
-                try { // 【找个例子看一下】不懂：下面一句是在干什么，执行对发送来消息的处理，写返回数据？这里调的是抽象异步函数。会在具体的实现类里去实现
-                    await this.Run(session, request, response); // 猜测：应该更多可能是，通过不同服的具体实现，将返回数据写好？因为发送还在后面
+                Response response = Activator.CreateInstance<Response>(); 
+                try { // 执行对发送来消息的，实现了此抽象基类的【各小服、独特、特民逻辑】的处理，写好返回消息的结果
+                    await this.Run(session, request, response); // 猜测：应该更多可能是，通过不同服的具体实现，将返回数据写好？是这样的呀
                 }
-                catch (Exception exception) { // 如果出异常：写异常结果
+                catch (Exception exception) { // 如果出异常：写异常结果。这里也会自动抛出异常
                     Log.Error(exception);
                     response.Error = ErrorCore.ERR_RpcFail;
                     response.Message = exception.ToString();
@@ -25,8 +25,8 @@ namespace ET.Server {
                 // 等回调回来,session可以已经断开了,所以需要判断session InstanceId是否一样
                 if (session.InstanceId != instanceId) 
                     return;
-                response.RpcId = rpcId; // 在这里设置rpcId是为了防止在Run中不小心修改rpcId字段。【谁发来的消息，就返回消息给谁——发送者】
-                session.Send(response); // 把返回消息发回去，这里才是真正的发返回消息回请求端
+                response.RpcId = rpcId; // 在这里设置rpcId是为了防止在Run中不小心修改rpcId字段。（前面还像是源者写的）
+                session.Send(response); 
             }
             catch (Exception e) { // 捕获异步操作过程中的异常
                 throw new Exception($"解释消息失败: {message.GetType().FullName}", e);

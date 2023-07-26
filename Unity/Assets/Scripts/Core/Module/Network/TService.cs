@@ -114,7 +114,10 @@ namespace ET {
                     return;
                 }
                 MemoryStream memoryStream = this.GetMemoryStream(message);
-                aChannel.Send(actorId, memoryStream);
+                // 【信道上发送消息】：涉及，进程间消息的（凡用信道发消息，一定是跨进程的吗？），
+                // 发送前消息的【序列化】与，接收消息后的【反序列化】。
+                // 先前源者标了个【内存流上发消息，缓存最后一条发送过的消息】【客户端】利与不利？源者说，客户端的发送消息，是狠少的。。。
+                aChannel.Send(actorId, memoryStream); // 【信道】上发送消息，发到信道的另一头远程？
             }
             catch (Exception e) {
                 Log.Error(e);
