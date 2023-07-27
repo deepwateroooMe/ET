@@ -1,7 +1,8 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 namespace ET.Server {
-    [FriendOf(typeof(NetInnerComponent))]
+    
+    [FriendOf(typeof(NetInnerComponent))] // 为什么会感觉这个类看丢了？因为它的功能不熟悉。。。过目即忘。。
     public static class NetInnerComponentSystem {
         [ObjectSystem]
         public class NetInnerComponentAwakeSystem: AwakeSystem<NetInnerComponent> {

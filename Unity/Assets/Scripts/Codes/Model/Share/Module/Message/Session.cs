@@ -49,11 +49,11 @@ namespace ET {
 // 写结果: 这里的Tcs 可能还是起桥接作用。前天晚上终于看懂一个【回复消息】的。这里索要返回消息的【发送消息】过程，与对应于此的【返回消息】的过程，细看一遍
             action.Tcs.SetResult(response); // <<<<<<<<<<<<<<<<<<<< 
         }
-        public static async ETTask<IResponse> Call(this Session self, IRequest request, ETCancellationToken cancellationToken) {
+        public static async ETTask<IResponse> Call(this Session self, IRequest request, ETCancellationToken cancellationToken) { // 【异步方法】：借封装的Tcs 来桥接完成 
             int rpcId = ++Session.RpcId; // 会话框上引入的局部变量：帮助会话框，管理区分不同消息的回调。本地变量 
             RpcInfo rpcInfo = new RpcInfo(request); // 这里，自动封装入一个Tcs 用来回调返回消息
             self.requestCallbacks[rpcId] = rpcInfo; // 【会话框上注册发送消息的回调】：注册
-// 管理系统的【身份证】索引号：这里写入【发送消息】；同样的值，将会被写到【返回消息】；将会根据【返回消息】的这个号，来这里管理系索要注册过的回调，【并调用回调（？将返回消息写回去）？】
+// 管理系统的【身份证】索引号：这里写入【发送消息】；同样的值，将会被写到【返回消息】；将会根据【返回消息】的这个号，来这里管理系索要注册过的回调，借助Tcs 异步作务的桥接，将返回消息，返回给调用方
             request.RpcId = rpcId; 
             self.Send(request);
             void CancelAction() { // 方法中定义的方法：用来定义如果任务取消，的回调
@@ -71,7 +71,7 @@ namespace ET {
             } finally {
                 cancellationToken?.Remove(CancelAction);
             }
-            return ret;
+            return ret; // 返回【返回消息】给调用方
         }
         public static async ETTask<IResponse> Call(this Session self, IRequest request) {
             int rpcId = ++Session.RpcId; // 自增变量：管理体系里的Unique 身份证号

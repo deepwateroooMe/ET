@@ -274,7 +274,7 @@ namespace ET {
                             break;
                         }
                 }
-                // 把这里【收到消息】时，actorId 重新生成的过程，弄明白 
+                // 把这里【收到消息】时，actorId 重新生成的过程，弄明白。可是这个方法跟进去，并不曾真正使用 actorId 变量！！ 
                 NetServices.Instance.OnRead(this.Service.Id, channelId, actorId, message);
             }
             catch (Exception e) {

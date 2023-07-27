@@ -24,7 +24,7 @@ namespace ET.Server {
             long realActorId = instanceIdStruct.ToLong();
             Entity entity = Root.Instance.Get(realActorId); // 发送消息发送方的实体，与发送邮箱。（这里需要再检查，感觉Root 根场景出来得奇怪，谁是在管理这些 realActorId 呢？）
             // 【上面】：上面好几行，全只是为了拿到发送消息小伙伴的实倒 instanceId 吗？感觉这个过程，与原理，没能理解透彻。。。不明白  
-            if (entity == null) { // 出错时，框架底层自动封装一个异常出错返回消息，用于抛异常，以前看过了
+            if (entity == null) { // 出错时，框架底层自动封装一个异常出错返回消息，用于抛异常. （举个例子，查询小伙伴 me 在哪里，可是【位置服】找不到 me 。、登出了、掉线了？）
                 IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
                 Reply(fromProcess, response);
                 return;
@@ -33,6 +33,7 @@ namespace ET.Server {
             MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
             if (mailBoxComponent == null) {
                 Log.Warning($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorRequest}");
+                // （举个例子，查询小伙伴 me 在哪里，可是【位置服】找不到 me ）接上面：这里说小伙伴 me 正在搬家，暂停了、或没有、不具备【收发】跨进程查询位置业务
                 IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
                 Reply(fromProcess, response);
                 return;
@@ -40,7 +41,7 @@ namespace ET.Server {
             switch (mailBoxComponent.MailboxType) { // 这里区分：发送消息者，是一个场景（用来收发转发【跨进程消息】），还是一个玩家实体（收发【同进程】和或【不同进程】的消息）？
             case MailboxType.MessageDispatcher: { // 【单线程多进程框架】，同一时间可能存在多个进程同时索要【发送消息的实体 realActorId】, 务必加锁，甚至站队排列等并发的次序
                     using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                        if (entity.InstanceId != realActorId) { // 这里检查：【发送消息的实体】小伙伴 me 正在搬家，搬家要花两整天，这两天内位置位移变化不确定，这两天里业务暂停。暂不收发消息。。。
+                        if (entity.InstanceId != realActorId) { // 这里检查：【发送消息的实体】小伙伴 me 正在搬家，搬家要花两整天，这两天内位置位移变化不确定，发往先前地址的消息自动报错，此处查无此人。。。
                             IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor); // 抛异常：发送消息的实体掉线了、下线了，不能发消息
                             Reply(fromProcess, response);
                             break;

@@ -12,7 +12,8 @@ namespace ET.Server {
             LocationProxyComponent.Instance = null;
         }
     }
-    public static class LocationProxyComponentSystem {
+    // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+    public static class LocationProxyComponentSystem { // 【位置代理组件】：以前都没仔细看过，看来今天不得不都多看看了。
         private static long GetLocationSceneId(long key) {
             return StartSceneConfigCategory.Instance.LocationConfig.InstanceId;
         }
@@ -45,6 +46,7 @@ namespace ET.Server {
                 throw new Exception($"get location key 0");
             }
             // location server配置到共享区，一个大战区可以配置N多个location server,这里暂时为1
+            // 去找：【小服】的处理逻辑
             ObjectGetResponse response =
                 (ObjectGetResponse) await ActorMessageSenderComponent.Instance.Call(GetLocationSceneId(key),
                                                                                     new ObjectGetRequest() { Key = key });

@@ -61,8 +61,8 @@ namespace ET {
                 Log.Error($"消息没有处理: {opcode} {message}");
                 return;
             }
-            // 这里就不明白：它的那些 Domain 什么的. 但是理解总的方向就是：遍历去拿到对应场景下的消息处理器，要求对应场景下的消息处理器去处理消息
-            SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
+            // 它的那些 Domain 什么的？遍历去拿到对应场景下的消息处理器，要求对应场景下的消息处理器去处理消息
+            SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？这里还是不懂
             foreach (MessageDispatcherInfo ev in actions) {
                 if (ev.SceneType != sceneType) 
                     continue;
@@ -75,6 +75,3 @@ namespace ET {
         }
     }
 }
-
-
-

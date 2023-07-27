@@ -1,6 +1,6 @@
 using System.Net;
 namespace ET.Server {
-    [Event(SceneType.Process)]
+    [Event(SceneType.Process)] // 作用于【同一进程】的服务端：同一核、同一进程，可以有多个不同的场景
     public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
         protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
             // 发送普通actor消息
@@ -8,7 +8,7 @@ namespace ET.Server {
             // 自已添加：【数据库管理类组件】
             Root.Instance.Scene.AddComponent<DBManagerComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
             // 发送location actor消息
-            Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>(); // 【服务端】全局单例
+            Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>(); // 【服务端】全局（同一进程）单例
             // 访问location server的组件
             Root.Instance.Scene.AddComponent<LocationProxyComponent>();
             Root.Instance.Scene.AddComponent<ActorMessageDispatcherComponent>();
