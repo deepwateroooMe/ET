@@ -58,15 +58,15 @@ namespace ET {
             List<MessageDispatcherInfo> actions;
             ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
             if (!self.Handlers.TryGetValue(opcode, out actions)) {
-                Log.Error($"消息没有处理: {opcode} {message}");
+                Log.Error($"消息没有处理: {opcode} {message}"); // 框架里，没有这类型 opcode 消息的，处理器
                 return;
             }
-            // 它的那些 Domain 什么的？遍历去拿到对应场景下的消息处理器，要求对应场景下的消息处理器去处理消息
-            SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？这里还是不懂
+            // 它的那些 Domain 什么的？遍历去拿到对应场景下的消息处理器，要求对应场景下的【消息处理器】去处理消息
+            SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：这是会话框两端，哪一端的场景呢？总之是收消息的那一端的场景
             foreach (MessageDispatcherInfo ev in actions) {
                 if (ev.SceneType != sceneType) 
                     continue;
-                try {
+                try { // 【会话框】界定的收消息的场景：场景下的处理器，处理消息
                     ev.IMHandler.Handle(session, message); // 处理分派消息：也就是调用IMHandler 接口的方法来处理消息
                 } catch (Exception e) {
                     Log.Error(e);

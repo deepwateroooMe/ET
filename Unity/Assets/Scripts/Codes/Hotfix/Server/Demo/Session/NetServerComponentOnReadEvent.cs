@@ -1,14 +1,13 @@
 ﻿namespace ET.Server {
-
-    // 为什么Realm 注册登录服，与Gate 网关服里【服务端】组件发布的事情，会有这个场景的订阅者接收事件？内网间这种消息，不是狠多吗？源作者说【客户端】的发送消息是狠少的。。。
+    // 为什么Realm 注册登录服，与Gate 网关服里【服务端】组件发布的事情，会有这个场景的订阅者接收事件？
+    // 【SceneType.Process】：需要特殊理解，极为特殊的进程场景。它是每个核每个进程必备的一个特殊场景吗？是。Root 单根，首先启动进程场景。为同进程下添加任何其它场景打下座基。
     [Event(SceneType.Process)]  // 【进程】场景？：来处理这个服务端组件事件？外网组件添加的地方是在：【Realm 注册登录服】与【网关服】。是自己写错了？
     public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
 
         protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) {
             Session session = args.Session;
             object message = args.Message;
-// 【回复消息】：
-            // 【服务端上，会话框】Session: 收到回复消息，会去处理【会话框】上字典管理的回调，将回调的Tcs 异步结果写好。写好了，因由封装，也即刻异步结果到消息请求方
+            // 【服务端上，会话框】Session: 收到回复消息，会去处理【会话框】上字典管理的回调，将回调的Tcs 异步结果写好。写好了,即刻异步结果到消息请求方
             if (message is IResponse response) { // 【返回消息】: 借由Tcs 异步，会话框上会同步【返回消息】的内容到Tcs 异步任务的结果；Tcs 任务结果一旦写好，消息请求方就能收到结果
                 session.OnResponse(response); 
                 return; 

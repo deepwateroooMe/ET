@@ -1394,7 +1394,7 @@ public static class SceneFactory {
 - Scene可以开服前配置好在哪个进程（比如realm gate）也可以动态创建（比如副本，分线场景）。动态创建Scene回收Scene非常简单。
 ** Domain: 这个东西，不知道它是什么
 - domain就是指这个entity属于哪个scene，毕竟一个进程上可以容纳多个scene
-- domain还有个很重要的作用，就是设置domain的时候才会执行反序列化system，还有注册eventsystem
+- domain还有个很重要的作用，就是设置domain的时候才会执行反序列化system，还有注册eventsystem. 【这个看不懂，不知道它在说什么】
 - domain简单说是指属于哪个scene, 每个entity都有个domain字段，这样写逻辑方便能拿到自己scene上的数据
 ** AppType ＝＝》 SceneType 重构
 - 多进程多scene，具体scene放到那个进程完全取决于配制，全放到一个进程就是allserver了

@@ -58,19 +58,13 @@ namespace ET {
         #endif
         private static int KcpOutput(IntPtr bytes, int len, IntPtr kcp, IntPtr user) {
             try {
-                if (kcp == IntPtr.Zero) {
+                if (kcp == IntPtr.Zero) 
                     return 0;
-                }
-                
                 KService kService = NetServices.Instance.Get(user.ToInt32()) as KService;
-                
-                if (!kService.KcpPtrChannels.TryGetValue(kcp, out KChannel kChannel)) {
+                if (!kService.KcpPtrChannels.TryGetValue(kcp, out KChannel kChannel)) 
                     return 0;
-                }
-                
                 kChannel.Output(bytes, len);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Log.Error(e);
                 return len;
             }
@@ -353,9 +347,8 @@ namespace ET {
             return channel;
         }
         public override void Create(long id, IPEndPoint address) {
-            if (this.localConnChannels.TryGetValue(id, out KChannel kChannel)) {
+            if (this.localConnChannels.TryGetValue(id, out KChannel kChannel)) 
                 return;
-            }
             try {
                 // 低32bit是localConn
                 uint localConn = (uint)id;
@@ -367,9 +360,8 @@ namespace ET {
             }
         }
         public override void Remove(long id, int error = 0) {
-            if (!this.localConnChannels.TryGetValue(id, out KChannel kChannel)) {
+            if (!this.localConnChannels.TryGetValue(id, out KChannel kChannel)) 
                 return;
-            }
             kChannel.Error = error;
             Log.Info($"kservice remove channel: {id} {kChannel.LocalConn} {kChannel.RemoteConn} {error}");
             this.localConnChannels.Remove(id);
@@ -403,9 +395,8 @@ namespace ET {
         }
         public override void Send(long channelId, long actorId, object message) {
             KChannel channel = this.Get(channelId);
-            if (channel == null) {
+            if (channel == null) 
                 return;
-            }
             MemoryStream memoryStream = this.GetMemoryStream(message);
             channel.Send(actorId, memoryStream);
         }
@@ -455,7 +446,7 @@ namespace ET {
                 this.updateIds.Add(id);
                 return;
             }
-            if (time < this.minTime) {
+            if (time < this.minTime) { // minTime: 【服务端】最迟在 minTime 时间点，务必更新
                 this.minTime = time;
             }
             this.timeId.Add(time, id);

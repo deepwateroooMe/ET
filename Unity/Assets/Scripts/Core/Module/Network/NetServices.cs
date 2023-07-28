@@ -104,13 +104,13 @@ namespace ET {
             NetOperator netOperator = new NetOperator() { Op = NetOp.CreateChannel, ServiceId = serviceId, ChannelId = channelId, Object = address};
             this.netThreadOperators.Enqueue(netOperator);
         }
-// 【主线程三大回调逻辑】：可想而知，应该是【客户端】异步线程向【主线程】订阅注册回调。那么Action<X,Y> 是会回调到异步线程【客户端】中去的
-    // 试着框架里，找一个：客户端注册回调的实例使用的例子。瓣瓣脚趾头：网络客户端、内网消息，凡需要拿到服务端回调的地方，如同Demon-client 模式，都需要向服务端注册 
+// 【主线程三大回调逻辑】：可想而知，应该是【客户端】异步线程向【主线程】订阅注册回调。那么Action<X,Y> 是会回调到异步线程【客户端】中去的。（这里不一定是客户端，更准确应该是异步线程）
+// 框架里找一个：客户端注册回调的实例使用的例子。网络客户端、内网消息，凡需要拿到服务端回调的地方，如同Demon-client 模式，都需要向服务端注册 
         public void RegisterAcceptCallback(int serviceId, Action<long, IPEndPoint> action) { 
             this.acceptCallback.Add(serviceId, action);
         }
-        public void RegisterReadCallback(int serviceId, Action<long, long, object> action) {
-            this.readCallback.Add(serviceId, action);
+        public void RegisterReadCallback(int serviceId, Action<long, long, object> action) { // 这个回调管理的前前后后，再多看几遍
+            this.readCallback.Add(serviceId, action); // 向本【单例管理类】：注册读到消息的回调事件。是本处读到消息，回调给这里注册过的回调
         }
         public void RegisterErrorCallback(int serviceId, Action<long, int> action) {
             this.errorCallback.Add(serviceId, action);
@@ -129,7 +129,7 @@ namespace ET {
                             action.Invoke(op.ChannelId, op.Object as IPEndPoint); // 这里回调，真正调用的是网络线程中，他们各客户端自己的不同的实现方法
                             break;
                         }
-                        case NetOp.OnRead: {
+                    case NetOp.OnRead: { // 同步到【主线程】：反方向找，异步线程的发布读事件
                             if (!this.readCallback.TryGetValue(op.ServiceId, out var action)) {
                                 return;
                             }
@@ -202,7 +202,8 @@ namespace ET {
                     case NetOp.SendMessage: { // 【会话框上发消息】的最底层：可以追到这里。
                             AService service = this.Get(op.ServiceId);
                             if (service != null) 
-                                service.Send(op.ChannelId, op.ActorId, op.Object); // 再接着就是最底层了。。可以不用弄懂。接着去想：【服务端】处理好后，消息返回的过程
+// 再接着就是最底层了。。可以不用弄懂。【服务端】处理好后，消息返回的过程. 那么过程是：远程消息先到达【本进程】服务端，服务端处理本进程返回消息，直接会话框上处理：就是写Tcs 异步结果，异步回请求方。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+                                service.Send(op.ChannelId, op.ActorId, op.Object); 
                             break;
                         }
                         case NetOp.GetChannelConn: {
@@ -254,7 +255,8 @@ namespace ET {
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnAccept, ServiceId = serviceId, ChannelId = channelId, Object = ipEndPoint };
             this.mainThreadOperators.Enqueue(netOperator); // 投到主线程中去：【让主线程知晓】。可是去看主线程Update() 里的执行调用。。
         }
-        public void OnRead(int serviceId, long channelId, long actorId, object message) {
+        // 公有方法 OnRead(): 哪里会调用这里吗？
+        public void OnRead(int serviceId, long channelId, long actorId, object message) { // 【异步线程】：发布？同步？读到消息事件，到【主线程】
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnRead, ServiceId = serviceId, ChannelId = channelId, ActorId = actorId, Object = message };
             this.mainThreadOperators.Enqueue(netOperator);
         }

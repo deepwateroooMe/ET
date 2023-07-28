@@ -4,7 +4,7 @@ using MongoDB.Bson;
 namespace ET.Server {
     // 这次，把它看懂，作好笔记，就不会再忘记了。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
     [Invoke(TimerInvokeType.ActorLocationSenderChecker)]
-    // 【位置消息超时、自动检测机制】：这个机制，会自动移除超时了的索要位置的消息，简单暴力，超时了不回馈通知发送端
+    // 【位置消息超时、自动检测机制】：这个机制，会自动移除超时了的索要位置的消息，简单暴力，超时了不回馈通知发送端。发送端收不到返回
     public class ActorLocationSenderChecker: ATimer<ActorLocationSenderComponent> {
         protected override void Run(ActorLocationSenderComponent self) {
             try {

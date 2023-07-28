@@ -47,16 +47,17 @@ namespace ET.Server {
                 NetServices.Instance.RemoveService(self.ServiceId);
             }
         }
+        // 从这里，再往前找，什么时候回调OnRead(), 私有方法 
         private static void OnRead(this NetInnerComponent self, long channelId, long actorId, object message) {
             Session session = self.GetChild<Session>(channelId);
             if (session == null) {
                 return;
             }
             session.LastRecvTime = TimeHelper.ClientFrameTime();
-            self.HandleMessage(actorId, message);
+            self.HandleMessage(actorId, message); // <<<<<<<<<<<<<<<<<<<< 调用下面的方法
         }
-        // 这里，内网组件，处理内网消息看出，这些都重构成了事件机制，发布根场景内网组件读到消息事件
-        public static void HandleMessage(this NetInnerComponent self, long actorId, object message) {
+        // 事件发布：【内网】（从远程跨进程）读到消息（【返回消息】【普通消息】等，来自本进程的【发送消息】？）
+        public static void HandleMessage(this NetInnerComponent self, long actorId, object message) { // 上面，本类内部方法调用的
             EventSystem.Instance.Publish(Root.Instance.Scene, new NetInnerComponentOnRead() { ActorId = actorId, Message = message });
         }
         private static void OnError(this NetInnerComponent self, long channelId, int error) {

@@ -1,16 +1,16 @@
 ﻿using System;
 namespace ET.Server {
-    public static class ActorHandleHelper {
+    public static class ActorHandleHelper { // 谁，调用这里的方法
         // 去回想IMHandler 接口的两个抽象实现类：如何发返回消息的；这里帮助类，也封装一个发返回消息的方法 
         public static void Reply(int fromProcess, IActorResponse response) {
-            if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程：没明白，这里为什么就断定是同一进程的消息了？直接处理
-                // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
-                ActorMessageSenderComponent.Instance.HandleIActorResponse(response); // 【没读懂：】同一个进程内的消息，不走网络层，直接处理。什么情况下会是发给同一个进程的？ET7 重构后，同一进程下可能会有不同的先前小服：Realm 注册登录服，Gate 服等；如果不同的SceneType.Map-etc 先前场景小服只要在同一进程，就可以不走网络层吗？
+            if (fromProcess == Options.Instance.Process) { // 判定：是【当前进程】的【返回消息】：等号右边看不懂。不走网络层，直接处理
+                ActorMessageSenderComponent.Instance.HandleIActorResponse(response); // 同一个进程内的消息，不走网络层，直接处理
+                // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【自己临时加回来，这里拿不到 actorId 参数】
                 return;
             }
-            // 【不同进程的消息处理：】走网络层，调用会话框来发出消息. 【这会儿，把这个，内网消息，会话框上发返回消息到其它进程，再快看一遍】仍然是有有疑问的地方，改天再看！
+            // 【不同进程的消息处理：】走网络层，调用会话框来发出消息. 【这会儿，把这个，内网消息，会话框上发返回消息到其它进程，再快看一遍】仍然是有有疑问的地方，今天现在再看一遍！
             Session replySession = NetInnerComponent.Instance.Get(fromProcess); // 从内网组件单例中去拿会话框：不同进程消息，一定走网络，通过会话框把返回消息发回去
-            replySession.Send(response);
+            replySession.Send(response); // 【会话框】上发消息：会话框是，通往目标远程进程的会话框
         }
         public static void HandleIActorResponse(IActorResponse response) {
             ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
@@ -19,7 +19,7 @@ namespace ET.Server {
         [EnableAccessEntiyChild]
         public static async ETTask HandleIActorRequest(long actorId, IActorRequest iActorRequest) {
             InstanceIdStruct instanceIdStruct = new(actorId);
-            int fromProcess = instanceIdStruct.Process; // 来自于发送消息方的信息，【发送方进程】
+            int fromProcess = instanceIdStruct.Process; // 来自于发送消息方的信息，【发送方进程】这里不对，接收方！！！
             instanceIdStruct.Process = Options.Instance.Process; // ？？？感觉这里是，重新封装，因为返回消息，也会先再回到这里来再重新封装？要把这整个过程看完
             long realActorId = instanceIdStruct.ToLong();
             Entity entity = Root.Instance.Get(realActorId); // 发送消息发送方的实体，与发送邮箱。（这里需要再检查，感觉Root 根场景出来得奇怪，谁是在管理这些 realActorId 呢？）

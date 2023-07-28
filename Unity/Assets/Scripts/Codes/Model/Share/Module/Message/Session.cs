@@ -82,7 +82,7 @@ namespace ET {
             return await rpcInfo.Tcs; // 大致消息发送与回收看一遍；过程细节中仍有不明白的地方。Tcs 这里的功能是一样的。异步任务的完成，就是返回网络异步调用的结果 
         }
         public static void Send(this Session self, IMessage message) { // 【会话框上发消息】：
-            self.Send(0, message);
+            self.Send(0, message); // 到【远程进程】： actorId ＝ 0 硬编码
         }
         public static void Send(this Session self, long actorId, IMessage message) {
             self.LastSendTime = TimeHelper.ClientNow();

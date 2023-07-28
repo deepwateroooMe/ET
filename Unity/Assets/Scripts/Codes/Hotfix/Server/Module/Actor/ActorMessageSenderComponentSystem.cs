@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
 namespace ET.Server {
-    // 这个死类：到今天，感觉总算是读懂了。。。
+
     [FriendOf(typeof(ActorMessageSenderComponent))]
     public static class ActorMessageSenderComponentSystem {
-        // 它自带个计时器，就是说，当服务器繁忙处理不过来，它就极有可能会自动超时，若是超时了，就返回个超时消息回去发送者告知一下，必要时它可以重发。而不超时，就正常基本流程处理了.那么，它就是一个服务端超负载下的自动减压逻辑
+        // 它自带个计时器，就是说，当服务器繁忙处理不过来，它就极有可能会自动超时，若是超时了，就抛个超时异常回去告知发送者一下，必要时它可以重发。
         [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系: 它标记说，这个激活系类，是 XXX 类型；紧跟着，就定义这个 XXX 类型的激活系类
         public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
             protected override void Run(ActorMessageSenderComponent self) { // 申明方法的接口是：ATimer<T> 抽象实现类，它实现了 AInvokeHandler<TimerCallback>
@@ -19,7 +19,7 @@ namespace ET.Server {
         public class ActorMessageSenderComponentAwakeSystem: AwakeSystem<ActorMessageSenderComponent> {
             protected override void Awake(ActorMessageSenderComponent self) {
                 ActorMessageSenderComponent.Instance = self;
-                // 组件内部重复 1000 次的计时器：
+                // 组件内部每秒钟重复一次的闹钟：跟贱畜牲发疯犯贱一样频繁，把人类恶心坏了。。
                 // 这个重复闹钟，是消息自动计时超时过滤器的上下文连接桥梁
                 // 它注册的回调 TimerInvokeType.ActorMessageSenderChecker, 会每个消息超时的时候，都会回来调用 checker 的 Run()==>Check() 方法
                 // 应该是重复闹钟每秒重复一次，就每秒检查一次，调用一次Check() 方法来检查超时？是过滤器会给服务器减压；但这里的自动检测会把压分在各消息发送组件服务器上
@@ -38,8 +38,8 @@ namespace ET.Server {
 
 // Run() 方法：通过同步异常到ETTask, 通过ETTask 封装的抛异常方式抛出两类异常并返回；和对正常非异常【返回消息】，同步结果到ETTask
 // 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量：异常类型）、【写了个半好】的结果（异常）。结果还没同步到异步任务，待写
-        // 【返回消息】的返回过程：是在下面的Call() 方法【发送消息的过程】的调用逻辑里，直接返回给调用方
-        private static void Run(ActorMessageSender self, IActorResponse response) { 
+        // 【返回消息】的返回过程：是在下面的Call() 方法【发送消息的过程】的调用逻辑里，直接返回异步任务的结果，异步给调用方
+        private static void Run(ActorMessageSender self, IActorResponse response) { // 写，同步【封装的异步任务Tcs】的异常或正常结果，只写结果 
             // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout, 所以会从异步任务模块里抛出异常，不用发送错误码【消息】回去，是抛异常
             if (response.Error == ErrorCore.ERR_ActorTimeout) { // 写：发送消息超时异常。因为同步到异步任务 ETTask 里，所以异步任务模块 ETTask会自动抛出异常
                 self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
@@ -57,24 +57,22 @@ namespace ET.Server {
             // 发送需要【返回消息】的逻辑里，借助临时异步任务变量 tcs, 桥接给ActorMessageSender.
             // 当这里的结果写好，发送需要【返回消息】的调用逻辑【下面的Call() 方法】里，就可以把 tcs 异步结果返回给调用方。后续逻辑是在调用处桥接好了的
         }
-        private static void Check(this ActorMessageSenderComponent self) {
+        private static void Check(this ActorMessageSenderComponent self) { // 【单例组件】的自清理逻辑：遍历所有的发送代理，剔除超时的
             long timeNow = TimeHelper.ServerNow();
-            foreach ((int key, ActorMessageSender value) in self.requestCallback) {
+            foreach ((int key, ActorMessageSender value) in self.requestCallback) { // 有序字典
                 // 因为是顺序发送的，所以，检测到第一个不超时的就退出.
-                // 【顺序发送】，按发送时间（超时）从小到大排列。只要队关最小时间不超时，以后的也不会超时（同组件超时时长一致）；而若消息超时，遍历到不超时的那个消息，退出循环
+                // 【顺序发送】，按发送时间（超时）从小到大排列。只要队头最小时间不超时，以后的也不会超时（同组件超时时长一致）；而若消息超时，遍历到第一个不超时的那个消息，退出循环
                 if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
                     break;
                 self.TimeoutActorMessageSenders.Add(key);
             }
-// 超时触发的激活逻辑：先前写得不对。下面写得也不对
-// 检测到第一个不超时的，理论上说，一旦有一个超时消息就会触发超时检测，但实际使用上，可能存在当检测逻辑被触发走到这里，实际中存在两个或是再多一点儿的超时消息？
             foreach (int rpcId in self.TimeoutActorMessageSenders) { // 一一遍历【超时了的消息】 :
                 ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
                 self.requestCallback.Remove(rpcId);
                 try { // ActorHelper.CreateResponse() 框架系统性的封装：也是通过对消息的发送类型与对应的回复类型的管理，使用帮助类，自动根据类型统一创建回复消息的实例
                     // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout. 也就是，是个异常消息的回复消息实例生成帮助类
                     IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
-                    Run(actorMessageSender, response); // 猜测：方法逻辑是，把回复消息发送给对应的接收消息的 rpcId
+                    Run(actorMessageSender, response); // 写异常结果，到Tcs 异步任务。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
                 } catch (Exception e) {
                     Log.Error(e.ToString());
                 }
@@ -85,7 +83,7 @@ namespace ET.Server {
         public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息：这个方法，发所有类型的消息，最基接口IMessage
             if (actorId == 0) 
                 throw new Exception($"actor id is 0: {message}");
-            ProcessActorId processActorId = new(actorId); // 这里是聪明的实例 id 的好处：可以自带进程信息，可以通过位操作拿到
+            ProcessActorId processActorId = new(actorId); // 这里是聪明的实例 id 的好处：可以自带进程信息，可以通过位操作拿到。拿到的是，接收消息的 actorId 所在的进程号，向那个进程发送消息
             // 这里做了优化，如果发向同一个进程，则直接处理，不需要通过网络层。（前面源者注。这里理解为同一进程，不同SceneType 场景上的消息，不需要走网络层）
             if (processActorId.Process == Options.Instance.Process) { // 【左边】：消息发出方的进程号；【右边】：应该是当前进程号。【右边】没能看懂
                 NetInnerComponent.Instance.HandleMessage(actorId, message); // 原理清楚：本进程消息，直接交由本进程内网组件处理
