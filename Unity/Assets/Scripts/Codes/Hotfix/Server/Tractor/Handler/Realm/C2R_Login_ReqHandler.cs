@@ -2,6 +2,8 @@
 using ET;
 using System.Collections.Generic;
 namespace ET.Server {
+    // 这个文件，自己后来添加的，在热更域服务端游戏文件夹里，这个文件需要删除，逻辑不完整
+    
     [MessageHandler(SceneType.Realm)] // 这个类是，后来自己又添加上去的，可能与原 ET7 框架的示例有重合，可以删去
     public class C2R_Login_ReqHandler : AMRpcHandler<C2R_Login_Req, R2C_Login_Ack> {
         protected override async ETTask Run(Session session, C2R_Login_Req message, R2C_Login_Ack response) {
@@ -17,7 +19,7 @@ namespace ET.Server {
             Log.Info($"账号登录成功{MongoHelper.ToJson(account)}");
             // 将已在线玩家踢下线
             await RealmHelper.KickOutPlayer(account.Id);
-// 这里，需要去检查一下：后面的逻辑，是否，被自己当初改编译错误的时候，去掉了
+// 这里，需要去检查一下：后面的逻辑，是否，被自己当初改编译错误的时候，去掉了：后面的逻辑是需要的，但是自己还没能改出来，就先看另一个文件 
             // // 随机分配网关服务器: ET7 下这个模块重构了，应该不再需要 RealmGateAddressComponent 这个组件了
             // StartConfig gateConfig = Root.Instance.Scene.GetComponent<RealmGateAddressComponent>().GetAddress();
             // Session gateSession = Root.Instance.Scene.GetComponent<NetInnerComponent>().Get(gateConfig.GetComponent<InnerConfig>().IPEndPoint);

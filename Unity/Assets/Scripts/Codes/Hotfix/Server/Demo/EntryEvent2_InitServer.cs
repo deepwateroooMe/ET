@@ -16,7 +16,6 @@ namespace ET.Server {
             Root.Instance.Scene.AddComponent<RobotCaseComponent>();
             Root.Instance.Scene.AddComponent<NavmeshComponent>();
             // 【添加组件】：这里，还可以再添加一些游戏必要【根组件】，如果可以在服务器启动的时候添加的话。会影响服务器启动性能
-            
             StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process);
             switch (Options.Instance.AppType) {
                 case AppType.Server: {

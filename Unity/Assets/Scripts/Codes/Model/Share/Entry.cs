@@ -8,7 +8,8 @@
         } 
     }
     public static class Entry {
-        public static void Init() {
+// 【空方法占位符】：在Program.cs 文件中说，如果不调用Model 域里哪怕是一个空方法，只要Model 域不被调用、没被引用，程序集就会被裁剪掉。。。
+        public static void Init() { 
         }
         public static void Start() {
             StartAsync().Coroutine();

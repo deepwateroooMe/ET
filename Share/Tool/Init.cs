@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using CommandLine;
-namespace ET.Server {
+namespace ET.Server { // 弄出了三个 Init 同名文件，【服务端】【客户端】和【双端】。双端的时候，是服务于【双端】模式启动？
     // 【服务器】端的起始程序
     internal static class Init {
 
@@ -35,7 +35,7 @@ namespace ET.Server {
                 
                 Log.Info($"server start........................ {Root.Instance.Scene.Id}");
                 
-                switch (Options.Instance.AppType) {
+                switch (Options.Instance.AppType) { // 根据当初命令行的参数来的
                 case AppType.ExcelExporter: {
                     Options.Instance.Console = 1;
                     ExcelExporter.Export();

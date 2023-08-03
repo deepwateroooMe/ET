@@ -1,11 +1,13 @@
 ﻿using System;
 namespace ET.Server {
+    // 先去理解：LocationProxyComponent 组件，因为重构后，可能代理已经连通了这些逻辑
+    
     // 这些类：都成为，处理特定消息类型的【特定服务端】的处理逻辑
     [ActorMessageHandler(SceneType.Location)]
     public class ObjectAddRequestHandler: AMActorRpcHandler<Scene, ObjectAddRequest, ObjectAddResponse> {
         protected override async ETTask Run(Scene scene, ObjectAddRequest request, ObjectAddResponse response) {
             // 是【服务端】的根场景——位置服务器场景中，添加过这个位置组件. 需要拿到位置服务器的场景
-            // 下面的热更域里的实现类：可能没有定义 LocationComponentSystem, 先去确认一下到底有没有，必要时再补上
+            // 下面的热更域里的实现类：【模块没整合完整】 没有定义 LocationComponentSystem 类的文件，没有这个文件
             await LocationComponentSystem.Add(Root.Instance.Scene.GetComponent<LocationComponent>(), request.Key, request.InstanceId);
         }
     }

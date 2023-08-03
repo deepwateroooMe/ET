@@ -1,7 +1,6 @@
 using CommandLine;
 using System;
 using System.Collections.Generic;
-
 namespace ET {
     public enum AppType {
         Server,
@@ -11,16 +10,14 @@ namespace ET {
         Proto2CS,
         BenchmarkClient,
         BenchmarkServer,
-
         // 下面是我重新添加的：可是添加这些有什么用呢？
         Gate, 
         Realm, 
         Map, 
         Match
     }
-    
+
     public class Options: Singleton<Options> { // 这个【单例类】，确实还没能看懂。单例类，不是组件添加形式。把【OptionAttribute】标签看懂
-        // 看懂了标签：仍然不明白，这个类是在干什么？
         [Option("AppType", Required = false, Default = AppType.Server, HelpText = "AppType enum")]
         public AppType AppType { get; set; }
         [Option("StartConfig", Required = false, Default = "StartConfig/Localhost")]
@@ -32,7 +29,6 @@ namespace ET {
         public int Develop { get; set; }
         [Option("LogLevel", Required = false, Default = 2)]
         public int LogLevel { get; set; }
-        
         [Option("Console", Required = false, Default = 0)]
         public int Console { get; set; }
         // 进程启动是否创建该进程的scenes

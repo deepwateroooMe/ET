@@ -8,7 +8,7 @@ namespace ET {
         public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
         public MultiMap<int, StartSceneConfig> ProcessScenes = new MultiMap<int, StartSceneConfig>();
         public Dictionary<long, Dictionary<string, StartSceneConfig>> ClientScenesByName = new Dictionary<long, Dictionary<string, StartSceneConfig>>();
-        public StartSceneConfig LocationConfig; // 这叫什么 LocationConfig 呢？感觉完全不对应
+        public StartSceneConfig LocationConfig; // 起始场景的配置，就是场景初始化配置时，拿一个【位置服】的索引配置，这个索引配置，相当于透明全世界的中央邮政，方便任何人任何进程、任何时间，向它注册、更新和查询位置信息
         public List<StartSceneConfig> Realms = new List<StartSceneConfig>();
         public List<StartSceneConfig> Matchs = new List<StartSceneConfig>(); // <<<<<<<<<<<<<<<<<<<< 添加管理
         public List<StartSceneConfig> Routers = new List<StartSceneConfig>();
@@ -40,7 +40,7 @@ namespace ET {
                         case SceneType.Gate: // 网关：小区区号，与配置 
                             this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
                             break;
-                        case SceneType.Location:
+                case SceneType.Location: // <<<<<<<<<<<<<<<<<<<< 
                             this.LocationConfig = startSceneConfig;
                             break;
                         case SceneType.Robot:

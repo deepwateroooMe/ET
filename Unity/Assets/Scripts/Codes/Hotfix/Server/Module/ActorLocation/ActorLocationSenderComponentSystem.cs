@@ -78,7 +78,8 @@ namespace ET.Server {
             int rpcId = ActorMessageSenderComponent.Instance.GetRpcId(); // ActorMessageSenderComponent 组件：局部变量标记号，自家统筹管理的标记号
             iActorRequest.RpcId = rpcId;
             long actorLocationSenderInstanceId = actorLocationSender.InstanceId; 
-            using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) { //entityId: 【查询】与【被查询】，这里感觉锁的是查询发问者，不是锁被查位置的！！
+// entityId: 【查询】与【被查询】，这里锁的是【查询它人位置的查询发问者】，不是锁被查位置的！！传进来的 unitId 是【发送位置请求消息】的【客户端】的标记号
+            using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.ActorLocationSender, entityId)) { 
 // 检查：【被查询】，的小伙伴，专用【位置消息发送代理】进程ActorId是否超时，是否为重建的？
                 if (actorLocationSender.InstanceId != actorLocationSenderInstanceId) 
                     throw new RpcException(ErrorCore.ERR_ActorTimeout, $"{iActorRequest}");

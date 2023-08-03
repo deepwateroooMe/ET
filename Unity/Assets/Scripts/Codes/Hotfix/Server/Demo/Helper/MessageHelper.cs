@@ -35,7 +35,7 @@ namespace ET.Server {
         public static async ETTask<IActorResponse> CallActor(long actorId, IActorRequest message) {
             return await ActorMessageSenderComponent.Instance.Call(actorId, message);
         }
-        // 发送RPC协议给ActorLocation
+        // 【发送RPC协议给ActorLocation: 】也可以这里倒着找调用方， id 传进来的是什么？
         public static async ETTask<IActorResponse> CallLocationActor(long id, IActorLocationRequest message) {
             return await ActorLocationSenderComponent.Instance.Call(id, message);
         }

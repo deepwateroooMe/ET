@@ -16,7 +16,7 @@ namespace ET.Server {
                     Log.Error($"Actor类型转换错误: {entity.GetType().Name} to {typeof (E).Name} --{typeof (Request).Name}");
                     return;
                 }
-                int rpcId = request.RpcId;
+                int rpcId = request.RpcId; // 【这里记录一遍：】
                 Response response = Activator.CreateInstance<Response>();
                 try {
                     //await this.Run(ee, request, response);
@@ -27,7 +27,7 @@ namespace ET.Server {
                     response.Error = ErrorCore.ERR_RpcFail;
                     response.Message = exception.ToString();
                 }
-                response.RpcId = rpcId; // RpcId
+                response.RpcId = rpcId; // RpcId: 完了，返回消息回来了，再重写一遍：感觉怀疑过程中，是否这个成员变量被重新赋值过，要看进去检查一遍！！！
                 ActorHandleHelper.Reply(fromProcess, response); // 自动回复，【位置服】返回的【位置回复消息】
             } catch (Exception e) {
                 throw new Exception($"解释消息失败: {actorMessage.GetType().FullName}", e);

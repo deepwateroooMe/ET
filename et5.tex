@@ -1,4 +1,4 @@
-% Created 2023-07-27 Thu 16:11
+% Created 2023-08-03 Thu 12:41
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -34,819 +34,632 @@
 \maketitle
 \tableofcontents
 
-
-\section{Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制。模块没理解透、总结不全，还需要借助总结，把这两章节理解透彻。}
+\section{StartConfigComponent: 找【各种服】的起始初始化地址}
 \label{sec-1}
 \begin{itemize}
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】先把这个文件再变小一点儿，方便更新与操作。改天再平等几个文件。或直接搬第五个文件里
-\item 感觉核心逻辑，跨进程发消息，收返回消息，基本都看懂了。更底层的，可是相对高层？的服务之间，【NetThreadComponent组件】等，仍是不懂。
-\item 这个模块：感觉就是 \textbf{【模块，自顶向下，异步网络调用的传递方向等，弄不懂；或底层信道上发消息两端的底层回调，不懂！】}
-\item 现在还没弄清楚：Server, Client, Inner, 好像没有Outer 了，几个相对模块算是怎么回事？
-\item 不管是【网络服务端NetServerComponent】，还是【网络客户端 NetClientComponent】组件，它们都管理无数个与【这个端】建立连接的【会话框】。
+\item 现在，先特殊重点理解：一台【服务端】物理机起来，N 核 N 进程里【主线程 Process 场景】的启动过程。
+\item 【服务端、各服务器的配置、启动初始化】：是这个模块想要总结的内容。这个模块，因为框架重构里所接入的【路由器系统】的整合（感觉起来，就是通过网络，一台台服务端的服务器起来，一台台起来的服务器都向某个路由服，如同各客户端实时向位置服更新客户端的位置信息般，各小服专职服都向路由服上班打卡？要把这些看明白），让活宝妹理解起这个模块来显得相对困难，大概明天上午一上午的时间，都会花在这个模块上。
 \end{itemize}
-\subsection{NetThreadComponent:}
+\subsection{OptionAttribute: 系统里的标签属性。}
 \label{sec-1-1}
+\begin{itemize}
+\item 那么就是，命令行相关的。也就是ET 框架里所封装的，可以命令行，发布命令，启动【服务端】时的配置相关。【快看懂了吧。爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-namespace ET {
-// 【NetThreadComponent 组件】：网络交互的底层原理不懂。没有生成系，只有一个【NetInnerComponentSystem】。外网组件找不见
-// 这个模块：感觉就是模块，自顶向下，异步网络调用的传递方向等，弄不懂；或底层信道上发消息两端的底层回调，不懂！
-// 是每个场景【SceneType?】：里都必须有的异步线程组件. 场景 Scene, 与场景类型SceneType
-    [ComponentOf(typeof(Scene))] 
-    public class NetThreadComponent: Entity, IAwake, ILateUpdate, IDestroy {
-        [StaticField]
-        public static NetThreadComponent Instance; // 单例
-        public Thread thread;
-        public bool isStop;
+namespace CommandLine {
+    // 【CommandLine】：那么就是，命令行相关的。也就是ET 框架里所封装的，可以命令行，发布命令，启动【服务端】时的配置相关
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+    public sealed class OptionAttribute : BaseAttribute {
+        public OptionAttribute();
+        public OptionAttribute(string longName);
+        public OptionAttribute(char shortName);
+        public OptionAttribute(char shortName, string longName);
+        public string LongName { get; }
+        public string ShortName { get; }
+        public string SetName { get; set; }
+        public char Separator { get; set; }
+        public string Group { get; set; }
     }
 }
 \end{minted}
-\subsection{RpcInfo: 【消息的包装体】。内部包装一个Tcs 异步任务，桥接异步结果给调用方。合并入其它小节}
+\end{itemize}
+\subsection{Options 单例类：}
 \label{sec-1-2}
 \begin{itemize}
-\item 结合NetServerComponentOnReadEvent 来读。
-\item 在NetServerComponentOnReadEvent 中，IResponse 【返回消息】是会话框上直接返回同步异步任务的异步结果，将【返回消息】异步给调用方。
+\item 不知道这个单例类，是什么时候生成，什么情况下值会发生变化？跟命令行相关的话，当命令行启动【服务端】时，会启动这个【单例类】吗？网上搜下。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public class Options: Singleton<Options> { // 这个【单例类】，确实还没能看懂。单例类，不是组件添加形式。把【OptionAttribute】标签看懂
+    [Option("AppType", Required = false, Default = AppType.Server, HelpText = "AppType enum")]
+    public AppType AppType { get; set; }
+    [Option("StartConfig", Required = false, Default = "StartConfig/Localhost")]
+    public string StartConfig { get; set; }
+    [Option("Process", Required = false, Default = 1)]
+    public int Process { get; set; }
+
+    [Option("Develop", Required = false, Default = 0, HelpText = "develop mode, 0正式 1开发 2压测")]
+    public int Develop { get; set; }
+    [Option("LogLevel", Required = false, Default = 2)]
+    public int LogLevel { get; set; }
+
+    [Option("Console", Required = false, Default = 0)]
+    public int Console { get; set; }
+    // 进程启动是否创建该进程的scenes
+    [Option("CreateScenes", Required = false, Default = 1)]
+    public int CreateScenes { get; set; }
+}
+\end{minted}
+\end{itemize}
+
+\subsection{模块里所用到的几个。NET 里的接口, 以及自定义的框架底层辅助体系类等}
+\label{sec-1-3}
+\subsubsection{ISupportInitialize: 【初始化】的支持接口，就是提供了【初始化之前】【初始化之后】的回调，两个API}
+\label{sec-1-3-1}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+namespace System.ComponentModel {
+    public interface ISupportInitialize {
+        void BeginInit();
+        void EndInit();
+    }
+}
+\end{minted}
+\subsubsection{IInvoke: 抽象类会在事件系统 EventSystem.cs 中被用到}
+\label{sec-1-3-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public interface IInvoke {
+    Type Type { get; }
+}
+public abstract class AInvokeHandler<A>: IInvoke where A: struct {
+    public Type Type {
+        get {
+            return typeof (A);
+        }
+    }
+    public abstract void Handle(A a);
+}
+public abstract class AInvokeHandler<A, T>: IInvoke where A: struct {
+    public Type Type {
+        get {
+            return typeof (A);
+        }
+    }
+    public abstract T Handle(A a);
+}
+\end{minted}
+\subsubsection{ISingleton 单例类接口：框架最底层，有狠多必要的单例类包装，统一实现这个单例接口，就是抽象提纯到框架最底层封装}
+\label{sec-1-3-3}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public interface ISingleton: IDisposable {
+    void Register();
+    void Destroy();
+    bool IsDisposed();
+}
+public abstract class Singleton<T>: ISingleton where T: Singleton<T>, new() {
+    private bool isDisposed;
+    [StaticField]
+    private static T instance;
+    public static T Instance {
+        get {
+            return instance;
+        }
+    }
+    void ISingleton.Register() {
+        if (instance != null) 
+            throw new Exception($"singleton register twice! {typeof (T).Name}");
+        instance = (T)this;
+    }
+    void ISingleton.Destroy() {
+        if (this.isDisposed) 
+            return;
+        this.isDisposed = true;
+        instance.Dispose();
+        instance = null;
+    }
+    bool ISingleton.IsDisposed() {
+        return this.isDisposed;
+    }
+    public virtual void Dispose() {
+    }
+}
+\end{minted}
+\subsubsection{IMerge: 在Proto 相关的地方，某些类如StartProcessConfig.cs 会实现这个接口，进程中以消息的形式传递这部分原理也要弄懂}
+\label{sec-1-3-4}
+\begin{itemize}
+\item 这个接口，框架里定义了，主要用来帮助实现【动态路由】的。动态路由：网络中的路由器彼此之间互相通信，传递各自的路由信息，利用收到的路由信息来『自动合并』更新和维护自己路由表的过程。【动态路由特点】：自动化程度高，减少管理任务，错误率较低，但是占用网络资源。
+\item 它定义了一个合并接口。因为这模块类中的诸多 Protobuf 相关的标签，活宝妹想，它们应该是可以以消息的形式进程间传递的。
+\item 那么如果服务端的配置可以以消息的形式进程间传递，它合并时，谁与谁，如何合并的？感觉狠复杂的样子，要解一解。。。它是用在【动态路由系统】的模块。当一个路由器自动每 10 分钟周期性去扫描周围是否存在路由器邻居的时候，会自动合并。用行话说是，动态路由是网络中路由器之间互相通信，传递路由信息，利用收到的路由信息更新路由表的过程。这里【更新路由表】，说的就是当扫到了周围存在的路由器邻居，就更新自己当前路由器的路由表Info 成员变量。
+\item 它能实时的适应网络结构的变化。如果路由更新信息表明网络发生了变化，路由选择软件就会重新计算路由，并发出新的路由更新信息。这些信息通过各个网络，引起各路由器重新启动其路由算法，并更新各自的路由表以动态的反映网络拓扑的变化。
+\item 因为关于进程间消息自动合并？的这一块儿不懂，可以去找一下，什么情况下会调用这个合并？
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-public readonly struct RpcInfo { // 【消息】包装体：可以是进程内的。可是它包装的是基类接口，与扩展接口如何区分？
-    public readonly IRequest Request;
-    public readonly ETTask<IResponse> Tcs;// 这个【异步任务Tcs】是包装的精华桥梁
-    public RpcInfo(IRequest request) {
-        this.Request = request;
-        this.Tcs = ETTask<IResponse>.Create(true);
-    }
+public interface IMerge {
+    void Merge(object o);
 }
 \end{minted}
-\subsection{NetServerComponent: NetServerComponentOnRead 结构体。}
-\label{sec-1-3}
-\begin{itemize}
-\item 【必须去想】：【服务端】到底是什么？不是每个进程上的什么东西，而是每个【场景Scene】所启动的该场景上的服务类型。不同场景之间的服务类型，可以不同？
-\item 不同结构体的封装，是根据需要来的。框架里，有封装过Session 会话框的， rpcId 的，Tcs 异步任务的。看需求。 
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-public struct NetServerComponentOnRead {
-    public Session Session;
-    public object Message;
-}
-[ComponentOf(typeof(Scene))]
-public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
-    public int ServiceId;
-}
-\end{minted}
-\end{itemize}
-\subsection{NetServerComponentSystem: 场景上的【服务端】组件，可发布【服务端读到消息事件】}
+\subsection{ProtoObject: 继承自上面的系统接口，定义必要的回调抽象API}
 \label{sec-1-4}
-\begin{itemize}
-\item 【生成系】重点：它可以 \textbf{发布NetServerComponentOnRead 事件。}
-\item 理解为：
-\begin{itemize}
-\item 一个核一个进程上，可能有的【1-N】个场景中，某个场景充当【服务端】发布了该事件。当前核上的这个场景发布事件的触发原因是：主线程回调到了这个场景（网络异步线程）读到消息事件？（这里的主线程，与异步线程，想起来仍奇怪。可是同一核同一进程里，就只能多线程，每个线程当作一个场景了）
-\item 【事件的订阅者】：进程上的 NetServerComponentOnReadEvent
-\item 进程被【1-N】个不同场景共享，是更底层。这里发出事件，【消息的接收者】，可能在【同一进程其它场景】，也可能在【其它进程】其它场景
-\item 这里，【事件发布】到【事件订阅者】的过程，更像是，由某个场景，到【1-N】个可能场景所共享的，更底层的对应核，的过程
-\item 【1-N】个可能场景所共享的，更底层的【这一个对应核】：订阅了事件。处理逻辑：是本进程的场景，接收场景去处理；不同进程？ rpc 。。。
-\end{itemize}
-\item 现在，我先把它想成是：一个进程可以有的【1-N】个场景中，每个场景，所启动的服务类型。不同场景，所启动的服务类型，应该可以不同？
-\item 当这个场景充当了【服务端】，其它所有与这个【当前场景服务端】建立的会话框的另一端，就都自动当作【客户端】。（感觉这里理解不太透，暂时仍这么想）
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[FriendOf(typeof(NetServerComponent))] // 【服务端组件】：负责【服务端】的网络交互部分
-public static class NetServerComponentSystem {
-    [ObjectSystem]
-    public class AwakeSystem: AwakeSystem<NetServerComponent, IPEndPoint> {
-        protected override void Awake(NetServerComponent self, IPEndPoint address) {
-            // 当一个【场景启动】起来，向NetServices 单例总管，注册三大回调。当向总管注册三回调的时候，它，不是相当于是总管的【客户端】？
-            // 更像是，【单线程多进程架构】里，异步网络线程，向主线程，注册三大回调
-            self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Outer));
-            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept); // 三个回调 
-            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
-            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
-        }
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public abstract class ProtoObject: Object, ISupportInitialize {
+    public object Clone() { // 【进程间可传递的消息】：为什么这里的复制过程，是先序列化，再反序列化？
+        // 不明白：消息明明就是反序列化好的，为什么再来一遍：序列化、反序列化（虽然这个再一遍的过程是 ProtoBuf 里的序列化与反序列化方法）？
+        // 翻到Protobuf 里的反序列化方法，去查看：ET 框架的封装里，
+            // 在底层内存流上的反序列化方法时（ProtobufHelper.Deserialize()），会调用 ISupportInitialize 的EndInit()回调，序列化后可做的事的回调
+            // 序列化前的回调，是哪里调用的？BeginInit() 回调在框架里，只有在MongoHelper.cs 的Json 序列化前，会调用；ProtoBuf 序列化前好像跳过了这个回调
+            // 就是提供了两个接口：调用与不调用，还是分不同的序列化工具
+        byte[] bytes = SerializeHelper.Serialize(this);
+        return SerializeHelper.Deserialize(this.GetType(), bytes, 0, bytes.Length);
     }
-    [ObjectSystem]
-    public class NetKcpComponentDestroySystem: DestroySystem<NetServerComponent> {
-        protected override void Destroy(NetServerComponent self) {
-            NetServices.Instance.RemoveService(self.ServiceId);
-        }
+    public virtual void BeginInit() {
     }
-    private static void OnError(this NetServerComponent self, long channelId, int error) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session == null) return;
-        session.Error = error;
-        session.Dispose();
+    public virtual void EndInit() {
     }
-    // 这个channelId是由CreateAcceptChannelId生成的
-    private static void OnAccept(this NetServerComponent self, long channelId, IPEndPoint ipEndPoint) {
-        // 【创建会话框】：当此【服务端】组件，接受了一个客户端，就建一个与接收的【客户端】的会话框
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-        session.RemoteAddress = ipEndPoint; // 【当前会话框】，它的远程是，一个【客户端】的IP 地址
-        if (self.DomainScene().SceneType != SceneType.BenchmarkServer) { // 区分：同一功能，【服务端】的处理逻辑，与【客户端】的处理逻辑 
-            // 挂上这个组件，5秒就会删除session，所以客户端验证完成要删除这个组件。该组件的作用就是防止外挂一直连接不发消息也不进行权限验证
-            // 【客户端】逻辑，客户端验证的地方：C2G_LoginGateHandler: 这个例子，当前自称服务端组件，才更像【客户端】呢
-            session.AddComponent<SessionAcceptTimeoutComponent>(); // 上面原标注：【客户端验证】的逻辑
-            // 客户端连接，2秒检查一次recv消息，10秒没有消息则断开（与那个，此服务端接收不到心跳包的客户端，的连接）。【活宝妹就是一定要嫁给亲爱的表哥！！！】
-            //【自己的理解】：【客户端】有心跳包告知服务端，各客户端的连接状况；【服务端】：同样有服务端此组件来检测说，哪个客户端掉线了？
-            session.AddComponent<SessionIdleCheckerComponent>(); // 检查【会话框】是否有效：【30 秒内】至少发送过消息，至少接收过消息，否则视为闲置回收
-        }
-    }
-    // 从这里继续往前倒，去找哪里发布事件， message 是什么类型，什么内容？【这里就是不懂】
-    private static void OnRead(this NetServerComponent self, long channelId, long actorId, object message) {
-        Session session = self.GetChild<Session>(channelId); // 从当前【服务端】所管理的所有会话框（连接的所有客户端）里，找到对应的 session(客户端 )
-        if (session == null) return;
-        session.LastRecvTime = TimeHelper.ClientNow();
-        OpcodeHelper.LogMsg(self.DomainZone(), message);
-        // 【发布事件】：服务端组件读到了消息。
-        EventSystem.Instance.Publish(Root.Instance.Scene, new NetServerComponentOnRead() {Session = session, Message = message});
-        // 【事件的订阅者】：进程上的 NetServerComponentOnReadEvent
-        // 进程被【1-N】个不同场景共享，是更底层。这里发出事件，【消息的接收者】，可能在【同一进程其它场景】，也可能在【其它进程】其它场景
-        // 这里，【事件发布】到【事件订阅者】的过程，更像是，由某个场景，到【1-N】个可能场景所共享的，更底层的对应核，的过程
-        // 【1-N】个可能场景所共享的，更底层的【这一个对应核】：订阅了事件。处理逻辑：是本进程的场景，接收场景去处理；不同进程？ rpc 。。。
+    public virtual void AfterEndInit() { // 这个回调，与上一个 EndInit() 区别是？
     }
 }
 \end{minted}
-\end{itemize}
-\subsection{NetServerComponentOnReadEvent: NetServerComponent组件，会发布事件，触发此回调类}
+\subsection{ConfigLoader.cs: 【服务端】是理解接下来部分的基础。【客户端】有不同逻辑。所以要把两边的都看一下}
 \label{sec-1-5}
 \begin{itemize}
-\item 框架里，是NetServerComponent 会发布此事件，触发这个回调类。去找，有几个订阅者？异步网络消息的发送，与接收，大多都还是单流程，没有分支的，所以全局只有这一个订阅者。
-\item 上面的小节，生成系里有发布事件的逻辑。去找：框架里什么地方添加了这些【NetServerComponent服务端】的组件？Realm 注册登录服，和网关服。
-\item 【服务端会话框】上的：收到IResponse 回复消息的情况，调用会话框的OnResponse() 方法处理。【感觉理解起来困难。觉得服务端应该不会、或是极少出现这种情况吧。】感觉更可能是客户端才出现这种情况呀。（服务端的内网回复消息也是有可能的，只是现在想不到例子，或说当服务端实际行驶客户端收返回消息功能的这个功能切分，感觉理解起来困难）
-\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
-\item 当是回消息IResponse【session.OnResponse(response)】：服务端的会话框上，把回复消息的异步任务的结果写好。这里没弄明白：【写好结果的异步任务，还有任何需要发送的步骤吗？找不到】
-\item 其它任何非返回消息：分类处理。今天上午剩余的时候，把剩下几个分类处理的逻辑，看到底，细看一遍。
+\item 这个类名奇怪的地方是：它明明是定义了两个Invoke 标签事件的触发回调逻辑，为什么它的名字叫的是ConfigLoader? 感觉是扫描程序域里所有的【Config】标签一样。。。
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 这个文件的GetAllConfigBytes 类中的回调：会去事件系统拿程序域里所有标记【Config】标签的类型，并根据这些标签类型是否为四大单例类之一来确认读取配置的位置。就是四个单例管理类的配置位置会相对特殊一点儿。
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件
-public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
-    protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) { // 【返回消息的发送】：仍是封装在框架底层
-        Session session = args.Session;
-        object message = args.Message;
-// 【回复消息】：前面的重点看错了，重点是【回复】消息，能够到达当前服务端组件，就说明是属于当前进程收的消息（想的话，觉得是其它服务端转过来的消息），
-        // 所以不区分IRpcResponse IRpcLocationResponse 类型, 都向下交由会话框处理
-        // 【服务端上，会话框】Session: 发，还是不发，消息到Channel 的另一头  // <<<<<<<<<<<<<<<<<<<< 【这部分没读懂】
-        if (message is IResponse response) { // 【回复消息】: 就去服务端，什么情况下会出现这种情况？
-            // 【没读懂】：服务端组件，处理回复消息，要不要【发】返回消息的步骤？找不到哪里有，发送，的这个步骤。
-            // 而会话框，若真是从其它服转过来的消息，现服务端不已经是会话框的另一端了吗（内网消息也走会话框吗？还得接着去读内网Inner.）？感觉这里哪里没懂。。。
-            session.OnResponse(response); // 【会话框】：直接处理返回消息。处理的逻辑也仅限于将RpcInfo.Tcs 异步任务的返回结果写好。并不负责将返回消息发送回去。
-            return; // 这里返回：我仍然找不到，返回消息是，如何【发送】回去的？发送的过程步骤调用，是哪里处理的？
-        } // 对于【服务端】来说，【会话框】上，只要把【异步任务TCS】的结果写好填好，异步网络Session 底层，会自动处理Channel 客户端那一头的自动读取，框架是不用管的？
-        // 根据消息接口判断是不是Actor消息，不同的接口做不同的处理,比如需要转发给Chat Scene，可以做一个IChatMessage接口
-        switch (message) { // 【发送消息】＋【不要求回复的消息】
-            case IActorLocationRequest actorLocationRequest: { // gate session收到actor rpc消息，先向actor 发送rpc请求，再将请求结果返回客户端 
-                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
-                int rpcId = actorLocationRequest.RpcId; // 这里要保存客户端的rpcId
-                long instanceId = session.InstanceId;
-                IResponse iResponse = await ActorLocationSenderComponent.Instance.Call(unitId, actorLocationRequest);
-                iResponse.RpcId = rpcId;
-                // session可能已经断开了，所以这里需要判断
-                if (session.InstanceId == instanceId) 
-                    session.Send(iResponse);
-                break;
+[Invoke] // 激活系: 这个激活系是同属ET 强大的事件系统的一个标签和回调逻辑，处理两种类型： GetAllConfigBytes 和 GetOneConfigBytes
+public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
+    public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {
+        Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>();
+        List<string> startConfigs = new List<string>() {
+            "StartMachineConfigCategory",  // 涉及底层配置的几个单例类，为什么这四个单例类类型重要： Machine, Process 进程、Scene 场景， Zone 区
+            "StartProcessConfigCategory", 
+            "StartSceneConfigCategory", 
+            "StartZoneConfigCategory",
+        };
+// 类型：这里，扫的是所有【Invoke】标签（好像不对），还是说如【Invoke(TimerInvokeType.ActorMessegaeSenderChecker)】之类的Invoke 标签的类型属性？去看一下方法定义
+        HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute)); // 【Config】标签：返回程序域里所有的【Config】标签类型
+        foreach (Type configType in configTypes) {
+            string configFilePath;
+            if (startConfigs.Contains(configType.Name)) { // 【单例管理类型】：有特异性的配置路径
+                configFilePath = $"../Config/Excel/s/{Options.Instance.StartConfig}/{configType.Name}.bytes";    
+            } else { // 其它：人海里的路人甲，读下配置就扔掉
+                configFilePath = $"../Config/Excel/s/{configType.Name}.bytes";
             }
-            case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
-                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
-                ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage);
-                break;
-            }
-            case IActorRequest actorRequest:  // 分发IActorRequest消息，目前没有用到，需要的自己添加 
-                break;
-            case IActorMessage actorMessage:  // 分发IActorMessage消息，目前没有用到，需要的自己添加 
-                break;
-            default: {
-                // 非Actor消息： MessageDispatcherComponent 全局单例吗？是的
-                MessageDispatcherComponent.Instance.Handle(session, message);
-                break;
-            }
+            output[configType] = File.ReadAllBytes(configFilePath);
         }
+        return output;
+    }
+}
+[Invoke]
+public class GetOneConfigBytes: AInvokeHandler<ConfigComponent.GetOneConfigBytes, byte[]> {
+    public override byte[] Handle(ConfigComponent.GetOneConfigBytes args) {
+        // 【Invoke 回调逻辑】：从框架特定位置，读取特定属性条款的配置，返回字节数组
+        byte[] configBytes = File.ReadAllBytes($"../Config/{args.ConfigName}.bytes");
+        return configBytes;
     }
 }
 \end{minted}
-\subsection{NetServerComponentOnReadEvent: NetServerComponentSystem，会发布事件，触发此回调类}
+\subsection{ConfigLoader:【客户端】}
 \label{sec-1-6}
 \begin{itemize}
-\item 框架里，是NetServerComponent 会发布此事件，触发这个回调类。去找，有几个订阅者？异步网络消息的发送，与接收，大多都还是单流程，没有分支的，所以全局只有这一个订阅者。
-\item 上面的小节，生成系里有发布事件的逻辑。去找：框架里什么地方添加了这些【NetServerComponent服务端】的组件？Realm 注册登录服，和网关服。
-\item 【服务端会话框】上的：收到IResponse 回复消息的情况，调用会话框的OnResponse() 方法处理。【感觉理解起来困难。觉得服务端应该不会、或是极少出现这种情况吧。】感觉更可能是客户端才出现这种情况呀。（服务端的内网回复消息也是有可能的，只是现在想不到例子，或说当服务端实际行驶客户端收返回消息功能的这个功能切分，感觉理解起来困难）
-\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
-\item 当是回消息IResponse【session.OnResponse(response)】：服务端的会话框上，把回复消息的异步任务的结果写好。这里没弄明白：【写好结果的异步任务，还有任何需要发送的步骤吗？找不到】
-\item 其它任何非返回消息：分类处理。今天上午剩余的时候，把剩下几个分类处理的逻辑，看到底，细看一遍。
+\item 【客户端】与【服务端】不同的是，客户端需要区分当前的运行，是在编辑器模式下，还是真正运行在客户端设备（PC 平台）。编辑器模式下，如服务端，去特定的位置去读配置文件；而真正的客户端，就需要从热更新资源服务器（斗地主参考项目中，仍是有个其它语言的最小最精致热更新资源包专职服务器的，ET7 里好像没有了，而是放在一个特定的文件夹下？）服务端来下载配置资源包，读取资源包里的配置内容，并字典管理，
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[Event(SceneType.Process)]  // 【进程】层面：来处理这个服务端组件事件
-public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
-    protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) { // 【返回消息的发送】：仍是封装在框架底层
-        Session session = args.Session;
-        object message = args.Message;
-// 【回复消息】：前面的重点看错了，重点是【回复】消息，能够到达当前服务端组件，就说明是属于当前进程收的消息（想的话，觉得是其它服务端转过来的消息），
-        // 所以不区分IRpcResponse IRpcLocationResponse 类型, 都向下交由会话框处理
-        // 【服务端上，会话框】Session: 发，还是不发，消息到Channel 的另一头  // <<<<<<<<<<<<<<<<<<<< 【这部分没读懂】
-        if (message is IResponse response) { // 【回复消息】: 就去服务端，什么情况下会出现这种情况？
-            // 【没读懂】：服务端组件，处理回复消息，要不要【发】返回消息的步骤？找不到哪里有，发送，的这个步骤。
-            // 而会话框，若真是从其它服转过来的消息，现服务端不已经是会话框的另一端了吗（内网消息也走会话框吗？还得接着去读内网Inner.）？感觉这里哪里没懂。。。
-            session.OnResponse(response); // 【会话框】：直接处理返回消息。处理的逻辑也仅限于将RpcInfo.Tcs 异步任务的返回结果写好。并不负责将返回消息发送回去。
-            return; // 这里返回：我仍然找不到，返回消息是，如何【发送】回去的？发送的过程步骤调用，是哪里处理的？
-        } // 对于【服务端】来说，【会话框】上，只要把【异步任务TCS】的结果写好填好，异步网络Session 底层，会自动处理Channel 客户端那一头的自动读取，框架是不用管的？
-        // 根据消息接口判断是不是Actor消息，不同的接口做不同的处理,比如需要转发给Chat Scene，可以做一个IChatMessage接口
-        switch (message) { // 【发送消息】＋【不要求回复的消息】
-            case IActorLocationRequest actorLocationRequest: { // gate session收到actor rpc消息，先向actor 发送rpc请求，再将请求结果返回客户端 
-                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
-                int rpcId = actorLocationRequest.RpcId; // 这里要保存客户端的rpcId
-                long instanceId = session.InstanceId;
-                IResponse iResponse = await ActorLocationSenderComponent.Instance.Call(unitId, actorLocationRequest);
-                iResponse.RpcId = rpcId;
-                // session可能已经断开了，所以这里需要判断
-                if (session.InstanceId == instanceId) 
-                    session.Send(iResponse);
-                break;
+[Invoke]
+public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
+    public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {
+        Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>();
+        HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute));
+        if (Define.IsEditor) { // 【编辑器模式下】：
+            string ct = "cs";
+            GlobalConfig globalConfig = Resources.Load<GlobalConfig>("GlobalConfig"); // 加载全局模式：这里没有看懂
+            CodeMode codeMode = globalConfig.CodeMode;
+            switch (codeMode) {
+                case CodeMode.Client:
+                    ct = "c";
+                    break;
+                case CodeMode.Server:
+                    ct = "s";
+                    break;
+                case CodeMode.ClientServer:
+                    ct = "cs";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
-                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
-                ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage);
-                break;
+            List<string> startConfigs = new List<string>() {
+                "StartMachineConfigCategory", 
+                "StartProcessConfigCategory", 
+                "StartSceneConfigCategory", 
+                "StartZoneConfigCategory",
+            };
+            foreach (Type configType in configTypes) {
+                string configFilePath;
+                if (startConfigs.Contains(configType.Name)) {
+                    configFilePath = $"../Config/Excel/{ct}/{Options.Instance.StartConfig}/{configType.Name}.bytes";    
+                } else {
+                    configFilePath = $"../Config/Excel/{ct}/{configType.Name}.bytes";
+                }
+                output[configType] = File.ReadAllBytes(configFilePath);
             }
-            case IActorRequest actorRequest:  // 分发IActorRequest消息，目前没有用到，需要的自己添加 
-                break;
-            case IActorMessage actorMessage:  // 分发IActorMessage消息，目前没有用到，需要的自己添加 
-                break;
-            default: {
-                // 非Actor消息： MessageDispatcherComponent 全局单例吗？是的
-                MessageDispatcherComponent.Instance.Handle(session, message);
-                break;
+        } else {
+            using (Root.Instance.Scene.AddComponent<ResourcesComponent>()) { // <<<<<<<<<<<<<<<<<<<< 
+                const string configBundleName = "config.unity3d";
+                ResourcesComponent.Instance.LoadBundle(configBundleName);
+
+                foreach (Type configType in configTypes) {
+                    TextAsset v = ResourcesComponent.Instance.GetAsset(configBundleName, configType.Name) as TextAsset;
+                    output[configType] = v.bytes;
+                }
             }
         }
+        return output;
+    }
+}
+[Invoke]
+public class GetOneConfigBytes: AInvokeHandler<ConfigComponent.GetOneConfigBytes, byte[]> {
+    public override byte[] Handle(ConfigComponent.GetOneConfigBytes args) {
+        // TextAsset v = ResourcesComponent.Instance.GetAsset("config.unity3d", configName) as TextAsset;
+        // return v.bytes;
+        throw new NotImplementedException("client cant use LoadOneConfig");
     }
 }
 \end{minted}
-
-\subsection{NetClientComponent: 【网络客户端】组件：这个，感觉与【服务端】定义申明上看是一样的}
+\subsection{ConfigComponent 组件：单例类。底层组件，负责服务端配置相关管理？}
 \label{sec-1-7}
 \begin{itemize}
-\item 【服务端】会话框上收【返回消息】的处理时，直接会话框上返回了返回消息。这里再试着从客户端的角度来找下，有没有相关的逻辑?
-\item 以前读框架，边读边打瞌睡，现在读一遍，会感觉收获狠多。所以，今天下午还需要再接着认认真真读几个小时。
+\item 这个底层组件的内部，涉及ET 标签事件系统的扫描【Config】标签，并Invoke 相关（服务端的配置与启动？）这里花点儿时间，再进去把ET 事件系统中各小服服务端根据(excel? 等) 配置文件来加载和启动服务端（或是服务端的必要配置）的原理弄懂
+\item 框架事件系统里，有对各种不同标签的处理逻辑。Invoke 同理。程序域加载时，它扫描和管理框架里的所有必要相关标签，同Invoke 标签同样有字典（套字典）纪录管理不同参数类型（args）的字典，字典里不同类型（type) 的激活处理器。对于特定的参数类型，type 类型，如果能够找到激活处理器，就会触发调用此激活回调，来作相应的处理。
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-public struct NetClientComponentOnRead {
-    public Session Session;
-    public object Message;
+public T Invoke<A, T>(int type, A args) where A: struct {
+    // 先试着去拿，框架里这个【特定 args 类型】的所有标签申明过的 invokeHandlers
+    if (!this.allInvokes.TryGetValue(typeof(A), out var invokeHandlers)) {
+        throw new Exception($"Invoke error: {typeof(A).Name}");
+    }
+    // 再试着去拿，【特定类型 type】的 invokeHandler 处理器
+    if (!invokeHandlers.TryGetValue(type, out var invokeHandler)) {
+        throw new Exception($"Invoke error: {typeof(A).Name} {type}");
+    }
+    var aInvokeHandler = invokeHandler as AInvokeHandler<A, T>;
+    if (aInvokeHandler == null) {
+        throw new Exception($"Invoke error, not AInvokeHandler: {typeof(T).Name} {type}");
+    }
+    return aInvokeHandler.Handle(args); // 调用【Invoke】标签的相应处理回调逻辑
 }
-[ComponentOf(typeof(Scene))]
-public class NetClientComponent: Entity, IAwake<AddressFamily>, IDestroy {
-    public int ServiceId;
+public void Invoke<A>(A args) where A: struct {
+    Invoke(0, args);
+}
+public T Invoke<A, T>(A args) where A: struct {
+    return Invoke<A, T>(0, args);
 }
 \end{minted}
-\subsection{NetClientComponentSystem: 【服务端】也是类似事件系统的改装}
+\begin{itemize}
+\item 框架最底层的封装原理如此。这里，更多的是需要去找当前配置系，激活处理器的具体实现逻辑（在ConfigLoader.cs 文件里，两个回调类类型），来理解这个初始化加载模块。
+\item 感觉今天上午把目前看到的这些，读得还算比较透彻。【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// Config组件会扫描所有的有【Config】标签的配置,加载进来：它借助了两套加载系统，加载一个配置，与加载所有配置。而配置仍是通过【Config】标签来标记配置类型
+public class ConfigComponent: Singleton<ConfigComponent> {
+    public struct GetAllConfigBytes {  }
+    public struct GetOneConfigBytes {
+        public string ConfigName;// 只是用一个字符串来区分不同配置 
+    }
+    private readonly Dictionary<Type, ISingleton> allConfig = new Dictionary<Type, ISingleton>();
+    public override void Dispose() {
+        foreach (var kv in this.allConfig) {
+            kv.Value.Destroy();
+        }
+    }
+    public object LoadOneConfig(Type configType) {
+        this.allConfig.TryGetValue(configType, out ISingleton oneConfig);// oneConfig：这里算是自定义变量的【申明与赋值】？
+        if (oneConfig != null) {
+            oneConfig.Destroy();
+        } 
+        // 跟进Invoke: 去看一下框架里事件系统，找到具体的激活回调逻辑定义类：ConfigLoader.cs, 去查看里面对 GetOneConfigBytes 类型的激活触发逻辑
+        byte[] oneConfigBytes = EventSystem.Instance.Invoke<GetOneConfigBytes, byte[]>(new GetOneConfigBytes() {ConfigName = configType.FullName});
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length);
+        ISingleton singleton = category as ISingleton;
+        singleton.Register(); // 【单例类初始化】：如果已经初始化过，会抛异常；单例类只初始化一次
+        this.allConfig[configType] = singleton; // 底层：管理类单例类，不同类型，各有一个。框架里就有上面看过的四大单例类
+        return category;
+    }
+    public void Load() { // 【加载】：系统加载，程序域加载 
+        this.allConfig.Clear(); // 清空
+        // 【原理】：借助框架强大事件系统，扫描域里【Invoke|()】标签（2 种）；根据参数类型，调用触发激活逻辑，到服务端特定路径特定文件中去读取所有相关配置，并返回字典
+        Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(new GetAllConfigBytes());
+        foreach (Type type in configBytes.Keys) {
+            byte[] oneConfigBytes = configBytes[type];
+            this.LoadOneInThread(type, oneConfigBytes);
+        }
+    }
+    public async ETTask LoadAsync() { // 哪里会调用这个方法？Entry.cs 服务端起来的时候，会调用此底层组件，加载各单例管理类。细看一下这里服务端启动初始化逻辑
+        this.allConfig.Clear();
+        Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(new GetAllConfigBytes());
+        using ListComponent<Task> listTasks = ListComponent<Task>.Create();
+        foreach (Type type in configBytes.Keys) {
+            byte[] oneConfigBytes = configBytes[type];
+// 四大单例管理类（Machine,Process,Scene,Zone）：每个单例类，开一个任务线路去完成？好像是这样的。
+// 不明白为什么必须管理那四个，多不同场景可以位于同一进程，一台机器可以多核多进程？区区区。。。不明白
+            Task task = Task.Run(() => LoadOneInThread(type, oneConfigBytes)); 
+            listTasks.Add(task);
+        }
+        await Task.WhenAll(listTasks.ToArray());
+    }
+
+    private void LoadOneInThread(Type configType, byte[] oneConfigBytes) {
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length);
+        lock (this) {
+            ISingleton singleton = category as ISingleton;
+            singleton.Register(); // 注册单例类：就是启动初始化一个单例类吧，框架里 Invoke 配置相关，有四大单例类
+            this.allConfig[configType] = singleton;
+        }
+    }
+}
+\end{minted}
+\subsection{ConfigSingleton<T>: ProtoObject, ISingleton}
 \label{sec-1-8}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[FriendOf(typeof(NetClientComponent))] // 把这个【网络客户端】组件的主要笔记要点，再快速写一遍
-public static class NetClientComponentSystem {
-    [ObjectSystem]
-    public class AwakeSystem: AwakeSystem<NetClientComponent, AddressFamily> {
-        protected override void Awake(NetClientComponent self, AddressFamily addressFamily) { // 需要什么样的参数，就传什么样的参数
-            self.ServiceId = NetServices.Instance.AddService(new KService(addressFamily, ServiceType.Outer)); // 开启了与这个客户端的网络服务
-            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead); // 注册订阅【读】网络消息事件，应该是从网络服务的服务端订阅
-            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError); // 注册订阅【出错】事件
+\begin{itemize}
+\item 【配置单例泛型类】：实现ISingleton 接口，适用于各种不同类型的单例类管理（生成Register, 销毁Destroy, 以及加载完成后的回调管理）。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
+        [StaticField]
+        private static T instance;
+        public static T Instance {
+            get {
+                return instance ??= ConfigComponent.Instance.LoadOneConfig(typeof (T)) as T;
+            }
         }
-    }
-    [ObjectSystem]
-    public class DestroySystem: DestroySystem<NetClientComponent> {
-        protected override void Destroy(NetClientComponent self) {
-            NetServices.Instance.RemoveService(self.ServiceId); // 直接移除这个网络服务
+        void ISingleton.Register() {
+            if (instance != null) {
+                throw new Exception($"singleton register twice! {typeof (T).Name}");
+            }
+            instance = (T)this;
         }
-    }
-    private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
-        Session session = self.GetChild<Session>(channelId); // 拿：相应的会话框
-        if (session == null) { // 空：直接返回
-            return;
+        void ISingleton.Destroy() {
+            T t = instance;
+            instance = null;
+            t.Dispose();
         }
-        session.LastRecvTime = TimeHelper.ClientNow();
-        OpcodeHelper.LogMsg(self.DomainZone(), message);
-// 发布事件：事件的接收者，应该是【客户端】的Session 层面的进一步读取消息内容（内存流上读消息？），改天再去细看。
-        EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message}); 
-    }
-    private static void OnError(this NetClientComponent self, long channelId, int error) {
-        Session session = self.GetChild<Session>(channelId); // 同样，先去拿会话框：因为这些异步网络的消息传递，都是建立在一个个会话框的基础上的
-        if (session == null)  // 空：直接返回 
-            return;
-        session.Error = error;
-        session.Dispose();
-    }
-    public static Session Create(this NetClientComponent self, IPEndPoint realIPEndPoint) {
-        long channelId = NetServices.Instance.CreateConnectChannelId();
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 创建必要的会话框，方便交通
-        session.RemoteAddress = realIPEndPoint;
-        if (self.DomainScene().SceneType != SceneType.Benchmark) {
-            session.AddComponent<SessionIdleCheckerComponent>(); // 不知道这个是干什么的，改天再看
+        bool ISingleton.IsDisposed() {
+            throw new NotImplementedException();
         }
-        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint); // 创建信道
-        return session;
+        public override void AfterEndInit() { } // <<<<<<<<<<<<<<<<<<<< 一个回调接口API
+        public virtual void Dispose() { }
     }
-    public static Session Create(this NetClientComponent self, IPEndPoint routerIPEndPoint, IPEndPoint realIPEndPoint, uint localConn) {
-        long channelId = localConn;
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-        session.RemoteAddress = realIPEndPoint;
-        if (self.DomainScene().SceneType != SceneType.Benchmark) {
-            session.AddComponent<SessionIdleCheckerComponent>();
-        }
-        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
-        return session;
-    }
-}
 \end{minted}
-\subsection{NetClientComponentOnReadEvent: 【网络客户端】读到消息事件：它，要如何处理读到的消息呢？}
+\subsection{StartMachineConfig: 抓四大单例管理类中的一个来读一下}
 \label{sec-1-9}
+\begin{itemize}
+\item 同样的命名空间，同一个文件，完全相同的类型，没弄明白的是，它为什么会在框架里出现两遍？是叫 partial-class, 可是这样的原理、两个文件的区别，以及用途，是在哪里是什么？
+\item 这个单例类型只存在于【服务端】。但是ET 框架里，双端框架有多种不同运行模式。客户端可以作为独立客户端来运行，也可以作为双端模式运行（就是内自带一个服务端）。这里的服务端就同理，可是作为独立服务端，只作服务端，也可以作为客户端在双端运行模式中，客户端自身所携带的服务端来运行。所以，框架里它出现了两次。
+\item 另一个问题是：这个类是 Generated （/Users/hhj/pubFrameWorks/ET/Unity/Assets/Scripts/Codes/Model/Generate/ClientServer/Config/StartMachineConfig.cs）, 是框架自动生成的类，没有看懂。为什么框架会生成这个类？
+\item 今天大概就只能读到这里了，剩下的明天上午再读。。。
+\item 独立的服务端，框架生成的文件？作为客户端双端运行模式下的服务端：框架生成的文件？
+\item Proto 相关的标签，各种各样的标签，看得懂的标签还好，不懂的Proto 标签看得。。。
+\end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[Event(SceneType.Process)] // 作用单位：进程【一个核】。一个进程可以有多个不同的场景。
-public class NetClientComponentOnReadEvent: AEvent<NetClientComponentOnRead> { // 事件 NetClientComponentOnRead 的发出者是：NetClientComponentSystem
-    protected override async ETTask Run(Scene scene, NetClientComponentOnRead args) {
-        Session session = args.Session;
-        object message = args.Message;
-        if (message is IResponse response) {  // 【返回消息】：待同步结果到Tcs
-            session.OnResponse(response); // 【会话框】上将【返回消息】写入、同步到Tcs 异步任务的结果中去
-            return;
+[ProtoContract]
+[Config]
+public partial class StartMachineConfigCategory : ConfigSingleton<StartMachineConfigCategory>, IMerge { // 实现了这个合并接口
+    [ProtoIgnore]
+    [BsonIgnore]
+    private Dictionary<int, StartMachineConfig> dict = new Dictionary<int, StartMachineConfig>();
+    [BsonElement]
+    [ProtoMember(1)]
+    private List<StartMachineConfig> list = new List<StartMachineConfig>();
+    public void Merge(object o) { // 实现接口里申明的方法
+        StartMachineConfigCategory s = o as StartMachineConfigCategory;
+        this.list.AddRange(s.list); // 这里就可以是，进程间可传递的消息，的自动合并
+    }
+    [ProtoAfterDeserialization]        
+    public void ProtoEndInit() {
+        foreach (StartMachineConfig config in list) {
+            config.AfterEndInit();
+            this.dict.Add(config.Id, config);
         }
-        // 【普通消息或者是Rpc请求消息?】：前面我写得对吗？这里说，【网络客户端组件】读到消息事件，接下来，分配到相应【会话框场景】去处理消息 
-        MessageDispatcherComponent.Instance.Handle(session, message);
-        await ETTask.CompletedTask;
+        this.list.Clear();
+        this.AfterEndInit();
+    }
+    public StartMachineConfig Get(int id) {
+        this.dict.TryGetValue(id, out StartMachineConfig item);
+        if (item == null) 
+            throw new Exception($"配置找不到，配置表名: {nameof (StartMachineConfig)}，配置id: {id}");
+        return item;
+    }
+    public bool Contain(int id) {
+        return this.dict.ContainsKey(id);
+    }
+    public Dictionary<int, StartMachineConfig> GetAll() {
+        return this.dict;
+    }
+    public StartMachineConfig GetOne() {
+        if (this.dict == null || this.dict.Count <= 0) 
+            return null;
+        return this.dict.Values.GetEnumerator().Current;
     }
 }
+[ProtoContract]
+public partial class StartMachineConfig: ProtoObject, IConfig {
+    [ProtoMember(1)]
+    public int Id { get; set; }
+    [ProtoMember(2)]
+    public string InnerIP { get; set; }
+    [ProtoMember(3)]
+    public string OuterIP { get; set; }
+    [ProtoMember(4)]
+    public string WatcherPort { get; set; }
+}
 \end{minted}
-\subsection{NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件}
+\begin{itemize}
+\item 也没有看出这两个文件有任何的区别，只是任何一个具备服务端功能的项目（.csproj）都还是需要这个文件而已。
+\item 下面的文件就不放了，因为四大单例类（Machine, Process, Scene, Zone）还各不同，只抓一个只代表四分之一。。。得一个一个去分析。
+\end{itemize}
+\subsection{StartProcessConfig: 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}
 \label{sec-1-10}
 \begin{itemize}
-\item 服务端的内网组件：这个组件，要想一下，同其它组件有什么不同？
+\item 按现有的理解，Machine 是一个相对大的单位；一个Machine 可以多核多进程多Process; 一个核一个进程一个Process 可以多线程多任务管理，一个Process 里可以并存多个不同的 SceneType 【并存多个相同或不同功能的小服：登录服，网关服，房间服。。】；Zone 区，还不懂算是什么意思
+\item 与上面的Machine 不同的是，Process 真正涉及了Partial 的概念。同上一样，存在于【服务端】。可是因为 config 部分类的存在，框架里有四个文件。这里要把 partial 的原因弄明白.
+\item 就是两个文件，分别存在于 Config 文件夹，与ConfigPartial 文件夹，不明白是为什么
+\item 这里，把一个版本的源码先贴这里，改天再看
 \end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-namespace ET.Server {
-    // 【服务器】：对不同进程的一些处理
-    public struct ProcessActorId {
-        public int Process;
-        public long ActorId;
-        public ProcessActorId(long actorId) {
-            InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
-            this.Process = instanceIdStruct.Process;
-            instanceIdStruct.Process = Options.Instance.Process;
-            this.ActorId = instanceIdStruct.ToLong();
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ProtoContract]
+[Config]
+public partial class StartProcessConfigCategory : ConfigSingleton<StartProcessConfigCategory>, IMerge {
+    [ProtoIgnore]
+    [BsonIgnore]
+    private Dictionary<int, StartProcessConfig> dict = new Dictionary<int, StartProcessConfig>();
+    [BsonElement]
+    [ProtoMember(1)]
+    private List<StartProcessConfig> list = new List<StartProcessConfig>();
+    public void Merge(object o) {
+        StartProcessConfigCategory s = o as StartProcessConfigCategory;
+        this.list.AddRange(s.list);
+    }
+    [ProtoAfterDeserialization]        
+    public void ProtoEndInit() {
+        foreach (StartProcessConfig config in list) {
+            config.AfterEndInit();
+            this.dict.Add(config.Id, config);
         }
+        this.list.Clear();
+        this.AfterEndInit();
     }
-    // 下面这个结构体：可以用来封装发布内网读事件
-    public struct NetInnerComponentOnRead {
-        public long ActorId;
-        public object Message;
+    public StartProcessConfig Get(int id) {
+        this.dict.TryGetValue(id, out StartProcessConfig item);
+        if (item == null) {
+            throw new Exception($"配置找不到，配置表名: {nameof (StartProcessConfig)}，配置id: {id}");
+        }
+        return item;
     }
-    
-    [ComponentOf(typeof(Scene))]
-    public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
-        public int ServiceId;
-        
-        public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
-        [StaticField]
-        public static NetInnerComponent Instance;
+    public bool Contain(int id) {
+        return this.dict.ContainsKey(id);
+    }
+    public Dictionary<int, StartProcessConfig> GetAll() {
+        return this.dict;
+    }
+    public StartProcessConfig GetOne() {
+        if (this.dict == null || this.dict.Count <= 0) {
+            return null;
+        }
+        return this.dict.Values.GetEnumerator().Current;
     }
 }
+[ProtoContract]
+public partial class StartProcessConfig: ProtoObject, IConfig {
+    [ProtoMember(1)]
+    public int Id { get; set; }
+    [ProtoMember(2)]
+    public int MachineId { get; set; }
+    [ProtoMember(3)]
+    public int InnerPort { get; set; }
+}
 \end{minted}
-\subsection{NetInnerComponentSystem: 生成系}
+\subsection{StartSceneConfig: ISupportInitialize 【各种服－配置，场景配置】}
 \label{sec-1-11}
-\begin{itemize}
-\item 处理内网消息：它发布了一个内网读到消息的事件。那么订阅过它的客户端？相关事件会被触发。去看 NetClientComponentOnReadEvent 类
-\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
-[FriendOf(typeof(NetInnerComponent))]
-public static class NetInnerComponentSystem {
-    [ObjectSystem]
-    public class NetInnerComponentAwakeSystem: AwakeSystem<NetInnerComponent> {
-        protected override void Awake(NetInnerComponent self) {
-            NetInnerComponent.Instance = self;
-            switch (self.InnerProtocol) {
-                case NetworkProtocol.TCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new TService(AddressFamily.InterNetwork, ServiceType.Inner));
-                    break;
-                }
-                case NetworkProtocol.KCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new KService(AddressFamily.InterNetwork, ServiceType.Inner));
-                    break;
-                }
-            }
-            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
-            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
-        }
-    }
-    [ObjectSystem]
-    public class NetInnerComponentAwake1System: AwakeSystem<NetInnerComponent, IPEndPoint> {
-        protected override void Awake(NetInnerComponent self, IPEndPoint address) {
-            NetInnerComponent.Instance = self;
-            switch (self.InnerProtocol) {
-                case NetworkProtocol.TCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new TService(address, ServiceType.Inner));
-                    break;
-                }
-                case NetworkProtocol.KCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Inner));
-                    break;
-                }
-            }
-            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept);
-            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
-            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
-        }
-    }
-    [ObjectSystem]
-    public class NetInnerComponentDestroySystem: DestroySystem<NetInnerComponent> {
-        protected override void Destroy(NetInnerComponent self) {
-            NetServices.Instance.RemoveService(self.ServiceId);
-        }
-    }
-    private static void OnRead(this NetInnerComponent self, long channelId, long actorId, object message) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session == null) 
-            return;
-        session.LastRecvTime = TimeHelper.ClientFrameTime();
-        self.HandleMessage(actorId, message);
-    }
-// 这里，内网组件，处理内网消息看出，这些都重构成了事件机制，发布根场景内网组件读到消息事件
-    public static void HandleMessage(this NetInnerComponent self, long actorId, object message) {
-        EventSystem.Instance.Publish(Root.Instance.Scene, new NetInnerComponentOnRead() { ActorId = actorId, Message = message });
-    }
-    private static void OnError(this NetInnerComponent self, long channelId, int error) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session == null) {
-            return;
-        }
-        session.Error = error;
-        session.Dispose();
-    }
-    // 这个channelId是由CreateAcceptChannelId生成的
-    private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-        session.RemoteAddress = ipEndPoint;
-        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
-    }
-    private static Session CreateInner(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
-        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-        session.RemoteAddress = ipEndPoint;
-        NetServices.Instance.CreateChannel(self.ServiceId, channelId, ipEndPoint);
-        // session.AddComponent<InnerPingComponent>();
-        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
-        return session;
-    }
-    // 内网actor session，channelId是进程号。【自己的理解】：这些内网服务器间，或说重构的SceneType 间，有维护着会话框的，比如Realm 注册登录服与Gate 网关服等
-    public static Session Get(this NetInnerComponent self, long channelId) {
-        Session session = self.GetChild<Session>(channelId);
-        if (session != null) { // 有已经创建过，就直接返回
-            return session;
-        } // 下面，还没创建过，就创建一个会话框
-        IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
-        session = self.CreateInner(channelId, ipEndPoint);
-        return session;
-    }
-}
-\end{minted}
-\end{itemize}
-\subsection{MessageDispatcherInfo: 在【MessageDispatcherComponent】中}
-\label{sec-1-12}
-\subsection{MessageDispatcherComponent: 全局全框架单例：【活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】}
-\label{sec-1-13}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 总管：对每个场景SceneType，消息分发器
-// 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。
-// 那么默认，每种场景，只有一个消息处理器实体类( 可以去验证这点儿 )
-public class MessageDispatcherInfo { 
-    public SceneType SceneType { get; }
-    public IMHandler IMHandler { get; }
-    public MessageDispatcherInfo(SceneType sceneType, IMHandler imHandler) {
-        this.SceneType = sceneType;
-        this.IMHandler = imHandler;
-    }
-}
-// 消息分发组件
-[ComponentOf(typeof(Scene))]
-public class MessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
-// 按下面的字典看，消息分发器，全局单例，是的！【活宝妹就是一定要嫁给亲爱的表哥！！】
-    public static MessageDispatcherComponent Instance { get; set; }  // 【全局单例】 
-    public readonly Dictionary<ushort, List<MessageDispatcherInfo>> Handlers = new(); // 总管的字典
-}
-\end{minted}
-\begin{itemize}
-\item 这个组件全局单例，添加的地主是在框架服务器启动的时候，公共组件部分的添加。组件的字典，会管理全框架下所有的MessageDispatcherInfo 相产。
-\begin{itemize}
-\item 来自于文件 EntryEvent1\_InitShare:
-\end{itemize}
-\end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 公用的相关组件的初始化：
-[Event(SceneType.Process)]
-public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
-    // 【全局单例】组件：
-    protected override async ETTask Run(Scene scene, EventType.EntryEvent1 args) {
-        Root.Instance.Scene.AddComponent<NetThreadComponent>();
-        Root.Instance.Scene.AddComponent<OpcodeTypeComponent>();
-        Root.Instance.Scene.AddComponent<MessageDispatcherComponent>(); // <<<<<<<<<<<<<<<<<<<< 
-        Root.Instance.Scene.AddComponent<NumericWatcherComponent>();
-        Root.Instance.Scene.AddComponent<AIDispatcherComponent>();
-        Root.Instance.Scene.AddComponent<ClientSceneManagerComponent>();
-        await ETTask.CompletedTask;
-    }
-}
-\end{minted}
-\subsection{MessageDispatcherComponentSystem:}
-\label{sec-1-14}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 扫描框架里的标签系【MessageHandler(SceneType)】
-private static void Load(this MessageDispatcherComponent self) {
-    self.Handlers.Clear();
-    HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
-    foreach (Type type in types) {
-        IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
-        if (iMHandler == null) {
-            Log.Error($"message handle {type.Name} 需要继承 IMHandler");
-            continue;
-        }
-        object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
-        foreach (object attr in attrs) {
-            MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
-            Type messageType = iMHandler.GetMessageType();
-            ushort opcode = NetServices.Instance.GetOpcode(messageType); // 这里相对、理解上的困难是：感觉无法把OpCode 网络操作码与消息类型，从概念上连接起来
-            if (opcode == 0) {
-                Log.Error($"消息opcode为0: {messageType.Name}");
-                continue;
-            } // 下面：下面是创建一个包装体，注册备用 
-            MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
-            self.RegisterHandler(opcode, messageDispatcherInfo);
-        }
-    }
-}
-private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
-    if (!self.Handlers.ContainsKey(opcode)) 
-        self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
-    self.Handlers[opcode].Add(handler); // 加入管理体系来管理
-}
-public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
-    List<MessageDispatcherInfo> actions;
-    ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
-    if (!self.Handlers.TryGetValue(opcode, out actions)) {
-        Log.Error($"消息没有处理: {opcode} {message}");
-        return;
-    }
-    // 这里就不明白：它的那些 Domain 什么的
-    SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
-    foreach (MessageDispatcherInfo ev in actions) {
-        if (ev.SceneType != sceneType) 
-            continue;
-        try {
-            ev.IMHandler.Handle(session, message); // 处理分派消息：也就是调用IMHandler 接口的方法来处理消息
-        } catch (Exception e) {
-            Log.Error(e);
-        }
-    }
-}
-\end{minted}
+public partial class StartSceneConfig: ISupportInitialize {
+    public long InstanceId;
+    public SceneType Type; // 场景类型
 
-\subsection{MessageDispatcherComponentHelper:}
-\label{sec-1-15}
-\begin{itemize}
-\item 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？就是说，这里的消息分发处理，还是没有弄明白的。
-\end{itemize}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 消息分发组件
-[FriendOf(typeof(MessageDispatcherComponent))]
-public static class MessageDispatcherComponentHelper { // Awake() etc...
-    private static void Load(this MessageDispatcherComponent self) {
-        self.Handlers.Clear();
-        HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
-        foreach (Type type in types) {
-            IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
-            if (iMHandler == null) {
-                Log.Error($"message handle {type.Name} 需要继承 IMHandler");
-                continue;
-            }
-            object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
-            foreach (object attr in attrs) {
-                MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
-                Type messageType = iMHandler.GetMessageType();
-                ushort opcode = NetServices.Instance.GetOpcode(messageType);
-                if (opcode == 0) {
-                    Log.Error($"消息opcode为0: {messageType.Name}");
-                    continue;
-                }
-                MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
-                self.RegisterHandler(opcode, messageDispatcherInfo);
-            }
+    public StartProcessConfig StartProcessConfig {
+        get {
+            return StartProcessConfigCategory.Instance.Get(this.Process);
         }
     }
-    private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
-        if (!self.Handlers.ContainsKey(opcode)) {
-            self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+    public StartZoneConfig StartZoneConfig {
+        get {
+            return StartZoneConfigCategory.Instance.Get(this.Zone);
         }
-        self.Handlers[opcode].Add(handler);
     }
-    public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
-        List<MessageDispatcherInfo> actions;
-        ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
-        if (!self.Handlers.TryGetValue(opcode, out actions)) {
-            Log.Error($"消息没有处理: {opcode} {message}");
-            return;
-        }
-        SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
-        foreach (MessageDispatcherInfo ev in actions) {
-            if (ev.SceneType != sceneType) 
-                continue;
-            try {
-                ev.IMHandler.Handle(session, message);
+    // 内网地址外网端口，通过防火墙映射端口过来
+    private IPEndPoint innerIPOutPort;
+    public IPEndPoint InnerIPOutPort {
+        get {
+            if (innerIPOutPort == null) {
+                this.innerIPOutPort = NetworkHelper.ToIPEndPoint($"{this.StartProcessConfig.InnerIP}:{this.OuterPort}");
             }
-            catch (Exception e) {
-                Log.Error(e);
-            }
+            return this.innerIPOutPort;
         }
+    }
+    // 外网地址外网端口
+    private IPEndPoint outerIPPort;
+    public IPEndPoint OuterIPPort {
+        get {
+            if (this.outerIPPort == null) {
+                this.outerIPPort = NetworkHelper.ToIPEndPoint($"{this.StartProcessConfig.OuterIP}:{this.OuterPort}");
+            }
+            return this.outerIPPort;
+        }
+    }
+    public override void AfterEndInit() {
+        this.Type = EnumHelper.FromString<SceneType>(this.SceneType);
+        InstanceIdStruct instanceIdStruct = new InstanceIdStruct(this.Process, (uint) this.Id);
+        this.InstanceId = instanceIdStruct.ToLong();
     }
 }
 \end{minted}
-\subsection{SessionIdleCheckerComponent: 【会话框】闲置状态管理组件}
-\label{sec-1-16}
+\subsection{StartSceneConfigCategory : 【Matchs!】ConfigSingleton<StartSceneConfigCategory>, IMerge}
+\label{sec-1-12}
 \begin{itemize}
-\item 【会话框】闲置状态管理组件：当服务器太忙，一个会话框闲置太久，有没有什么逻辑会回收闲置会话框来提高服务器性能什么之类的？
-\item 框架里ET 命名空间：设置的机制是，任何会话框，超过 30 秒不曾发送和接收过（要30 秒内既发送过也接收到过消息）消息，都算作超时，回收，提到服务器性能。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// 【会话框】闲置状态管理组件：当服务器太忙，一个会话框闲置太久，有没有什么逻辑会回收闲置会话框来提高服务器性能什么之类的？
-[ComponentOf(typeof(Session))]
-public class SessionIdleCheckerComponent: Entity, IAwake, IDestroy {
-    public long RepeatedTimer;
-}
-\end{minted}
-\end{itemize}
-\subsection{SessionIdleCheckerComponentSystem: SessionIdleChecker 激活类，}
-\label{sec-1-17}
-\begin{itemize}
-\item 这是前面读过的、类似实现原理的超时机制。感觉这个类，现在读起来狠简单。没有门槛。
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-[Invoke(TimerInvokeType.SessionIdleChecker)]
-public class SessionIdleChecker: ATimer<SessionIdleCheckerComponent> {
-    protected override void Run(SessionIdleCheckerComponent self) {
-        try {
-            self.Check();
-        } catch (Exception e) {
-            Log.Error($"move timer error: {self.Id}\n{e}");
-        }
-    }
-}
-[ObjectSystem]
-public class SessionIdleCheckerComponentAwakeSystem: AwakeSystem<SessionIdleCheckerComponent> {
-    protected override void Awake(SessionIdleCheckerComponent self) {
-        // 同样设置：【重复闹钟】：任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！
-        self.RepeatedTimer = TimerComponent.Instance.NewRepeatedTimer(SessionIdleCheckerComponentSystem.CheckInteral, TimerInvokeType.SessionIdleChecker, self);
-    }
-}// 。。。
-public static class SessionIdleCheckerComponentSystem {
-    public const int CheckInteral = 2000; // 每隔 2 秒
-    public static void Check(this SessionIdleCheckerComponent self) {
-        Session session = self.GetParent<Session>();
-        long timeNow = TimeHelper.ClientNow();
-        // 常量类定义：会话框最长每个 30 秒；
-        // 判断：30 秒内，曾经发送过消息，并且也接收过消息，直接返回；否则，算作【会话框】超时
-        if (timeNow - session.LastRecvTime < ConstValue.SessionTimeoutTime && timeNow - session.LastSendTime < ConstValue.SessionTimeoutTime) 
-            return;
-        Log.Info($"session timeout: {session.Id} {timeNow} {session.LastRecvTime} {session.LastSendTime} {timeNow - session.LastRecvTime} {timeNow - session.LastSendTime}");
-        session.Error = ErrorCore.ERR_SessionSendOrRecvTimeout; // 【会话框】超时回收
-        session.Dispose();
-    }
-}
-\end{minted}
-\end{itemize}
-\subsection{MessageHelper: 不知道这个类是作什么用的，使用场景等。过会儿看下}
-\label{sec-1-18}
-\begin{itemize}
-\item 这个类，仍然是桥接，类的各个方法里，所调用的是ActorMessageSenderComponent 里所定义的方法，来实现发送Actor 消息等。
+\item 为什么这个类，会是写了两遍呢？有什么不同？跟前面类似，存在于任何具备服务端功能的模块。【服务端】【双端】
+\item 读里面的登录服，会知道它是如何管理登录服的（就是后面的例子，当它要拿登录服的地址的时候），它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
+\item 那么这个配置管理里，因为我要用匹配服与地图服，也要对至少是匹配服进行管理。那么，我在申请匹配的时候，网关服才能拿到匹配服的地址。
+\item 只在【服务端】存在。但是在双端模式、与服务端模式下，每种端有两个文件来定义这个类。。一个在【ProtoContract】里，可能可以进程间消息传递？一个在 ConfigPartial 文件夹里
+\item 这里的部分类 partial-class 仍然是没弄明白。什么情况下使用哪个类，不同部分类的实现原理。
+\item 【重构】：因为我现在还比较喜欢使用Unity 下自带的双端模式，可是暂时只改【双端模式 ClientServer】下的文件，另一个专职服务端可能晚点儿再补上去。不用昨天晚上一样每个文件都改。
+\item 不知道下面的源码，属于端的两种模式、部分类的两个文件，四个中的哪一个？
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-public static class MessageHelper {
-    public static void NoticeUnitAdd(Unit unit, Unit sendUnit) {
-        M2C_CreateUnits createUnits = new M2C_CreateUnits() { Units = new List<UnitInfo>() };
-        createUnits.Units.Add(UnitHelper.CreateUnitInfo(sendUnit));
-        MessageHelper.SendToClient(unit, createUnits);
+// 配置文件处理，或是服务器启动相关类，以前都没仔细读过
+public partial class StartSceneConfigCategory {
+    public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
+    public MultiMap<int, StartSceneConfig> ProcessScenes = new MultiMap<int, StartSceneConfig>();
+    public Dictionary<long, Dictionary<string, StartSceneConfig>> ClientScenesByName = new Dictionary<long, Dictionary<string, StartSceneConfig>>();
+    public StartSceneConfig LocationConfig;
+    public List<StartSceneConfig> Realms = new List<StartSceneConfig>();
+    public List<StartSceneConfig> Matchs = new List<StartSceneConfig>(); // <<<<<<<<<<<<<<<<<<<< 添加管理
+    public List<StartSceneConfig> Routers = new List<StartSceneConfig>();
+    public List<StartSceneConfig> Robots = new List<StartSceneConfig>();
+    public StartSceneConfig BenchmarkServer;
+
+    public List<StartSceneConfig> GetByProcess(int process) {
+        return this.ProcessScenes[process];
     }
-    public static void NoticeUnitRemove(Unit unit, Unit sendUnit) {
-        M2C_RemoveUnits removeUnits = new M2C_RemoveUnits() {Units = new List<long>()};
-        removeUnits.Units.Add(sendUnit.Id);
-        MessageHelper.SendToClient(unit, removeUnits);
+    public StartSceneConfig GetBySceneName(int zone, string name) {
+        return this.ClientScenesByName[zone][name];
     }
-    public static void Broadcast(Unit unit, IActorMessage message) {
-        Dictionary<long, AOIEntity> dict = unit.GetBeSeePlayers();
-        // 网络底层做了优化，同一个消息不会多次序列化
-        foreach (AOIEntity u in dict.Values) {
-            ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>().GateSessionActorId, message);
-        }
-    }
-    public static void SendToClient(Unit unit, IActorMessage message) {
-        SendActor(unit.GetComponent<UnitGateComponent>().GateSessionActorId, message);
-    }
-    // 发送协议给ActorLocation
-    public static void SendToLocationActor(long id, IActorLocationMessage message) {
-        ActorLocationSenderComponent.Instance.Send(id, message);
-    }
-    // 发送协议给Actor
-    public static void SendActor(long actorId, IActorMessage message) {
-        ActorMessageSenderComponent.Instance.Send(actorId, message);
-    }
-    // 发送RPC协议给Actor
-    public static async ETTask<IActorResponse> CallActor(long actorId, IActorRequest message) {
-        return await ActorMessageSenderComponent.Instance.Call(actorId, message);
-    }
-    // 发送RPC协议给ActorLocation
-    public static async ETTask<IActorResponse> CallLocationActor(long id, IActorLocationRequest message) {
-        return await ActorLocationSenderComponent.Instance.Call(id, message);
-    }
-}
-\end{minted}
-\subsection{ActorHandleHelper: 是谁调用它，什么场景下使用的？这个，今天下午再补吧}
-\label{sec-1-19}
-\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-public static class ActorHandleHelper {
-    public static void Reply(int fromProcess, IActorResponse response) {
-        if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程：没明白，这里为什么就断定是同一进程的消息了？直接处理
-            // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
-            ActorMessageSenderComponent.Instance.HandleIActorResponse(response); // 【没读懂：】同一个进程内的消息，不走网络层，直接处理。什么情况下会是发给同一个进程的？ET7 重构后，同一进程下可能会有不同的先前小服：Realm 注册登录服，Gate 服等；如果不同的SceneType.Map-etc 先前场景小服只要在同一进程，就可以不走网络层吗？
-            return;
-        }
-        // 【不同进程的消息处理：】走网络层，就是调用会话框来发出消息
-        Session replySession = NetInnerComponent.Instance.Get(fromProcess); // 从内网组件单例中去拿会话框：不同进程消息，一定走网络，通过会话框把返回消息发回去
-        replySession.Send(response);
-    }
-    public static void HandleIActorResponse(IActorResponse response) {
-        ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
-    }
-    // 分发actor消息
-    [EnableAccessEntiyChild]
-    public static async ETTask HandleIActorRequest(long actorId, IActorRequest iActorRequest) {
-        InstanceIdStruct instanceIdStruct = new(actorId);
-        int fromProcess = instanceIdStruct.Process;
-        instanceIdStruct.Process = Options.Instance.Process;
-        long realActorId = instanceIdStruct.ToLong();
-        Entity entity = Root.Instance.Get(realActorId);
-        if (entity == null) {
-            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-            Reply(fromProcess, response);
-            return;
-        }
-        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
-        if (mailBoxComponent == null) {
-            Log.Warning($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorRequest}");
-            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-            Reply(fromProcess, response);
-            return;
-        }
-        switch (mailBoxComponent.MailboxType) {
-            case MailboxType.MessageDispatcher: {
-                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                    if (entity.InstanceId != realActorId) {
-                        IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
-                        Reply(fromProcess, response);
-                        break;
-                    } // 调用管理器组件的处理方法 
-                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
-                }
+    public override void AfterEndInit() {
+        foreach (StartSceneConfig startSceneConfig in this.GetAll().Values) {
+            this.ProcessScenes.Add(startSceneConfig.Process, startSceneConfig);
+                
+            if (!this.ClientScenesByName.ContainsKey(startSceneConfig.Zone)) {
+                this.ClientScenesByName.Add(startSceneConfig.Zone, new Dictionary<string, StartSceneConfig>());
+            }
+            this.ClientScenesByName[startSceneConfig.Zone].Add(startSceneConfig.Name, startSceneConfig);
+                
+            switch (startSceneConfig.Type) {
+            case SceneType.Realm:
+                this.Realms.Add(startSceneConfig);
+                break;
+            case SceneType.Gate:
+                this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
+                break;
+            case SceneType.Match:                  // <<<<<<<<<<<<<<<<<<<< 自己加的
+                this.Matchs.Add(startSceneConfig); // <<<<<<<<<<<<<<<<<<<< 
+                break;
+            case SceneType.Location:
+                this.LocationConfig = startSceneConfig;
+                break;
+            case SceneType.Robot:
+                this.Robots.Add(startSceneConfig);
+                break;
+            case SceneType.Router:
+                this.Routers.Add(startSceneConfig);
+                break;
+            case SceneType.BenchmarkServer:
+                this.BenchmarkServer = startSceneConfig;
                 break;
             }
-            case MailboxType.UnOrderMessageDispatcher: {
-                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
-                break;
-            }
-            case MailboxType.GateSession:
-            default:
-                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorRequest}");
-        }
-    }
-    // 分发actor消息
-    [EnableAccessEntiyChild]
-    public static async ETTask HandleIActorMessage(long actorId, IActorMessage iActorMessage) {
-        InstanceIdStruct instanceIdStruct = new(actorId);
-        int fromProcess = instanceIdStruct.Process;
-        instanceIdStruct.Process = Options.Instance.Process;
-        long realActorId = instanceIdStruct.ToLong();
-        Entity entity = Root.Instance.Get(realActorId);
-        if (entity == null) {
-            Log.Error($"not found actor: {realActorId} {iActorMessage}");
-            return;
-        }
-        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
-        if (mailBoxComponent == null) {
-            Log.Error($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorMessage}");
-            return;
-        }
-        switch (mailBoxComponent.MailboxType) {
-            case MailboxType.MessageDispatcher: {
-                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
-                    if (entity.InstanceId != realActorId) 
-                        break;
-                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
-                }
-                break;
-            }
-            case MailboxType.UnOrderMessageDispatcher: {
-                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
-                break;
-            }
-            case MailboxType.GateSession: {
-                if (entity is Session gateSession) 
-                    // 发送给客户端
-                    gateSession.Send(iActorMessage);
-                break;
-            }
-            default:
-                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
         }
     }
 }
@@ -1533,5 +1346,1071 @@ public class NetInnerComponentOnReadEvent: AEvent<NetInnerComponentOnRead> {
     }
 }
 \end{minted}
+
+\section{Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制。模块没理解透、总结不全，还需要借助总结，和改掉所有编译错误后的运行、以及运行日志，来理解这个流程}
+\label{sec-3}
+\begin{itemize}
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 感觉核心逻辑，跨进程发消息，收返回消息，基本都看懂了。更底层的，可是相对高层？的服务之间，【NetThreadComponent组件】等，仍是不懂。
+\item 这个模块：感觉就是 \textbf{【模块，自顶向下，异步网络调用的传递方向等，弄不懂；或底层信道上发消息两端的底层回调，不懂！】}
+\item 现在还没弄清楚：Server, Client, Inner, 好像没有Outer 了，几个相对模块算是怎么回事？
+\item 不管是【网络服务端NetServerComponent】，还是【网络客户端 NetClientComponent】组件，它们都管理无数个与【这个端】建立连接的【会话框】。
+\end{itemize}
+\subsection{RpcInfo: 【消息的包装体】。内部包装一个Tcs 异步任务，桥接异步结果给调用方。合并入其它小节}
+\label{sec-3-1}
+\begin{itemize}
+\item 结合NetServerComponentOnReadEvent 来读。
+\item 在NetServerComponentOnReadEvent 中，IResponse 【返回消息】是会话框上直接返回同步异步任务的异步结果，将【返回消息】异步给调用方。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public readonly struct RpcInfo { // 【消息】包装体：可以是进程内的。可是它包装的是基类接口，与扩展接口如何区分？
+    public readonly IRequest Request;
+    public readonly ETTask<IResponse> Tcs;// 这个【异步任务Tcs】是包装的精华桥梁
+    public RpcInfo(IRequest request) {
+        this.Request = request;
+        this.Tcs = ETTask<IResponse>.Create(true);
+    }
+}
+\end{minted}
+\subsection{NetThreadComponent:}
+\label{sec-3-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+namespace ET {
+// 【NetThreadComponent 组件】：网络交互的底层原理不懂。没有生成系，只有一个【NetInnerComponentSystem】。外网组件找不见
+// 这个模块：感觉就是模块，自顶向下，异步网络调用的传递方向等，弄不懂；或底层信道上发消息两端的底层回调，不懂！
+// 是每个场景【SceneType?】：里都必须有的异步线程组件. 场景 Scene, 与场景类型SceneType
+    [ComponentOf(typeof(Scene))] 
+    public class NetThreadComponent: Entity, IAwake, ILateUpdate, IDestroy {
+        [StaticField]
+        public static NetThreadComponent Instance; // 单例
+        public Thread thread;
+        public bool isStop;
+    }
+}
+\end{minted}
+\subsection{NetServerComponent: NetServerComponentOnRead 结构体。}
+\label{sec-3-3}
+\begin{itemize}
+\item 【必须去想】：【服务端】到底是什么？不是每个进程上的什么东西，而是每个【场景Scene】所启动的该场景上的服务类型。不同场景之间的服务类型，可以不同？
+\item 证实这一点儿的【半确认：因为这个组件可能是我从参考项目里，我自己搬过来的的】依据，是有【Realm 注册登录服】和【Gate 网关服】添加了这个组件。
+\item 不同结构体的封装，是根据需要来的。框架里，有封装过【Session 会话框】的， [rpcId] 的，【Tcs 异步任务】的。看需求。 
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+public struct NetServerComponentOnRead {
+    public Session Session;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
+    public int ServiceId;
+}
+\end{minted}
+\end{itemize}
+\subsection{NetServerComponentSystem: 场景上的【服务端】组件，可发布【服务端读到消息事件】}
+\label{sec-3-4}
+\begin{itemize}
+\item 【生成系】重点：它可以 \textbf{发布NetServerComponentOnRead 事件。} 理解这个事件的【发布】与【订阅者回调】的过程，如下：
+\begin{itemize}
+\item 一个核一个进程上，可能有的【1-N】个场景中，某个场景充当【服务端】发布了该事件。当前核上的这个场景发布事件的触发原因是：主线程回调到了这个场景（网络异步线程）读到消息事件？（这里的主线程，与异步线程，想起来仍奇怪。可是同一核同一进程里，就只能多线程，每个线程当作一个场景了）
+\item 【事件的订阅者】：进程上的 NetServerComponentOnReadEvent
+\item 进程被【1-N】个不同场景共享，是更底层。这里发出事件，【消息的接收者】，可能在【同一进程其它场景】，也可能在【其它进程】其它场景
+\item 这里，【事件发布】到【事件订阅者】的过程，更像是，由某个场景，到【1-N】个可能场景所共享的，更底层的对应核，的过程
+\item 【1-N】个可能场景所共享的，更底层的【这一个对应核】：订阅了事件。处理逻辑：是本进程的场景，接收场景去处理；不同进程？ rpc 。。。
+\end{itemize}
+\item 现在，我先把它想成是：一个进程可以有的【1-N】个场景中，每个场景，所启动的服务类型。不同场景，所启动的服务类型，应该可以不同？
+\item 当这个场景充当了【服务端】，其它所有与这个【当前场景服务端】建立的会话框的另一端，就都自动当作【客户端】。（感觉这里理解不太透，暂时仍这么想）
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+[FriendOf(typeof(NetServerComponent))] // 【服务端组件】：负责【服务端】的网络交互部分
+public static class NetServerComponentSystem {
+    [ObjectSystem]
+    public class AwakeSystem: AwakeSystem<NetServerComponent, IPEndPoint> {
+        protected override void Awake(NetServerComponent self, IPEndPoint address) {
+            // 当一个【场景启动】起来，向NetServices 单例总管，注册三大回调。当向总管注册三回调的时候，它，不是相当于是总管的【客户端】？
+            // 更像是，【单线程多进程架构】里，异步网络线程，向主线程，注册三大回调
+            self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Outer));
+            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept); // 三个回调 
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }
+    [ObjectSystem]
+    public class NetKcpComponentDestroySystem: DestroySystem<NetServerComponent> {
+        protected override void Destroy(NetServerComponent self) {
+            NetServices.Instance.RemoveService(self.ServiceId);
+        }
+    }
+    private static void OnError(this NetServerComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) return;
+        session.Error = error;
+        session.Dispose();
+    }
+    // 这个channelId是由CreateAcceptChannelId生成的
+    private static void OnAccept(this NetServerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        // 【创建会话框】：当此【服务端】组件，接受了一个客户端，就建一个与接收的【客户端】的会话框
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint; // 【当前会话框】，它的远程是，一个【客户端】的IP 地址
+        if (self.DomainScene().SceneType != SceneType.BenchmarkServer) { // 区分：同一功能，【服务端】的处理逻辑，与【客户端】的处理逻辑 
+            // 挂上这个组件，5秒就会删除session，所以客户端验证完成要删除这个组件。该组件的作用就是防止外挂一直连接不发消息也不进行权限验证
+            // 【客户端】逻辑，客户端验证的地方：C2G_LoginGateHandler: 这个例子，当前自称服务端组件，才更像【客户端】呢
+            session.AddComponent<SessionAcceptTimeoutComponent>(); // 上面原标注：【客户端验证】的逻辑
+            // 客户端连接，2秒检查一次recv消息，10秒没有消息则断开（与那个，此服务端接收不到心跳包的客户端，的连接）。【活宝妹就是一定要嫁给亲爱的表哥！！！】
+            //【自己的理解】：【客户端】有心跳包告知服务端，各客户端的连接状况；【服务端】：同样有服务端此组件来检测说，哪个客户端掉线了？
+            session.AddComponent<SessionIdleCheckerComponent>(); // 检查【会话框】是否有效：【30 秒内】至少发送过消息，至少接收过消息，否则视为闲置回收
+        }
+    }
+    // 从这里继续往前倒，去找哪里发布事件， message 是什么类型，什么内容？【这里就是不懂】
+    private static void OnRead(this NetServerComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId); // 从当前【服务端】所管理的所有会话框（连接的所有客户端）里，找到对应的 session(客户端 )
+        if (session == null) return;
+        session.LastRecvTime = TimeHelper.ClientNow();
+        OpcodeHelper.LogMsg(self.DomainZone(), message);
+        // 【发布事件】：服务端组件读到了消息。
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetServerComponentOnRead() {Session = session, Message = message});
+        // 【事件的订阅者】：进程上的 NetServerComponentOnReadEvent
+        // 进程被【1-N】个不同场景共享，是更底层。这里发出事件，【消息的接收者】，可能在【同一进程其它场景】，也可能在【其它进程】其它场景
+        // 这里，【事件发布】到【事件订阅者】的过程，更像是，由某个场景，到【1-N】个可能场景所共享的，更底层的对应核，的过程
+        // 【1-N】个可能场景所共享的，更底层的【这一个对应核】：订阅了事件。处理逻辑：是本进程的场景，接收场景去处理；不同进程？ rpc 。。。
+    }
+}
+\end{minted}
+\end{itemize}
+\subsection{NetServerComponentOnReadEvent: NetServerComponent组件，会发布事件，触发此回调类}
+\label{sec-3-5}
+\begin{itemize}
+\item 框架里什么地方添加了这些【NetServerComponent服务端】的组件？Realm 注册登录服，和网关服。（虽然这两个小服添加了这个服务端组件，但还不知道，是不是自己干的好事儿！！）SceneFactory 类里的。也就是说：这个组件，是有可能，重构后的框架里，是不需要的？都是自己没能把源码管理好，给混的。。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+case SceneType.Realm: // 注册登录服：
+    scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+    break;
+case SceneType.Gate:
+    scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+    scene.AddComponent<PlayerComponent>();
+    scene.AddComponent<GateSessionKeyComponent>();
+    break;
+\end{minted}
+\begin{itemize}
+\item 如果消息类型是【返回消息】：就【会话框】上，调用会话框的OnResponse() 方法处理。处理逻辑，也就是把（来自同一进程其它场景, 或来自其它进程的【并不能限定只来自于本进程】）返回的【返回消息】内容，同步到封装的Tcs 异步结果里。当异步正常结果写好，框架的异步封装，就自动实现了异步结果、异步回给调用方（逻辑在调用【发送消息】发送过程的方法里）。
+\item 这个类里，对于其它消息类型，上次并没能读完整和理解透彻：就是那个【发送位置消息请求】的请求者，与【被索要位置信息】的被请求者，协程锁，锁的是哪个？现在，感觉两个都可以上锁，可是两个都锁、都有必要吗？是的，框架里是两方都上锁的，既锁向位置服要地址的发送者，也锁被要地址小伙伴所在进程，锁在【进程】层面上？
+\begin{itemize}
+\item 【位置服】里，被请求位置信息的，同时间可以有多个不同进程的索要者，要上锁；
+\item 请求消息的发送者，同时间，有什么多进程，同时要它发消息的情况？（这里暂时想不出来）理论是客观存在的。多进程队列安全，就得上锁。意思是说，多个不同进程，都想要入队列要当前 actorId 发送消息，只能按照分配给它们的【独占锁】的先后顺序入队、修改共享队列里的消息内容（这里是添加消息）
+\end{itemize}
+\item 判断【位置消息】里的 actorId, 是发送者的，还是被请求者的，去找消息发送之前，消息创建的地方。看框架能否找到一个例子。现在就是找不到一个这样的真正发送出去的位置消息的例子
+\item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 为什么Realm 注册登录服，与Gate 网关服里【服务端】组件发布的事情，会有这个场景的订阅者接收事件？
+// 【SceneType.Process】：需要特殊理解，极为特殊的进程场景。它是每个核每个进程必备的一个特殊场景吗？是。Root 单根，首先启动进程场景。为同进程下添加任何其它场景打下座基。
+[Event(SceneType.Process)]  // 【进程】场景？：来处理这个服务端组件事件？外网组件添加的地方是在：【Realm 注册登录服】与【网关服】。是自己写错了？
+public class NetServerComponentOnReadEvent: AEvent<NetServerComponentOnRead> {
+    protected override async ETTask Run(Scene scene, NetServerComponentOnRead args) {
+        Session session = args.Session;
+        object message = args.Message;
+        // 【服务端上，会话框】Session: 收到回复消息，会去处理【会话框】上字典管理的回调，将回调的Tcs 异步结果写好。写好了,即刻异步结果到消息请求方
+        if (message is IResponse response) { // 到达本进程的【返回消息】: 本进程上将结果写回去，狠简单
+            // 借由Tcs 异步，会话框上会同步【返回消息】的内容到Tcs 异步任务的结果；Tcs 任务结果一旦写好，消息请求方就能收到结果
+            session.OnResponse(response); 
+            return; 
+        } 
+        // 根据消息接口判断是不是Actor消息，不同的接口做不同的处理,比如需要转发给Chat Scene，可以做一个IChatMessage接口
+        switch (message) { // 【发送消息】＋【不要求回复的消息】
+            // 【ActorLocationSenderComponent】：先把这一两个组件逻辑给理顺了
+            case IActorLocationRequest actorLocationRequest: { // gate session收到actor rpc消息，先向actor 发送rpc请求，再将请求结果返回客户端【原标注】 
+                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
+                int rpcId = actorLocationRequest.RpcId; // 这里要保存客户端的rpcId 
+                long instanceId = session.InstanceId;
+                IResponse iResponse = await ActorLocationSenderComponent.Instance.Call(unitId, actorLocationRequest); // 【rpcId】 vs 【unitId】：【被】要位置的两方？
+                iResponse.RpcId = rpcId; // 【发送消息】与【返回消息】的 rpcId 是一样的。可是这里的设置，感觉狠奇怪。【位置服】是怎么处理的，这里为什么还得写？
+                // session可能已经断开了，所以这里需要判断
+                if (session.InstanceId == instanceId) 
+                    session.Send(iResponse);
+                break;
+            }
+            case IActorLocationMessage actorLocationMessage: { // 【普通，不要求回复的位置消息】
+                long unitId = session.GetComponent<SessionPlayerComponent>().PlayerId;
+                ActorLocationSenderComponent.Instance.Send(unitId, actorLocationMessage); // 把这里发送位置消息再看一遍，快速看一遍，总记不住
+                break;
+            }
+            case IActorRequest actorRequest:  // 分发IActorRequest消息，目前没有用到，需要的自己添加 
+                break;
+            case IActorMessage actorMessage:  // 分发IActorMessage消息，目前没有用到，需要的自己添加 
+                break;
+        default: { // 非Actor消息的话：应该就是本进程消息，不走网络层，进程内处理
+                // 非Actor消息： MessageDispatcherComponent 全局单例吗？是的
+            MessageDispatcherComponent.Instance.Handle(session, message); 
+                break;
+            }
+        }
+    }
+}
+\end{minted}
+\subsection{Option 单例类：}
+\label{sec-3-6}
+\begin{itemize}
+\item 上面，留了一个不懂的地方：一台物理机上同一个核，同一个进程内，的【多线程多场景管理】里，为什么有一个专用的SceneType.Process. 这个场景如【亲爱的表哥在活宝妹心中的地位一样特殊】，要把这个理解透彻。现在把这个翻一遍。
+\item 理解上，在同一进程的多线程管理里，是会区分【主线程】与【异步网络线程】的。这个SceneType.Process 像是【主线程】，需要处理【本核本进程内，多线程管理，主线程与异步线程的同步等逻辑】，也负责处理【多核多进程间，或与其它物理机等的网络交互】等主线程逻辑；而任意（可能受一个进程所可以开辟的多线程数目，硬件限制？）添加的【0-N】个任务线程，充当框架里可以随时再添加的同一进程上的【其它场景 SceneType】。
+\item SceneType.Process: 每个核、进程上的【进程场景】
+\item OptionAttribute: 命令行的选项标签。这里似乎也看不出什么来。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public class Options: Singleton<Options> { // 这个【单例类】，确实还没能看懂。单例类，不是组件添加形式。把【OptionAttribute】标签看懂
+    [Option("AppType", Required = false, Default = AppType.Server, HelpText = "AppType enum")]
+    public AppType AppType { get; set; }
+    [Option("StartConfig", Required = false, Default = "StartConfig/Localhost")]
+    public string StartConfig { get; set; }
+    [Option("Process", Required = false, Default = 1)]
+    public int Process { get; set; }
+
+    [Option("Develop", Required = false, Default = 0, HelpText = "develop mode, 0正式 1开发 2压测")]
+    public int Develop { get; set; }
+    [Option("LogLevel", Required = false, Default = 2)]
+    public int LogLevel { get; set; }
+    [Option("Console", Required = false, Default = 0)]
+    public int Console { get; set; }
+    // 进程启动是否创建该进程的scenes
+    [Option("CreateScenes", Required = false, Default = 1)]
+    public int CreateScenes { get; set; }
+}
+\end{minted}
+\begin{itemize}
+\item 框架里第一次调用【Options 单例类】实例的地方，也就是这个【单例类】的初始化的过程，看一下。
+\begin{itemize}
+\item 第一次调用的地方，是在双端框架的Init 类里。先把这里的源码放一点儿，再去找哪里调双端的Init.cs? Program.cs 里会调这个类的Init.Start() 方法。同一个Init 类找出三个文件来。
+\end{itemize}
+\item 比如【客户端】起始的时候，命令行，Init 里会去Parse 命令行里传进来的参数，放将命令行的参数配置写入记入到Options 单例类里。后来看见过的，也是用这个单例类里的Process 来判定，比如【返回消息】是否为【本进程消息】等判定进程是否为同一个。
+\item 只是上面，进程是一个核。现在能想到的是命令行启动一台物理机N 个核，每个核也是可以命令行单独、以核为单位配制的？【这里不懂，框架里，是如何封装，命令行来启动一个核的？】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+  public static class Init {
+      public static void Start() {
+          try {    
+              AppDomain.CurrentDomain.UnhandledException += (sender, e) => {
+                  Log.Error(e.ExceptionObject.ToString());
+              };
+              // 异步方法全部会回掉到主线程
+              Game.AddSingleton<MainThreadSynchronizationContext>();
+              // 命令行参数
+              Parser.Default.ParseArguments<Options>(System.Environment.GetCommandLineArgs())
+                  .WithNotParsed(error => throw new Exception($"命令行格式错误! {error}"))
+                  .WithParsed(Game.AddSingleton);
+
+              Game.AddSingleton<TimeInfo>();
+              Game.AddSingleton<Logger>().ILog = new NLogger(Options.Instance.AppType.ToString(), Options.Instance.Process, "../Config/NLog/NLog.config");
+              Game.AddSingleton<ObjectPool>();
+              Game.AddSingleton<IdGenerater>();
+              Game.AddSingleton<EventSystem>();
+              Game.AddSingleton<TimerComponent>();
+              Game.AddSingleton<CoroutineLockComponent>();
+
+              ETTask.ExceptionHandler += Log.Error;
+              Log.Console($"{Parser.Default.FormatCommandLine(Options.Instance)}");
+              Game.AddSingleton<CodeLoader>().Start();
+          } catch (Exception e) {
+              Log.Error(e);
+          }
+      }
+\end{minted}
+\subsection{NetClientComponent: 【网络客户端】组件：这个，感觉与【服务端】定义申明上看是一样的}
+\label{sec-3-7}
+\begin{itemize}
+\item 先去看：框架里，什么上下文添加了这个组件？【客户端组件】一定是添加在【客户端】。【客户端场景 ClientScene】添加有这个组件。
+\item 什么是【客户端】？
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public struct NetClientComponentOnRead {
+    public Session Session;
+    public object Message;
+}
+[ComponentOf(typeof(Scene))]
+public class NetClientComponent: Entity, IAwake<AddressFamily>, IDestroy {
+    public int ServiceId;
+}
+\end{minted}
+\subsection{NetClientComponentSystem: 【服务端】也是类似事件系统的改装}
+\label{sec-3-8}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[FriendOf(typeof(NetClientComponent))] // 把这个【网络客户端】组件的主要笔记要点，再快速写一遍
+public static class NetClientComponentSystem {
+    [ObjectSystem]
+    public class AwakeSystem: AwakeSystem<NetClientComponent, AddressFamily> {
+        protected override void Awake(NetClientComponent self, AddressFamily addressFamily) { // 需要什么样的参数，就传什么样的参数
+            self.ServiceId = NetServices.Instance.AddService(new KService(addressFamily, ServiceType.Outer)); // 开启了与这个客户端的网络服务
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead); // 注册订阅【读】网络消息事件，应该是从网络服务的服务端订阅
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError); // 注册订阅【出错】事件
+        }
+    }
+    [ObjectSystem]
+    public class DestroySystem: DestroySystem<NetClientComponent> {
+        protected override void Destroy(NetClientComponent self) {
+            NetServices.Instance.RemoveService(self.ServiceId); // 直接移除这个网络服务
+        }
+    }
+    private static void OnRead(this NetClientComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId); // 拿：相应的会话框
+        if (session == null) { // 空：直接返回
+            return;
+        }
+        session.LastRecvTime = TimeHelper.ClientNow();
+        OpcodeHelper.LogMsg(self.DomainZone(), message);
+// 发布事件：事件的接收者，应该是【客户端】的Session 层面的进一步读取消息内容（内存流上读消息？），改天再去细看。
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message}); 
+    }
+    private static void OnError(this NetClientComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId); // 同样，先去拿会话框：因为这些异步网络的消息传递，都是建立在一个个会话框的基础上的
+        if (session == null)  // 空：直接返回 
+            return;
+        session.Error = error;
+        session.Dispose();
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint realIPEndPoint) {
+        long channelId = NetServices.Instance.CreateConnectChannelId();
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 创建必要的会话框，方便交通
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>(); // 不知道这个是干什么的，改天再看
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, realIPEndPoint); // 创建信道
+        return session;
+    }
+    public static Session Create(this NetClientComponent self, IPEndPoint routerIPEndPoint, IPEndPoint realIPEndPoint, uint localConn) {
+        long channelId = localConn;
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = realIPEndPoint;
+        if (self.DomainScene().SceneType != SceneType.Benchmark) {
+            session.AddComponent<SessionIdleCheckerComponent>();
+        }
+        NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
+        return session;
+    }
+}
+\end{minted}
+\subsection{NetClientComponentOnReadEvent: 【网络客户端】读到消息事件：它，要如何处理读到的消息呢？}
+\label{sec-3-9}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Event(SceneType.Process)] // 作用单位：进程【一个核】。一个进程可以有多个不同的场景。
+public class NetClientComponentOnReadEvent: AEvent<NetClientComponentOnRead> { // 事件 NetClientComponentOnRead 的发出者是：NetClientComponentSystem
+    protected override async ETTask Run(Scene scene, NetClientComponentOnRead args) {
+        Session session = args.Session;
+        object message = args.Message;
+        if (message is IResponse response) {  // 【返回消息】：待同步结果到Tcs
+            session.OnResponse(response); // 【会话框】上将【返回消息】写入、同步到Tcs 异步任务的结果中去
+            return;
+        }
+        // 【普通消息或者是Rpc请求消息?】：前面我写得对吗？这里说，【网络客户端组件】读到消息事件，接下来，分配到相应【会话框场景】去处理消息 
+        MessageDispatcherComponent.Instance.Handle(session, message);
+        await ETTask.CompletedTask;
+    }
+}
+\end{minted}
+\subsection{NetInnerComponent: 【服务端】对不同进程的处理组件。是服务器的组件}
+\label{sec-3-10}
+\begin{itemize}
+\item 服务端的内网组件：这个组件，要想一下，同其它组件有什么不同？
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+namespace ET.Server {
+    // 【服务器】：对不同进程的一些处理
+    public struct ProcessActorId {
+        public int Process;
+        public long ActorId;
+        public ProcessActorId(long actorId) {
+            InstanceIdStruct instanceIdStruct = new InstanceIdStruct(actorId);
+            this.Process = instanceIdStruct.Process;
+            instanceIdStruct.Process = Options.Instance.Process;
+            this.ActorId = instanceIdStruct.ToLong();
+        }
+    }
+    // 下面这个结构体：可以用来封装发布内网读事件
+    public struct NetInnerComponentOnRead {
+        public long ActorId;
+        public object Message;
+    }
+    
+    [ComponentOf(typeof(Scene))]
+    public class NetInnerComponent: Entity, IAwake<IPEndPoint>, IAwake, IDestroy {
+        public int ServiceId;
+        
+        public NetworkProtocol InnerProtocol = NetworkProtocol.KCP;
+        [StaticField]
+        public static NetInnerComponent Instance;
+    }
+}
+\end{minted}
+\subsection{NetInnerComponentSystem: 生成系}
+\label{sec-3-11}
+\begin{itemize}
+\item 处理内网消息：它发布了一个内网读到消息的事件。那么订阅过它的客户端？相关事件会被触发。去看 NetClientComponentOnReadEvent 类
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+[FriendOf(typeof(NetInnerComponent))]
+public static class NetInnerComponentSystem {
+    [ObjectSystem]
+    public class NetInnerComponentAwakeSystem: AwakeSystem<NetInnerComponent> {
+        protected override void Awake(NetInnerComponent self) {
+            NetInnerComponent.Instance = self;
+            switch (self.InnerProtocol) {
+                case NetworkProtocol.TCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new TService(AddressFamily.InterNetwork, ServiceType.Inner));
+                    break;
+                }
+                case NetworkProtocol.KCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new KService(AddressFamily.InterNetwork, ServiceType.Inner));
+                    break;
+                }
+            }
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }
+    [ObjectSystem]
+    public class NetInnerComponentAwake1System: AwakeSystem<NetInnerComponent, IPEndPoint> {
+        protected override void Awake(NetInnerComponent self, IPEndPoint address) {
+            NetInnerComponent.Instance = self;
+            switch (self.InnerProtocol) {
+                case NetworkProtocol.TCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new TService(address, ServiceType.Inner));
+                    break;
+                }
+                case NetworkProtocol.KCP: {
+                    self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Inner));
+                    break;
+                }
+            }
+            NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept);
+            NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
+            NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
+        }
+    }
+    [ObjectSystem]
+    public class NetInnerComponentDestroySystem: DestroySystem<NetInnerComponent> {
+        protected override void Destroy(NetInnerComponent self) {
+            NetServices.Instance.RemoveService(self.ServiceId);
+        }
+    }
+    private static void OnRead(this NetInnerComponent self, long channelId, long actorId, object message) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) 
+            return;
+        session.LastRecvTime = TimeHelper.ClientFrameTime();
+        self.HandleMessage(actorId, message);
+    }
+// 这里，内网组件，处理内网消息看出，这些都重构成了事件机制，发布根场景内网组件读到消息事件
+    public static void HandleMessage(this NetInnerComponent self, long actorId, object message) {
+        EventSystem.Instance.Publish(Root.Instance.Scene, new NetInnerComponentOnRead() { ActorId = actorId, Message = message });
+    }
+    private static void OnError(this NetInnerComponent self, long channelId, int error) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session == null) {
+            return;
+        }
+        session.Error = error;
+        session.Dispose();
+    }
+    // 这个channelId是由CreateAcceptChannelId生成的
+    private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint;
+        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
+    }
+    private static Session CreateInner(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
+        Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        session.RemoteAddress = ipEndPoint;
+        NetServices.Instance.CreateChannel(self.ServiceId, channelId, ipEndPoint);
+        // session.AddComponent<InnerPingComponent>();
+        // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
+        return session;
+    }
+    // 内网actor session，channelId是进程号。【自己的理解】：这些内网服务器间，或说重构的SceneType 间，有维护着会话框的，比如Realm 注册登录服与Gate 网关服等
+    public static Session Get(this NetInnerComponent self, long channelId) {
+        Session session = self.GetChild<Session>(channelId);
+        if (session != null) { // 有已经创建过，就直接返回
+            return session;
+        } // 下面，还没创建过，就创建一个会话框
+        IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
+        session = self.CreateInner(channelId, ipEndPoint);
+        return session;
+    }
+}
+\end{minted}
+\end{itemize}
+\subsection{MessageDispatcherInfo: 在【MessageDispatcherComponent】中}
+\label{sec-3-12}
+\subsection{MessageDispatcherComponent: 全局全框架单例：【活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】}
+\label{sec-3-13}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 总管：对每个场景SceneType，消息分发器
+// 这个类，可以简单地理解为：先前的各种服，现在的各种服务端场景，它们所拥有的消息处理器实例的封装。
+// 那么默认，每种场景，只有一个消息处理器实体类( 可以去验证这点儿 )
+public class MessageDispatcherInfo { 
+    public SceneType SceneType { get; }
+    public IMHandler IMHandler { get; }
+    public MessageDispatcherInfo(SceneType sceneType, IMHandler imHandler) {
+        this.SceneType = sceneType;
+        this.IMHandler = imHandler;
+    }
+}
+// 消息分发组件
+[ComponentOf(typeof(Scene))]
+public class MessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
+// 按下面的字典看，消息分发器，全局单例，是的！【活宝妹就是一定要嫁给亲爱的表哥！！】
+    public static MessageDispatcherComponent Instance { get; set; }  // 【全局单例】 
+    public readonly Dictionary<ushort, List<MessageDispatcherInfo>> Handlers = new(); // 总管的字典
+}P
+\end{minted}
+\begin{itemize}
+\item 这个组件全局单例，添加的地主是在框架服务器启动的时候，公共组件部分的添加。组件的字典，会管理全框架下所有的MessageDispatcherInfo 相产。
+\begin{itemize}
+\item 来自于文件 EntryEvent1\_InitShare:
+\end{itemize}
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 公用的相关组件的初始化：
+[Event(SceneType.Process)]
+public class EntryEvent1_InitShare: AEvent<EventType.EntryEvent1> {
+    // 【全局单例】组件：
+    protected override async ETTask Run(Scene scene, EventType.EntryEvent1 args) {
+        Root.Instance.Scene.AddComponent<NetThreadComponent>();
+        Root.Instance.Scene.AddComponent<OpcodeTypeComponent>();
+        Root.Instance.Scene.AddComponent<MessageDispatcherComponent>(); // <<<<<<<<<<<<<<<<<<<< 
+        Root.Instance.Scene.AddComponent<NumericWatcherComponent>();
+        Root.Instance.Scene.AddComponent<AIDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ClientSceneManagerComponent>();
+        await ETTask.CompletedTask;
+    }
+}
+\end{minted}
+\subsection{MessageDispatcherComponentSystem:}
+\label{sec-3-14}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 扫描框架里的标签系【MessageHandler(SceneType)】
+private static void Load(this MessageDispatcherComponent self) {
+    self.Handlers.Clear();
+    HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+    foreach (Type type in types) {
+        IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+        if (iMHandler == null) {
+            Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+            continue;
+        }
+        object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+        foreach (object attr in attrs) {
+            MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+            Type messageType = iMHandler.GetMessageType();
+            ushort opcode = NetServices.Instance.GetOpcode(messageType); // 这里相对、理解上的困难是：感觉无法把OpCode 网络操作码与消息类型，从概念上连接起来
+            if (opcode == 0) {
+                Log.Error($"消息opcode为0: {messageType.Name}");
+                continue;
+            } // 下面：下面是创建一个包装体，注册备用 
+            MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+            self.RegisterHandler(opcode, messageDispatcherInfo);
+        }
+    }
+}
+private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+    if (!self.Handlers.ContainsKey(opcode)) 
+        self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+    self.Handlers[opcode].Add(handler); // 加入管理体系来管理
+}
+public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+    List<MessageDispatcherInfo> actions;
+    ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+    if (!self.Handlers.TryGetValue(opcode, out actions)) {
+        Log.Error($"消息没有处理: {opcode} {message}");
+        return;
+    }
+    // 这里就不明白：它的那些 Domain 什么的
+    SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？感觉像是会话框的什么Domain 场景？
+    foreach (MessageDispatcherInfo ev in actions) {
+        if (ev.SceneType != sceneType) 
+            continue;
+        try {
+            ev.IMHandler.Handle(session, message); // 处理分派消息：也就是调用IMHandler 接口的方法来处理消息
+        } catch (Exception e) {
+            Log.Error(e);
+        }
+    }
+}
+\end{minted}
+
+\subsection{MessageDispatcherComponentHelper:}
+\label{sec-3-15}
+\begin{itemize}
+\item 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？就是说，这里的消息分发处理，还是没有弄明白的。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 消息分发组件
+[FriendOf(typeof(MessageDispatcherComponent))]
+public static class MessageDispatcherComponentHelper { // Awake() etc...
+    private static void Load(this MessageDispatcherComponent self) {
+        self.Handlers.Clear();
+        HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageHandlerAttribute));
+        foreach (Type type in types) {
+            IMHandler iMHandler = Activator.CreateInstance(type) as IMHandler;
+            if (iMHandler == null) {
+                Log.Error($"message handle {type.Name} 需要继承 IMHandler");
+                continue;
+            }
+            object[] attrs = type.GetCustomAttributes(typeof(MessageHandlerAttribute), false);
+            foreach (object attr in attrs) {
+                MessageHandlerAttribute messageHandlerAttribute = attr as MessageHandlerAttribute;
+                Type messageType = iMHandler.GetMessageType();
+                ushort opcode = NetServices.Instance.GetOpcode(messageType);
+                if (opcode == 0) {
+                    Log.Error($"消息opcode为0: {messageType.Name}");
+                    continue;
+                }
+                MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler);
+                self.RegisterHandler(opcode, messageDispatcherInfo);
+            }
+        }
+    }
+    private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
+        if (!self.Handlers.ContainsKey(opcode)) {
+            self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+        }
+        self.Handlers[opcode].Add(handler);
+    }
+    public static void Handle(this MessageDispatcherComponent self, Session session, object message) {
+        List<MessageDispatcherInfo> actions;
+        ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
+        if (!self.Handlers.TryGetValue(opcode, out actions)) {
+            Log.Error($"消息没有处理: {opcode} {message}");
+            return;
+        }
+        SceneType sceneType = session.DomainScene().SceneType; // 【会话框】：哈哈哈，这是会话框两端，哪一端的场景呢？分不清。。。去找出来！客户端？网关服？
+        foreach (MessageDispatcherInfo ev in actions) {
+            if (ev.SceneType != sceneType) 
+                continue;
+            try {
+                ev.IMHandler.Handle(session, message);
+            }
+            catch (Exception e) {
+                Log.Error(e);
+            }
+        }
+    }
+}
+\end{minted}
+\subsection{SessionIdleCheckerComponent: 【会话框】闲置状态管理组件}
+\label{sec-3-16}
+\begin{itemize}
+\item 【会话框】闲置状态管理组件：当服务器太忙，一个会话框闲置太久，有没有什么逻辑会回收闲置会话框来提高服务器性能什么之类的？
+\item 框架里ET 命名空间：设置的机制是，任何会话框，超过 30 秒不曾发送和接收过（要30 秒内既发送过也接收到过消息）消息，都算作超时，回收，提到服务器性能。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+// 【会话框】闲置状态管理组件：当服务器太忙，一个会话框闲置太久，有没有什么逻辑会回收闲置会话框来提高服务器性能什么之类的？
+[ComponentOf(typeof(Session))]
+public class SessionIdleCheckerComponent: Entity, IAwake, IDestroy {
+    public long RepeatedTimer;
+}
+\end{minted}
+\end{itemize}
+\subsection{SessionIdleCheckerComponentSystem: SessionIdleChecker 激活类，}
+\label{sec-3-17}
+\begin{itemize}
+\item 这是前面读过的、类似实现原理的超时机制。感觉这个类，现在读起来狠简单。没有门槛。
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Invoke(TimerInvokeType.SessionIdleChecker)]
+public class SessionIdleChecker: ATimer<SessionIdleCheckerComponent> {
+    protected override void Run(SessionIdleCheckerComponent self) {
+        try {
+            self.Check();
+        } catch (Exception e) {
+            Log.Error($"move timer error: {self.Id}\n{e}");
+        }
+    }
+}
+[ObjectSystem]
+public class SessionIdleCheckerComponentAwakeSystem: AwakeSystem<SessionIdleCheckerComponent> {
+    protected override void Awake(SessionIdleCheckerComponent self) {
+        // 同样设置：【重复闹钟】：任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！
+        self.RepeatedTimer = TimerComponent.Instance.NewRepeatedTimer(SessionIdleCheckerComponentSystem.CheckInteral, TimerInvokeType.SessionIdleChecker, self);
+    }
+}// 。。。
+public static class SessionIdleCheckerComponentSystem {
+    public const int CheckInteral = 2000; // 每隔 2 秒
+    public static void Check(this SessionIdleCheckerComponent self) {
+        Session session = self.GetParent<Session>();
+        long timeNow = TimeHelper.ClientNow();
+        // 常量类定义：会话框最长每个 30 秒；
+        // 判断：30 秒内，曾经发送过消息，并且也接收过消息，直接返回；否则，算作【会话框】超时
+        if (timeNow - session.LastRecvTime < ConstValue.SessionTimeoutTime && timeNow - session.LastSendTime < ConstValue.SessionTimeoutTime) 
+            return;
+        Log.Info($"session timeout: {session.Id} {timeNow} {session.LastRecvTime} {session.LastSendTime} {timeNow - session.LastRecvTime} {timeNow - session.LastSendTime}");
+        session.Error = ErrorCore.ERR_SessionSendOrRecvTimeout; // 【会话框】超时回收
+        session.Dispose();
+    }
+}
+\end{minted}
+\end{itemize}
+\subsection{MessageHelper: 不知道这个类是作什么用的，使用场景等。过会儿看下}
+\label{sec-3-18}
+\begin{itemize}
+\item 这个类，仍然是桥接，类的各个方法里，所调用的是ActorMessageSenderComponent 里所定义的方法，来实现发送Actor 消息等。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class MessageHelper {
+    public static void NoticeUnitAdd(Unit unit, Unit sendUnit) {
+        M2C_CreateUnits createUnits = new M2C_CreateUnits() { Units = new List<UnitInfo>() };
+        createUnits.Units.Add(UnitHelper.CreateUnitInfo(sendUnit));
+        MessageHelper.SendToClient(unit, createUnits);
+    }
+    public static void NoticeUnitRemove(Unit unit, Unit sendUnit) {
+        M2C_RemoveUnits removeUnits = new M2C_RemoveUnits() {Units = new List<long>()};
+        removeUnits.Units.Add(sendUnit.Id);
+        MessageHelper.SendToClient(unit, removeUnits);
+    }
+    public static void Broadcast(Unit unit, IActorMessage message) {
+        Dictionary<long, AOIEntity> dict = unit.GetBeSeePlayers();
+        // 网络底层做了优化，同一个消息不会多次序列化
+        foreach (AOIEntity u in dict.Values) {
+            ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>().GateSessionActorId, message);
+        }
+    }
+    public static void SendToClient(Unit unit, IActorMessage message) {
+        SendActor(unit.GetComponent<UnitGateComponent>().GateSessionActorId, message);
+    }
+    // 发送协议给ActorLocation
+    public static void SendToLocationActor(long id, IActorLocationMessage message) {
+        ActorLocationSenderComponent.Instance.Send(id, message);
+    }
+    // 发送协议给Actor
+    public static void SendActor(long actorId, IActorMessage message) {
+        ActorMessageSenderComponent.Instance.Send(actorId, message);
+    }
+    // 发送RPC协议给Actor
+    public static async ETTask<IActorResponse> CallActor(long actorId, IActorRequest message) {
+        return await ActorMessageSenderComponent.Instance.Call(actorId, message);
+    }
+    // 发送RPC协议给ActorLocation
+    public static async ETTask<IActorResponse> CallLocationActor(long id, IActorLocationRequest message) {
+        return await ActorLocationSenderComponent.Instance.Call(id, message);
+    }
+}
+\end{minted}
+\subsection{ActorHandleHelper: 是谁调用它，什么场景下使用的？这个，今天下午再补吧}
+\label{sec-3-19}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+public static class ActorHandleHelper {
+    public static void Reply(int fromProcess, IActorResponse response) {
+        if (fromProcess == Options.Instance.Process) { // 返回消息是同一个进程：没明白，这里为什么就断定是同一进程的消息了？直接处理
+            // NetInnerComponent.Instance.HandleMessage(realActorId, response); // 等同于直接调用下面这句【我自己暂时放回来的】
+            ActorMessageSenderComponent.Instance.HandleIActorResponse(response); // 【没读懂：】同一个进程内的消息，不走网络层，直接处理。什么情况下会是发给同一个进程的？ET7 重构后，同一进程下可能会有不同的先前小服：Realm 注册登录服，Gate 服等；如果不同的SceneType.Map-etc 先前场景小服只要在同一进程，就可以不走网络层吗？
+            return;
+        }
+        // 【不同进程的消息处理：】走网络层，就是调用会话框来发出消息
+        Session replySession = NetInnerComponent.Instance.Get(fromProcess); // 从内网组件单例中去拿会话框：不同进程消息，一定走网络，通过会话框把返回消息发回去
+        replySession.Send(response);
+    }
+    public static void HandleIActorResponse(IActorResponse response) {
+        ActorMessageSenderComponent.Instance.HandleIActorResponse(response);
+    }
+    // 分发actor消息
+    [EnableAccessEntiyChild]
+    public static async ETTask HandleIActorRequest(long actorId, IActorRequest iActorRequest) {
+        InstanceIdStruct instanceIdStruct = new(actorId);
+        int fromProcess = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        long realActorId = instanceIdStruct.ToLong();
+        Entity entity = Root.Instance.Get(realActorId);
+        if (entity == null) {
+            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+            Reply(fromProcess, response);
+            return;
+        }
+        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+        if (mailBoxComponent == null) {
+            Log.Warning($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorRequest}");
+            IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+            Reply(fromProcess, response);
+            return;
+        }
+        switch (mailBoxComponent.MailboxType) {
+            case MailboxType.MessageDispatcher: {
+                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
+                    if (entity.InstanceId != realActorId) {
+                        IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
+                        Reply(fromProcess, response);
+                        break;
+                    } // 调用管理器组件的处理方法 
+                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
+                }
+                break;
+            }
+            case MailboxType.UnOrderMessageDispatcher: {
+                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest);
+                break;
+            }
+            case MailboxType.GateSession:
+            default:
+                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorRequest}");
+        }
+    }
+    // 分发actor消息
+    [EnableAccessEntiyChild]
+    public static async ETTask HandleIActorMessage(long actorId, IActorMessage iActorMessage) {
+        InstanceIdStruct instanceIdStruct = new(actorId);
+        int fromProcess = instanceIdStruct.Process;
+        instanceIdStruct.Process = Options.Instance.Process;
+        long realActorId = instanceIdStruct.ToLong();
+        Entity entity = Root.Instance.Get(realActorId);
+        if (entity == null) {
+            Log.Error($"not found actor: {realActorId} {iActorMessage}");
+            return;
+        }
+        MailBoxComponent mailBoxComponent = entity.GetComponent<MailBoxComponent>();
+        if (mailBoxComponent == null) {
+            Log.Error($"actor not found mailbox: {entity.GetType().Name} {realActorId} {iActorMessage}");
+            return;
+        }
+        switch (mailBoxComponent.MailboxType) {
+            case MailboxType.MessageDispatcher: {
+                using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Mailbox, realActorId)) {
+                    if (entity.InstanceId != realActorId) 
+                        break;
+                    await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
+                }
+                break;
+            }
+            case MailboxType.UnOrderMessageDispatcher: {
+                await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorMessage);
+                break;
+            }
+            case MailboxType.GateSession: {
+                if (entity is Session gateSession) 
+                    // 发送给客户端
+                    gateSession.Send(iActorMessage);
+                break;
+            }
+            default:
+                throw new Exception($"no mailboxtype: {mailBoxComponent.MailboxType} {iActorMessage}");
+        }
+    }
+}
+\end{minted}
+\begin{itemize}
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+\subsection{位置服LocationComponent 组件：现在稍微看一下模块不完整的位置服，中午笔记本上的交上去，下午家里弄弄要添加什么}
+\label{sec-3-20}
+\begin{itemize}
+\item 【位置服】是SceneType.Location; 位置组件LocationComponent 是管理类组件。一个位置服拥有一个位置组件；谁说一定是一个进程一个位置服？几台物理机只一个【位置服】也没问题呀？！就是几台物理机N*M 个核，只某个核拥有一个【位置服】SceneType.Location, 应该也是合理的，看服务端需求来。
+\item LocationComponent 缺少一个生成系，需要添加文件。可是感觉添加之前，需要把重构后的框架里这个模块，尤其 LocationProxyComponent 桥接帮助类，看懂
+\item \textbf{【源码重构】} ：【参考项目】里，程序域之前的逻辑，不够透彻，逻辑是混乱的，就是如LocationComponentSystem 类里、原本该放在【热更域】里的可更新的，是直接放在Model组件LocationComponent里不可热更新。所以要把【参考项目】LocationComponent 里的方法逻辑，移到【热更域】LocationComponentSystem 文件里。
+\item \textbf{【细节注意的地方】} ：看懂ETTask 之后，异步的逻辑能够相对明白一些。这里，要考虑每个枋每个【进程】上一个【位置服】，每个场景上一个【位置服代理】帮助类，需要注意帮助类与这里LocationComponentSystem逻辑桥接连接到不多不少。就是一部分【参考项目】LocationComponent 里的方法逻辑，可能已经被每个场景上一个【位置服代理】帮助类封装担去一部分，每个进程上【位置服】只需要处理它不得不处理的最少精减逻辑。
+\item 【参考项目】里，位置服管理进程上、跨进程中央邮政所有小伙伴实例信息。它把数据写进数据库。上面重构，仍需要考虑，使用重构后的小区DBProxy 代理实时到数据库。数据库应该也有一个专服？好像没有专服。知道分区代理。重构后的数据库相关，我消灭了编译错误，可是看来没有理解透，重构后数据库是怎么回事？
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

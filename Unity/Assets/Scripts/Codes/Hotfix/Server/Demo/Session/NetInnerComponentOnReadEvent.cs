@@ -1,12 +1,13 @@
 ﻿using System;
 namespace ET.Server { // 进程上的，内网读到消息，事件的回调
+
     [Event(SceneType.Process)] // 事件的【订阅者】，是在进程上？ 内网组件，是添加在什么场景上的？AppType.Server 上添加【内网组件】，所以回调事件，也作用在进程上
     public class NetInnerComponentOnReadEvent: AEvent<NetInnerComponentOnRead> {
         protected override async ETTask Run(Scene scene, NetInnerComponentOnRead args) {
             try {
                 long actorId = args.ActorId;
                 object message = args.Message;
-                // 收到actor消息,放入actor队列？【看不懂，队列在哪里】只能说，它是并发一条消息一条消息的执行，就当是队列了。。。
+                // 收到actor消息,放入actor队列？
 // 分不同的消息类型，借助 ActorHandleHelper 帮助类，对消息进行处理。既处理【请求消息】，也处理【返回消息】，还【普通消息】。这里我从同一进程上消息处理跟下来，应该也适用跨进程消息
                 switch (message) { // 分消息类型：处理 
                     case IActorResponse iActorResponse: { // 对【内网组件读到】【返回消息】的处理逻辑：

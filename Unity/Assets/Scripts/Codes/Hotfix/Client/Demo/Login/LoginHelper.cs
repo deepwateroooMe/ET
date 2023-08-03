@@ -2,7 +2,9 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 namespace ET.Client {
-    public static class LoginHelper { // 程序域：热更新域在。调用自热更新视图层
+
+    public static class LoginHelper { // 【重构后的文件】：使用了动态路由系统，来建立【客户端】与【网关服】的【会话框】
+
         public static async ETTask Login(Scene clientScene, string account, string password) {
             try {
                 // 创建一个ETModel层的Session.
@@ -20,11 +22,12 @@ namespace ET.Client {
                 IPEndPoint realmAddress = routerAddressComponent.GetRealmAddress(account);
                 R2C_Login r2CLogin;
                 using (Session session = await RouterHelper.CreateRouterSession(clientScene, realmAddress)) {
-                    // 这里，先去细看一下，写在 R2C_Login 里的返回消息内容是些什么？去找请求消息的服务端处理器
+                    // 这里，先去细看一下，写在 R2C_Login 里的返回消息内容是些什么？去找请求消息的服务端处理器，它帮返回给客户端的【网关服】的地址，随机分配的一个Gate
                     r2CLogin = (R2C_Login) await session.Call(new C2R_Login() { Account = account, Password = password });
                 }
                 // 创建一个gate Session,并且保存到SessionComponent中: 与网关服的会话框。主要负责用户下线后会话框的自动移除销毁
-                Session gateSession = await RouterHelper.CreateRouterSession(clientScene, NetworkHelper.ToIPEndPoint(r2CLogin.Address));
+                // 去找和理解：C2R_Login 服务端的处理逻辑，框架里现在被我弄出两个文件，来处理类似逻辑，检查一下，应该是需要删除那个自己后来添加的。
+                Session gateSession = await RouterHelper.CreateRouterSession(clientScene, NetworkHelper.ToIPEndPoint(r2CLogin.Address)); // <<<<<<<<<<<<<<<<<<<< 
                 clientScene.AddComponent<SessionComponent>().Session = gateSession;
                 
                 G2C_LoginGate g2CLoginGate = (G2C_LoginGate)await gateSession.Call(

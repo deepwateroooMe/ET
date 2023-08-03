@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Net;
 namespace ET.Server {
+    
     // 框架中原本有这个方法，为什么我需要把它改成下现在的这个样子？
     [MessageHandler(SceneType.Realm)]
     public class C2R_LoginHandler : AMRpcHandler<C2R_Login, R2C_Login> {
+
         // 【ET7 的进一步精简封装】：封装在AMRpcHandler 抽象实现类里
         protected override async ETTask Run(Session session, C2R_Login request, R2C_Login response) {
-			// 随机分配一个Gate
+			// 随机分配一个Gate? 这里不再随机了吧，分的是，来自于【客户端会话框】所在区的对应区的【网关服】。就是分小区管理
 			StartSceneConfig config = RealmGateAddressHelper.GetGate(session.DomainZone());
 			Log.Debug($"gate address: {MongoHelper.ToJson(config)}");
 			
