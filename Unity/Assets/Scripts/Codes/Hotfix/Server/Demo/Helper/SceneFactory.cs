@@ -30,10 +30,10 @@ namespace ET.Server { // 【服务端】
                     scene.AddComponent<PlayerComponent>();
                     scene.AddComponent<GateSessionKeyComponent>();
                     break;
-                // case SceneType.Match: // 我可以添加【匹配服】相关功能组件的地方。【参考项目】没有在这里添加任何组件！！自己再想下
-                //     scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
-                //     scene.AddComponent<PlayerComponent>();
-                //     break;
+                    // case SceneType.Match: // 我可以添加【匹配服】相关功能组件的地方。【参考项目】没有在这里添加任何组件！！自己再想下
+                    //     scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                    //     scene.AddComponent<PlayerComponent>();
+                    //     break;
                 case SceneType.Map:
                     scene.AddComponent<UnitComponent>();
                     scene.AddComponent<AOIManagerComponent>();
@@ -41,20 +41,21 @@ namespace ET.Server { // 【服务端】
                 case SceneType.Location: // 现在也没有位置服吧。。。有要求位置服处理的消息，所以要保留
                     scene.AddComponent<LocationComponent>(); // 暂时还没有添加这个组件: 可是明明那个分支上是有这个组件的
                     break;
-// 以下是【拖拉机服务端】自定义全局组件
-                    // GateGlobalComponent
-                    scene.AddComponent<UserComponent>();
-                    scene.AddComponent<LandlordsGateSessionKeyComponent>(); // <<<<<<<<<< 为什么这里要特制一个，同上面有什么不同？如果只是类名的不同，仅只为了客户端热更新方便吗？
-                    // MapGlobalComponent
-                    scene.AddComponent<RoomComponent>();
-                    // MatchGlobalComponent
-                    scene.AddComponent<AllotMapComponent>(); // 这里不知道，为什么也出错了？
-                    scene.AddComponent<MatchComponent>();
-                    scene.AddComponent<MatcherComponent>();
-                    scene.AddComponent<MatchRoomComponent>();
-                    // RealmGlobalComponent
-                    scene.AddComponent<OnlineComponent>();
-                    break;
+    //                 // 【检查自己上次删除时，不小心删除的一行】                    ：这里不小心删除多了，加回来说可以了
+    // // 以下是【拖拉机服务端】自定义全局组件
+    //                 // GateGlobalComponent
+    //                 scene.AddComponent<UserComponent>();
+    //                 scene.AddComponent<LandlordsGateSessionKeyComponent>(); // <<<<<<<<<< 为什么这里要特制一个，同上面有什么不同？如果只是类名的不同，仅只为了客户端热更新方便吗？
+    //                 // MapGlobalComponent
+    //                 scene.AddComponent<RoomComponent>();
+    //                 // MatchGlobalComponent
+    //                 scene.AddComponent<AllotMapComponent>(); // 这里不知道，为什么也出错了？
+    //                 scene.AddComponent<MatchComponent>();
+    //                 scene.AddComponent<MatcherComponent>();
+    //                 scene.AddComponent<MatchRoomComponent>();
+    //                 // RealmGlobalComponent
+    //                 scene.AddComponent<OnlineComponent>();
+    //                 break;
                 case SceneType.Robot:
                     scene.AddComponent<RobotManagerComponent>();
                     break;

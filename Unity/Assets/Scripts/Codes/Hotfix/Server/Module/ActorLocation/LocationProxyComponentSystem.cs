@@ -12,7 +12,6 @@ namespace ET.Server { // 说是【位置服代理】，实际是个帮助类Help
             LocationProxyComponent.Instance = null;
         }
     }
-    
     // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
     public static class LocationProxyComponentSystem { // 【位置代理组件】：先去确认，框架里使用了这个代理组件？
         private static long GetLocationSceneId(long key) { // 拿【位置服】：位置场景，实例标记号 
@@ -35,15 +34,13 @@ namespace ET.Server { // 说是【位置服代理】，实际是个帮助类Help
         }
         public static async ETTask UnLock(this LocationProxyComponent self, long key, long oldInstanceId, long instanceId) {
             Log.Info($"location proxy unlock {key}, {instanceId} {TimeHelper.ServerNow()}");
-            await ActorMessageSenderComponent.Instance
-                .Call(GetLocationSceneId(key),
-                      new ObjectUnLockRequest() { Key = key, OldInstanceId = oldInstanceId, InstanceId = instanceId });
+            await ActorMessageSenderComponent.Instance.Call(GetLocationSceneId(key),
+                                                            new ObjectUnLockRequest() { Key = key, OldInstanceId = oldInstanceId, InstanceId = instanceId });
         }
         public static async ETTask Remove(this LocationProxyComponent self, long key) {
             Log.Info($"location proxy add {key}, {TimeHelper.ServerNow()}");
-            await ActorMessageSenderComponent.Instance
-                .Call(GetLocationSceneId(key),
-                      new ObjectRemoveRequest() { Key = key });
+            await ActorMessageSenderComponent.Instance.Call(GetLocationSceneId(key),
+                                                            new ObjectRemoveRequest() { Key = key });
         }
         public static async ETTask<long> Get(this LocationProxyComponent self, long key) {
             if (key == 0) {
@@ -64,4 +61,5 @@ namespace ET.Server { // 说是【位置服代理】，实际是个帮助类Help
             await LocationProxyComponent.Instance.Remove(self.Id);
         }
     }
-} // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+}
+ // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】

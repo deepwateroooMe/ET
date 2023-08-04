@@ -1,6 +1,6 @@
 ﻿using System;
 namespace ET.Server {
-    // 不知道这是什么破烂管理系
+    // 不知道这是什么破烂管理系: 这个文件，是最后要删除掉了
     [ObjectSystem]
     public class LockInfoAwakeSystem: AwakeSystem<LockInfo, long, CoroutineLock> {
         protected override void Awake(LockInfo self, long lockInstanceId, CoroutineLock coroutineLock) {
@@ -17,7 +17,7 @@ namespace ET.Server {
     }
     [FriendOf(typeof(LocationOneType))]
     [FriendOf(typeof(LockInfo))]
-    public static class LocationOneTypeSystem { // 这个文件是最后添加的，最后再看
+    public static class LocationOneTypeSystem { // 这个文件是最后添加的，这就是自己添加的文件，链接不好惹的各种编译错误
         [ObjectSystem]
         public class LocationOneTypeAwakeSystem: AwakeSystem<LocationOneType, int> {
             protected override void Awake(LocationOneType self, int locationType) {
@@ -96,3 +96,5 @@ namespace ET.Server {
         }
     }
 }
+
+
