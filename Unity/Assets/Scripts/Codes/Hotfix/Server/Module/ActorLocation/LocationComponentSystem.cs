@@ -37,7 +37,8 @@
             LockInfo lockInfo = self.AddChild<LockInfo, long, CoroutineLock>(instanceId, coroutineLock);
             self.lockInfos.Add(key, lockInfo); // 再封装：【被锁 actorId, lock 结构体】，封装的是真正实时正在锁着的时长、过程
             Log.Info($"location lock key: {key} instanceId: {instanceId}");
-            if (time > 0) { // 要求：不立即上锁，给点儿缓冲时间 
+// 小伙伴云游上报：要2-617-1314 分钟【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+            if (time > 0) { 
                 async ETTask TimeWaitAsync() { // 这里没懂：怎么还有个 ETTask 返回类型呢？  // <<<<<<<<<<<<<<<<<<<< 
                     long lockInfoInstanceId = lockInfo.InstanceId; // 先记下：当前被锁资源【独占锁】的实例标记号
 // 【异步等待】：被要求的时长。它返回【ETTask】类型 ＝＝》这里可以决定这个内部局部异步方法的返回类型吗？
@@ -74,4 +75,6 @@
             }
         }
     }
-} // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+}
+// 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+// 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
