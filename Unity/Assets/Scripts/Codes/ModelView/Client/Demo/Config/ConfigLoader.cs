@@ -40,11 +40,11 @@ namespace ET.Client {
                     }
                     output[configType] = File.ReadAllBytes(configFilePath);
                 }
-            } else {
-                using (Root.Instance.Scene.AddComponent<ResourcesComponent>()) { // <<<<<<<<<<<<<<<<<<<< 
+            } else { // 这个分支：先花点儿时间，走一遍真正的【客户端】（而非编辑器模式）从资源包读配置的过程，从哪里下载的资源包，以及找个本地资源包出来看下，内容应该是一样的？【这里还，不曾涉及，要从哪个资源服务器下载热更新资源包的过程】
+                using (Root.Instance.Scene.AddComponent<ResourcesComponent>()) { // 这里只是： using 结束后，自动回收垃圾
                     const string configBundleName = "config.unity3d";
                     ResourcesComponent.Instance.LoadBundle(configBundleName);
-                    
+
                     foreach (Type configType in configTypes) {
                         TextAsset v = ResourcesComponent.Instance.GetAsset(configBundleName, configType.Name) as TextAsset;
                         output[configType] = v.bytes;

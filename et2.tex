@@ -1,4 +1,4 @@
-% Created 2023-07-27 Thu 14:58
+% Created 2023-08-04 Fri 11:56
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -747,6 +747,7 @@ public struct MeasureState<T> : IDisposable {
 }
 \end{minted}
 
+
 \section{Protobuf 里的 enum: 【Identity】【Suits】【Weight】}
 \label{sec-2}
 \subsection{OuterMessage\_C\_10001.proto 里三四个类的定义}
@@ -877,6 +878,7 @@ unsafe class ETModel_Card_Binding {
     }
 \end{minted}
 \end{itemize}
+
 
 \section{【拖拉机游戏房间】组件: 分析}
 \label{sec-3}
@@ -1177,6 +1179,7 @@ public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：�
 \end{minted}
 \end{itemize}
 
+
 \section{ET7 数据库相关【服务端】}
 \label{sec-4}
 \begin{itemize}
@@ -1270,8 +1273,12 @@ public class DBProxyComponent: Component {
 \end{minted}
 \end{itemize}
 
-\section{先前版本LocationComponent 原理分析}
+
+\section{位置服LocationComponent 组件：}
 \label{sec-5}
+
+\subsection{先前版本LocationComponent 原理分析}
+\label{sec-5-1}
 \begin{itemize}
 \item 框架的应用场景里，知道对方的 InstanceId 就可以给对方发消息。
 \item 问题是，对方的可以下线再上线，活宝妹可以从加州地图服重入亲爱的表哥所在的WA 地图服（不同州的地图服服务器进程不一样），对方的 InstanceId 是变化的，小伙伴也可以搬家，搬家过程中位置不确认，还要先锁住，搬完才实时更新位置服管家。
@@ -1284,14 +1291,146 @@ public class DBProxyComponent: Component {
 \item 【亲爱的表哥的活宝妹，小呀头片子有点儿叨钻，可是上面想的都是对的，两分钟这个模块的几个编译错误全不见了。。。活宝妹就是一定要嫁给亲爱的表哥！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 \end{itemize}
+\subsection{LocationComponent:}
+\label{sec-5-2}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+namespace ET.Server {
+// 这个【ActorLocation】文件夹：原本只是没有ActorLocationSenderOneType.cs 类。不曾细看【跨进程位置】相关
+// 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+    [ChildOf(typeof(LocationComponent))] // 【位置服】的组件：
+    public class LockInfo: Entity, IAwake<long, CoroutineLock>, IDestroy { // 打包：协程锁的实例标记号 + 独占锁
+    public long LockInstanceId;
+    public CoroutineLock CoroutineLock;
+    }
+    [ComponentOf(typeof(Scene))]
+    // 【位置组件】：去细看两个字典，所做的具体的事情。这里是，被自己弄丢了文件，还是自己添加了这个位置服，但是没整合生成系？去看源码，有没有【位置组件】，有没有相应的生成系
+    // 没整合生成系：就是这里Model 域里定义了说有个【位置管理组件】，但是热更域里什么也没有，没有定义执行逻辑，需要一个LocationComponentSystem|Helper 之类的类
+    public class LocationComponent: Entity, IAwake { 
+        public readonly Dictionary<long, long> locations = new Dictionary<long, long>();
+        public readonly Dictionary<long, LockInfo> lockInfos = new Dictionary<long, LockInfo>();
+        }
+    }
+}
+\end{minted}
+\subsection{LocationComponentSystem: 源码里是有这个文件的}
+\label{sec-5-3}
+\begin{itemize}
+\item 几个最主要的方法，看起来狠简单。
+\item 两处：【异步返回类型】感觉相对生疏。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[FriendOf(typeof(LocationComponent))]
+[FriendOf(typeof(LockInfo))]
+public static class LocationComponentSystem {
+// 添加【注册】的是：【被锁 actorId, 当前——独占锁的实例标记号】这里好像被我写错了，值，应该是，被查小伙伴所在进程的地址
+    public static async ETTask Add(this LocationComponent self, long key, long instanceId) { 
+        using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Location, key)) {
+            self.locations[key] = instanceId;
+            Log.Info($"location add key: {key} instanceId: {instanceId}");
+        }
+    }
+    // 【下线销号移除】：
+    public static async ETTask Remove(this LocationComponent self, long key) {
+        using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Location, key)) {
+            self.locations.Remove(key);
+            Log.Info($"location remove key: {key}");
+        }
+    } // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+    // 【小伙伴云游】：上报、预报上锁时长
+    public static async ETTask Lock(this LocationComponent self, long key, long instanceId, int time = 0) { // 忘记这个Key 是什么了，是 actorId
+        // 【入队列站列排号】：直到获得异步资源，标记是拿到一把【独占锁】
+        CoroutineLock coroutineLock = await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Location, key);
+        LockInfo lockInfo = self.AddChild<LockInfo, long, CoroutineLock>(instanceId, coroutineLock);
+        self.lockInfos.Add(key, lockInfo); // 再封装：【被锁 actorId, lock 结构体】，封装的是真正实时正在锁着的时长、过程
+        Log.Info($"location lock key: {key} instanceId: {instanceId}");
+// 小伙伴云游上报：要2-617-1314 分钟【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+        if (time > 0) { 
+            async ETTask TimeWaitAsync() { // 这里没懂：怎么还有个 ETTask 返回类型呢？  // <<<<<<<<<<<<<<<<<<<< 
+                long lockInfoInstanceId = lockInfo.InstanceId; // 先记下：当前被锁资源【独占锁】的实例标记号
+// 【异步等待】：被要求的时长。它返回【ETTask】类型 ＝＝》这里可以决定这个内部局部异步方法的返回类型吗？
+                await TimerComponent.Instance.WaitAsync(time); 
+                if (lockInfo.InstanceId != lockInfoInstanceId) // 再检查：独占锁的实例标记号，是否变了？什么情况下，有可能会变呢？
+                    return;
+                Log.Info($"location timeout unlock key: {key} instanceId: {instanceId} newInstanceId: {instanceId}");
+                self.UnLock(key, instanceId, instanceId);
+            } // 上面：它定义了这个内部方法，只执行了一次，只等待了一次要求的时长，应该不是无限上锁直到再上报的
+            TimeWaitAsync().Coroutine();
+        }
+    }
+    public static void UnLock(this LocationComponent self, long key, long oldInstanceId, long newInstanceId) { // 解锁
+        if (!self.lockInfos.TryGetValue(key, out LockInfo lockInfo)) { // 先检查几个异常
+            Log.Error($"location unlock not found key: {key} {oldInstanceId}");
+            return;
+        }
+        if (oldInstanceId != lockInfo.LockInstanceId) {
+            Log.Error($"location unlock oldInstanceId is different: {key} {oldInstanceId}");
+            return;
+        }
+        Log.Info($"location unlock key: {key} instanceId: {oldInstanceId} newInstanceId: {newInstanceId}");
+        self.locations[key] = newInstanceId; // 写入小本：【被锁 actorId, 被锁 actorId 所在的进程号】为的是方便它是必消息到被查地址小伙伴所在的进程
+        self.lockInfos.Remove(key); // 先从字典管理中移除 
+        // 解锁：就是回收掉了呀
+        lockInfo.Dispose();
+    }
+    // 这些异步返回类型，看着还理解不太顺。。。
+    public static async ETTask<long> Get(this LocationComponent self, long key) { // 查询：位置信息  // <<<<<<<<<<<<<<<<<<<< 
+        using (await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Location, key)) { // 挂号排队站队锁：这个步骤，是【异步】
+            self.locations.TryGetValue(key, out long instanceId);
+            Log.Info($"location get key: {key} instanceId: {instanceId}");
+            return instanceId; // 返回 ETTask<lomg> 因为被排队挂号异步等待过
+        }
+    }
+}
+\end{minted}
+\subsection{LocationProxyComponent:}
+\label{sec-5-4}
+\begin{itemize}
+\item 不知道我先前对【SceneType.Process】的理解与定义，是否正确？：感觉它像是一台物理机N 个核中每个进程上【1-M】个场景中最特殊的一个场景【SceneType.Process】。亲爱的表哥的活宝妹，把它理解成了：同一进程中多线程环境中的主线程。主线程一定存在，每个核都会有一个【SceneType.Process】场景；主线程要同步异步线程结果等，所以这个场景极为特殊。不知道对了没？
+\item 这里以一个核一个进程为单位。它是添加在每个进程上【SceneType.Process】，因为其特殊性，可供可代理【1-N】个场景需求与使用？
+\item 是【SceneType.Process】层面上添加了这个代理组件。去想， N 台物理机，每台M 个核，共N × M 个进程代理，与N × M 中某一个进程下（可能有的【1-X】个不同场景不同小服中）的一条线程场景【SceneType.Location】【位置服】，与共N × M 个进程代理，之间的链接。
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[ComponentOf(typeof(Scene))] // 每个场景上？，有个位置服代理？组件是添加在每个核每个进程的【SceneType.Process】进程场景上；全【服务端】可以有【1-X】个【SceneType.Location 位置服】位置服可以有多个
+public class LocationProxyComponent: Entity, IAwake, IDestroy {
+    [StaticField]
+    public static LocationProxyComponent Instance; // 每个场景上，一个实例
+}
+\end{minted}
+\subsection{LocationProxyComponentSystem:}
+\label{sec-5-5}
+\begin{itemize}
+\item 现在做的事情是：在确认【位置服】位置组件正确，各场景里位置代码组件源码正确的基础上，把这个先前一直以为被框架源破坏者删除得什么也不剩下的模块，理解透彻。会去看【位置服】位置组件几个主要需要（位置的注册、更新、查询、小伙伴搬家上报上锁，搬完上报解锁等主要相关逻辑）既然对比完了两个主要系，提上去，笔记本上看起来更方便，把这个模块看完。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【位置服】是SceneType.Location; 位置组件LocationComponent 是管理类组件。一个位置服拥有一个位置组件；谁说一定是一个进程一个位置服？几台物理机只一个【位置服】也没问题呀？！就是几台物理机N*M 个核，只某个核的可能存在的【1-X】个场景中（特殊主线程场景 Process ＋ Location,etc），拥有一个【位置服】SceneType.Location, 应该也是合理的，看服务端需求来。并且，并不是说就一定只有一个【位置服】，不是说可以分身分线什么的吗，就是一个【位置服】同时开X 台线程。。。。
+\item 【细节注意的地方】：看懂ETTask 之后，异步的逻辑能够相对明白一些。这里，要考虑【服务端】总共MN 个核，可能有的一个或几个【位置服】，每个核的每个进程场景上一个【位置服代理】，需要注意帮助类与这里LocationComponentSystem逻辑桥接连接到不多不少。就是一部分【参考项目】LocationComponent 里的方法逻辑，可能已经被每个进程场景上一个【位置服代理】帮助类封装担去一部分，【服务端】总共的1 个或是几个【位置服】只需要处理它不得不处理的最少精减逻辑。
+\item 【参考项目】里，位置服管理进程上、跨进程中央邮政所有小伙伴实例信息。它把数据写进数据库。上面重构，仍需要考虑，使用重构后的小区DBProxy 代理实时到数据库。数据库应该也有一个专服？好像没有专服。知道分区代理。重构后的数据库相关，我消灭了编译错误，可是看来没有理解透， \textbf{重构后，【位置服】对数据的管理，是不需要再写进数据库的吗？} 这个问题，可以自己消灭所有的编译错误后再回来做。
+\item 自己对【位置服】这个模块的理解基本正确，几处小地方不是太懂，比如两个异步返回类型，两处添加位置信息到【位置服】方法调用，但是都会弄明白的。
+\item \textbf{【明天上午看】} ：现在还存在编译错误，感觉仍然需要再去读源码的、 \textbf{不管是命令行启动服务器，还是怎么样，服务端场景的初始化配置相关} 。现在是能够把物理机、内个核，核里的多场景，基本想明白。可是 \textbf{【服务端起始】初始化配置} ，还要再去读。明天上午读。
+\end{itemize}
+
 
 \section{StartConfigComponent: 找【各种服】的起始初始化地址}
 \label{sec-6}
 \begin{itemize}
 \item 【服务端】是自己最不熟悉的模块。活宝妹可以啃下安卓，可以写游戏，学习和熟悉游戏引擎都没问题。学习上或是运动上，活宝妹喜欢像运行员一样可以挑战运动极限。活宝妹只有一样，那就是活宝妹就是一定要嫁给亲爱的表哥！！！
-\item 【服务端、各服务器的配置、启动初始化】：是这个模块想要总结的内容。这个模块，因为框架重构里所接入的【路由器系统】的整合（感觉起来，就是通过网络，一台台服务端的服务器起来，一台台起来的服务器都向某个路由服，如同各客户端实时向位置服更新客户端的位置信息般，各小服专职服都向路由服上班打卡？要把这些看明白），让活宝妹理解起这个模块来显得相对困难，大概明天上午一上午的时间，都会花在这个模块上。
+\item 【服务端、各服务器的配置、启动初始化】：是这个模块想要总结的内容。这个模块，因为框架重构里所接入的【路由器系统】的整合（感觉起来，就是通过网络，一台台服务端的服务器起来，一台台起来的服务器都向某个路由服，如同各客户端实时向位置服更新客户端的位置信息般，各小服专职服都向路由服上班打卡？要把这些看明白），让活宝妹理解起这个模块来显得相对困难
 \item 同步，需要把所涉及的为方便服务端各服务器初始化而定义的各接口，实现类，以及用法弄明白。
+\item 从这行开始，下面小章节之前，转载网络上的关于ET6.0 的服务端配置或是启动的理解。（网络上的也未必正确）
+\item 它说ET6.0, 服务端配置依赖几个配置表格，就是框架里有 Excel 读与解析的工具模块，是从表格配置服务器的。应该也是说服务端最初第一次启动的时候。因为服务端启动后，几乎可以做到永远不关服。【任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！活宝妹还没能嫁给亲爱的表哥，活宝妹就永远也不再离开这里，会永远守候在亲爱的表哥这里！！！】
+\item 自己文件夹里简单翻了一下：ET7 里不再是Excel 表格，而是Json 格式的 X.txt 配置文件。举个例子：StartMachineConfig.txt:
+\begin{minted}[fontsize=\scriptsize,linenos=false]{text}
+{"list":[
+    {"_t":"StartMachineConfig","_id":1,"InnerIP":"127.0.0.1","OuterIP":"127.0.0.1","WatcherPort":"10000"},
+]}
+\end{minted}
+\item 框架里规则定义了的几类文件的功能，分述如下：
+\begin{itemize}
+\item 【StartMachineConfig】：启动的物理机器配置，每一条代表一台物理机，包括id，内外网地址，以及一个守护进程端口
+\item 【StartZoneConfig】：相关游戏区的配置，现在里面已经写好的配置，每一条代表一个区连接的数据库配置
+\item 【StartProcessConfig】：启动的进程配置，当启动一个ET6.0的服务器时，会根据传入的数据读取这个配置确定服务器应该以什么样的配置运行当前进程
+\item 【StartSceneConfig】：启动服务器时，这个表里面的配置，决定了给这个服务器添加什么类型的服务功能（暂且理解为，其中的一个场景就是一种服务，对应有：Realm服（用于认证玩家），Gate服（经过认证后所有与客户端通信），Location服（用于提供查找Actor定位服），Map服（用于管理玩家游戏实体，互相通信））。注意Process字段表示所属的进程，Zone字段表示游戏区的概念。如果这里的Process填的进程id与StartProcessConfig对不上，那么没有任何服务功能会在启动的服务器里。
 \end{itemize}
+\end{itemize}
+
 \subsection{模块里所用到的几个。NET 里的接口, 以及自定义的框架底层辅助体系类等}
 \label{sec-6-1}
 \subsubsection{ISupportInitialize: 【初始化】的支持接口，就是提供了【初始化之前】【初始化之后】的回调，两个API}
@@ -1401,36 +1540,42 @@ public abstract class ProtoObject: Object, ISupportInitialize {
 \subsection{ConfigLoader.cs: 【服务端】是理解接下来部分的基础。【客户端】有不同逻辑。所以要把两边的都看一下}
 \label{sec-6-3}
 \begin{itemize}
-\item 这个类名奇怪的地方是：它明明是定义了两个Invoke 标签事件的触发回调逻辑，为什么它的名字叫的是ConfigLoader? 感觉是扫描程序域里所有的【Config】标签一样。。。
 \item 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 这个文件的GetAllConfigBytes 类中的回调：会去事件系统拿程序域里所有标记【Config】标签的类型，并根据这些标签类型是否为四大单例类之一来确认读取配置的位置。就是四个单例管理类的配置位置会相对特殊一点儿。
+\item 需要理解【服务端】命令行启动起始的配置过程。
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke] // 激活系: 这个激活系是同属ET 强大的事件系统的一个标签和回调逻辑，处理两种类型： GetAllConfigBytes 和 GetOneConfigBytes
 public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes, Dictionary<Type, byte[]>> {
+// 【服务端】命令行的启动、起始，的大致过程：
+    // 命令行，各种参数，下发命令，启动服务端【这里细节去找】：是以物理机、进程、场景、Zone 为启动单位，可以在各个不同层面启动的吗？还是只能物理机？
+    // 框架里封装过的命令行解析：解析入Options 单例类，以及如下【四大文件】主要管理，以及其它小兵小将文件，如 UnitConfigCategory.bytes 里
+    // 这个文件提供两种查询方式：拿到全局所有配置，和，可以来拿来读某种特例配置。拿的方式是：这里去到了初始配置时写的几个文件里去读，读所有，和读 specific
     public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {
-        Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>();
-        List<string> startConfigs = new List<string>() {
+        Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>(); // 准备一个小本字典：准备记笔记
+        // 它分了这几类来管理，然后就把【服务端】起来时的各种配置，写入了这几类文件。要用的时候，从保存过的这些配置文件里去读。。。？
+        List<string> startConfigs = new List<string>() { // 几个类型的区分：去看对这几种类型的管理，什么内容添加进了它们的管理里？
             "StartMachineConfigCategory",  // 涉及底层配置的几个单例类，为什么这四个单例类类型重要： Machine, Process 进程、Scene 场景， Zone 区
             "StartProcessConfigCategory", 
             "StartSceneConfigCategory", 
             "StartZoneConfigCategory",
         };
-// 类型：这里，扫的是所有【Invoke】标签（好像不对），还是说如【Invoke(TimerInvokeType.ActorMessegaeSenderChecker)】之类的Invoke 标签的类型属性？去看一下方法定义
+// 类型：这里，扫的是所有【Config】标签
         HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute)); // 【Config】标签：返回程序域里所有的【Config】标签类型
         foreach (Type configType in configTypes) {
             string configFilePath;
-            if (startConfigs.Contains(configType.Name)) { // 【单例管理类型】：有特异性的配置路径
+// 【路径中的参数】：Options.Instance, 不是说是从命令行参数解析进单例类里的吗？那么【服务端】最初的激活启动是来自于命令行的命令。【服务端命令行启动】，功能，要在框架里找一找
+            if (startConfigs.Contains(configType.Name)) { // 【单例管理类型】：有特异性的配置路径，读的都是【仅服务端】文件夹中的配置，不适用于【双端】模式。读命令行中的一个参数
                 configFilePath = $"../Config/Excel/s/{Options.Instance.StartConfig}/{configType.Name}.bytes";    
-            } else { // 其它：人海里的路人甲，读下配置就扔掉
-                configFilePath = $"../Config/Excel/s/{configType.Name}.bytes";
+            } else { // 其它：人海里的路人甲，读下配置就扔掉。 框架里保存过的配置包括： UnitConfigCategory.bytes 和另外一个
+                configFilePath = $"../Config/Excel/s/{configType.Name}.bytes"; 
             }
-            output[configType] = File.ReadAllBytes(configFilePath);
+            output[configType] = File.ReadAllBytes(configFilePath); // 把读到的配置，一条一条记入小本
         }
-        return output;
+        return output; // 返回所有配置 
     }
 }
-[Invoke]
+[Invoke] // 这个标签的激活：现在框架里，好像还不存在，任何一个已经写过的 {args.ConfigName}.bytes 的例子，还没用到？
 public class GetOneConfigBytes: AInvokeHandler<ConfigComponent.GetOneConfigBytes, byte[]> {
     public override byte[] Handle(ConfigComponent.GetOneConfigBytes args) {
         // 【Invoke 回调逻辑】：从框架特定位置，读取特定属性条款的配置，返回字节数组
@@ -1439,10 +1584,16 @@ public class GetOneConfigBytes: AInvokeHandler<ConfigComponent.GetOneConfigBytes
     }
 }
 \end{minted}
-\subsection{ConfigLoader:【客户端】}
+\subsection{ConfigLoader:【客户端】：【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
 \label{sec-6-4}
 \begin{itemize}
-\item 【客户端】与【服务端】不同的是，客户端需要区分当前的运行，是在编辑器模式下，还是真正运行在客户端设备（PC 平台）。编辑器模式下，如服务端，去特定的位置去读配置文件；而真正的客户端，就需要从热更新资源服务器（斗地主参考项目中，仍是有个其它语言的最小最精致热更新资源包专职服务器的，ET7 里好像没有了，而是放在一个特定的文件夹下？）服务端来下载配置资源包，读取资源包里的配置内容，并字典管理，
+\item 【客户端】与【服务端】不同的是，客户端需要区分当前的运行，是在编辑器模式下，还是真正运行在客户端设备（PC 平台）。
+\begin{itemize}
+\item 编辑器模式下，如服务端，去特定的位置去读配置文件；
+\item 而真正的客户端，就需要从热更新资源服务器（斗地主参考项目中，仍是有个其它语言的最小最精致热更新资源包专职服务器的，ET7 里好像没有了，而是放在一个特定的文件夹下？）服务端来下载配置资源包，读取资源包里的配置内容，并字典管理。
+\end{itemize}
+\item \textbf{加载【配置资源包】的过程} ：任何一个资源包，都可能会有N 级嵌套的依赖包。方法里会去拿所有的依赖包并拓扑排序（嵌套层次最深、被依赖得层次最深的资源包，永远排最前、最先加载）。返回的排序依赖包，也包含了当前包，当前包排在最后。并按拓扑排序一一加载。 \textbf{【活宝妹亲爱的表哥，永远是活宝妹的最最依赖的依赖包！！永远排第一位。活宝妹的亲爱的表哥来找亲爱的表哥的活宝妹，一起手牵手去领结婚证，是所有资源包的头儿，是接下来后续一切美好的开始～～！！！爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
+\item 这里，还没能找到热更新资源服务端，动态下载热更新资源包的逻辑。可能在其它模块。
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [Invoke]
@@ -1482,8 +1633,8 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
                 }
                 output[configType] = File.ReadAllBytes(configFilePath);
             }
-        } else {
-            using (Root.Instance.Scene.AddComponent<ResourcesComponent>()) { // <<<<<<<<<<<<<<<<<<<< 
+        } else { // 这个分支：先花点儿时间，走一遍真正的【客户端】（而非编辑器模式）从资源包读配置的过程，从哪里下载的资源包，以及找个本地资源包出来看下，内容应该是一样的？【这里还，不曾涉及，要从哪个资源服务器下载热更新资源包的过程】
+            using (Root.Instance.Scene.AddComponent<ResourcesComponent>()) { // 这里只是： using 结束后，自动回收垃圾
                 const string configBundleName = "config.unity3d";
                 ResourcesComponent.Instance.LoadBundle(configBundleName);
 
@@ -1508,7 +1659,7 @@ public class GetOneConfigBytes: AInvokeHandler<ConfigComponent.GetOneConfigBytes
 \subsection{ConfigComponent 组件：单例类。底层组件，负责服务端配置相关管理？}
 \label{sec-6-5}
 \begin{itemize}
-\item 这个底层组件的内部，涉及ET 标签事件系统的扫描【Config】标签，并Invoke 相关（服务端的配置与启动？）这里花点儿时间，再进去把ET 事件系统中各小服服务端根据(excel? 等) 配置文件来加载和启动服务端（或是服务端的必要配置）的原理弄懂
+\item 这个底层组件的内部，涉及ET 标签事件系统的扫描【Config】标签？（这个不是这个组件的定义里，在被激活的一个类的拿全局所有配置的被激活方法里），并Invoke 一两个激活类里定义过的方法，来从全局配置文件（本地，特定路径，或是【客户端】从【热更新】资源包加载【配置资源包】）读取相关配置再返回。
 \item 框架事件系统里，有对各种不同标签的处理逻辑。Invoke 同理。程序域加载时，它扫描和管理框架里的所有必要相关标签，同Invoke 标签同样有字典（套字典）纪录管理不同参数类型（args）的字典，字典里不同类型（type) 的激活处理器。对于特定的参数类型，type 类型，如果能够找到激活处理器，就会触发调用此激活回调，来作相应的处理。
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -1535,11 +1686,15 @@ public T Invoke<A, T>(A args) where A: struct {
 }
 \end{minted}
 \begin{itemize}
-\item 框架最底层的封装原理如此。这里，更多的是需要去找当前配置系，激活处理器的具体实现逻辑（在ConfigLoader.cs 文件里，两个回调类类型），来理解这个初始化加载模块。
-\item 感觉今天上午把目前看到的这些，读得还算比较透彻。【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+\item 框架最底层的封装原理如此。这里，更多的是需要去找当前配置系，激活处理器的具体实现逻辑（在ConfigLoader.cs 文件里，两个回调类类型）
+\item 知道这些狠多的配置是单例类。仍然迷糊的是：这些文件这些配置管理，它们属于哪个功能模块，哪个场景或是进程或是应用，它们是谁，是如何发挥作用的？可以明白， \textbf{根据热更新过的资源包不关服热更新成不同配置，不关服热更新服务端配置} 。它是DOTNET 服务端应用吗？它是管理总后台？【这个要，查看明白】
+\item 细节上：不明白的是： \textbf{【配置字节数据的反序列化】} 的必要，进一步去想，【服务端】N 台物理机，每台M 个核，每个核一再添加多线程 SceneType.XScene 的启动过程？
+\item 所以要去想，【服务端】的启动过程，它们的配置，是否由每个核、每个进程上的各个小服，如【动态路由系统】般，小伙伴云游般，跨进程？各自上报，到管理总后台的？如此，【序列化】【反序列】才更好理解。要去框架里去找。。。
+\item Deserialize【序列化】与【反序列化】：【服务端】各小服的启动、配置【自底向上】自动上报、集合的过程？？？【服务端】根据必要的【热更新资源所】【自顶向下】不关服、动态更新配置的过程？
+\item 【亲爱的表哥，活宝妹一定要嫁的亲爱的表哥！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
-// Config组件会扫描所有的有【Config】标签的配置,加载进来：它借助了两套加载系统，加载一个配置，与加载所有配置。而配置仍是通过【Config】标签来标记配置类型
+// Config组件会扫描所有的有【Config】标签的配置,加载进来
 public class ConfigComponent: Singleton<ConfigComponent> {
     public struct GetAllConfigBytes {  }
     public struct GetOneConfigBytes {
@@ -1551,14 +1706,18 @@ public class ConfigComponent: Singleton<ConfigComponent> {
             kv.Value.Destroy();
         }
     }
-    public object LoadOneConfig(Type configType) {
+    public object LoadOneConfig(Type configType) { // 【服务端的、不关服、热更新配置】：是这个方法里实现的吗？ 
         this.allConfig.TryGetValue(configType, out ISingleton oneConfig);// oneConfig：这里算是自定义变量的【申明与赋值】？
-        if (oneConfig != null) {
+// 细节：这两行逻辑，实际已经实现了？：【服务端不关服热更新】。这里说，以前加载过的，就见鬼去吧。。重新加载新的。就可以实现重新加载热更新过的资源包，和重新更新配置？【任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+        if (oneConfig != null) 
             oneConfig.Destroy();
-        } 
         // 跟进Invoke: 去看一下框架里事件系统，找到具体的激活回调逻辑定义类：ConfigLoader.cs, 去查看里面对 GetOneConfigBytes 类型的激活触发逻辑
         byte[] oneConfigBytes = EventSystem.Instance.Invoke<GetOneConfigBytes, byte[]>(new GetOneConfigBytes() {ConfigName = configType.FullName});
-        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length);
+        // 下面的Deserialize: 不知道这些配置管理是 dotnet 服务端管理总后台？为什么需要反序列化？知道 byte 转对象有个步骤，可是反序列化？？？
+        // 所以要去想，【服务端】的启动过程，它们的配置，是否由每个核、每个进程上的各个小服，如【动态路由系统】般，小伙伴云游般，跨进程？各自上报，到管理总后台的？如此，【序列化】【反序列】才更好理解。要去框架里去找。。。
+        // Deserialize【序列化】与【反序列化】：【服务端】各小服的启动、配置【自底向上】自动上报、集合的过程？？？【服务端】根据必要的【热更新资源包】【自顶向下】不关服、动态更新配置的过程？
+        // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length); // <<<<<<<<<<<<<<<<<<<< 
         ISingleton singleton = category as ISingleton;
         singleton.Register(); // 【单例类初始化】：如果已经初始化过，会抛异常；单例类只初始化一次
         this.allConfig[configType] = singleton; // 底层：管理类单例类，不同类型，各有一个。框架里就有上面看过的四大单例类
@@ -1570,7 +1729,7 @@ public class ConfigComponent: Singleton<ConfigComponent> {
         Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(new GetAllConfigBytes());
         foreach (Type type in configBytes.Keys) {
             byte[] oneConfigBytes = configBytes[type];
-            this.LoadOneInThread(type, oneConfigBytes);
+            this.LoadOneInThread(type, oneConfigBytes); // 每种配置：开一个线程去处理
         }
     }
     public async ETTask LoadAsync() { // 哪里会调用这个方法？Entry.cs 服务端起来的时候，会调用此底层组件，加载各单例管理类。细看一下这里服务端启动初始化逻辑
@@ -1586,9 +1745,8 @@ public class ConfigComponent: Singleton<ConfigComponent> {
         }
         await Task.WhenAll(listTasks.ToArray());
     }
-
     private void LoadOneInThread(Type configType, byte[] oneConfigBytes) {
-        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length);
+        object category = SerializeHelper.Deserialize(configType, oneConfigBytes, 0, oneConfigBytes.Length); // 先反序列化
         lock (this) {
             ISingleton singleton = category as ISingleton;
             singleton.Register(); // 注册单例类：就是启动初始化一个单例类吧，框架里 Invoke 配置相关，有四大单例类
@@ -1604,34 +1762,37 @@ public class ConfigComponent: Singleton<ConfigComponent> {
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
-        [StaticField]
-        private static T instance;
-        public static T Instance {
-            get {
-                return instance ??= ConfigComponent.Instance.LoadOneConfig(typeof (T)) as T;
-            }
+    [StaticField]
+    private static T instance;
+    public static T Instance {
+        get {
+            return instance ??= ConfigComponent.Instance.LoadOneConfig(typeof (T)) as T;
         }
-        void ISingleton.Register() {
-            if (instance != null) {
-                throw new Exception($"singleton register twice! {typeof (T).Name}");
-            }
-            instance = (T)this;
-        }
-        void ISingleton.Destroy() {
-            T t = instance;
-            instance = null;
-            t.Dispose();
-        }
-        bool ISingleton.IsDisposed() {
-            throw new NotImplementedException();
-        }
-        public override void AfterEndInit() { } // <<<<<<<<<<<<<<<<<<<< 一个回调接口API
-        public virtual void Dispose() { }
     }
+    void ISingleton.Register() {
+        if (instance != null) {
+            throw new Exception($"singleton register twice! {typeof (T).Name}");
+        }
+        instance = (T)this;
+    }
+    void ISingleton.Destroy() {
+        T t = instance;
+        instance = null;
+        t.Dispose();
+    }
+    bool ISingleton.IsDisposed() {
+        throw new NotImplementedException();
+    }
+    public override void AfterEndInit() { // 这里就是想要桥接：ProtoObject 里所实现过的【初始化前后】可以做的事情，接口，给框架使用者一些可用接口
+    }
+    public virtual void Dispose() {
+    }
+}
 \end{minted}
 \subsection{StartMachineConfig: 抓四大单例管理类中的一个来读一下}
 \label{sec-6-7}
 \begin{itemize}
+\item 它，是不是，开启一台物理机的配置呢？再读，来回答这里Y N
 \item 同样的命名空间，同一个文件，完全相同的类型，没弄明白的是，它为什么会在框架里出现两遍？是叫 partial-class, 可是这样的原理、两个文件的区别，以及用途，是在哪里是什么？
 \item 这个单例类型只存在于【服务端】。但是ET 框架里，双端框架有多种不同运行模式。客户端可以作为独立客户端来运行，也可以作为双端模式运行（就是内自带一个服务端）。这里的服务端就同理，可是作为独立服务端，只作服务端，也可以作为客户端在双端运行模式中，客户端自身所携带的服务端来运行。所以，框架里它出现了两次。
 \item 另一个问题是：这个类是 Generated （/Users/hhj/pubFrameWorks/ET/Unity/Assets/Scripts/Codes/Model/Generate/ClientServer/Config/StartMachineConfig.cs）, 是框架自动生成的类，没有看懂。为什么框架会生成这个类？
@@ -1867,6 +2028,7 @@ public partial class StartSceneConfigCategory {
     }
 }
 \end{minted}
+
 \section{RouterAddressComponent: 【动态路由组件、模块】相关}
 \label{sec-7}
 \begin{itemize}
@@ -2039,6 +2201,9 @@ public static class LoginHelper { // 程序域：热更新域在。调用自热�
 \end{minted}
 \subsection{RouterHelper: 【客户端——路由器帮助类】，向路由器注册、申请？LoginHelper.cs 的逻辑里用到这个帮助类。}
 \label{sec-7-5}
+\begin{itemize}
+\item 理论上讲，它帮助【客户端】建一个【客户端】与【网关服】的【会话框】。这里，没能想明白，重构，改为【动态路由系统】的原因、原理是什么？
+\end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 // 【路由器帮助类】：是【客户端】与客户端局域网下的【路由器】之间获取网络地址、建立连接等，相关必要操作帮助类
 // 这个类，框架开发者的原始标记，都看不懂。能够看懂、想出自己理解的一个大概轮括。需要改天准备了必要基础知识后再读一遍
@@ -2608,6 +2773,8 @@ public class RouterComponent: Entity, IAwake<IPEndPoint, string>, IDestroy, IUpd
 \label{sec-7-22}
 \begin{itemize}
 \item 这个热更域里的组件相关生命周期方法的定义，必要功能的定义等，这个类太长了，不贴这里。必要的时候去翻了看下就行。
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

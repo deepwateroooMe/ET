@@ -124,29 +124,30 @@ namespace ET.Client {
             self.DependenciesCache.Add(assetBundleName, dependencies);
             return dependencies;
         }
-        private static string[] GetSortedDependencies(this ResourcesComponent self, string assetBundleName) {
+        private static string[] GetSortedDependencies(this ResourcesComponent self, string assetBundleName) { // 返回值：包含当前包
             var info = new Dictionary<string, int>();
             var parents = new List<string>();
-            self.CollectDependencies(parents, assetBundleName, info);
-            string[] ss = info.OrderBy(x => x.Value).Select(x => x.Key).ToArray();
-            return ss;
+            self.CollectDependencies(parents, assetBundleName, info); // 感觉这里，像是，把所有依赖包读进字典的样子
+            string[] ss = info.OrderBy(x => x.Value).Select(x => x.Key).ToArray(); // 依赖拓朴（最被依赖、嵌套层次最深，值数字越小，排最前面）排序
+            return ss; // 返回 
         }
+        // 下面这个 recursion 方法：像是拓扑排序，从当前包开始，一层一层 recursion 到嵌套层次最深、被依赖最多的依赖包，
         private static void CollectDependencies(this ResourcesComponent self, List<string> parents, string assetBundleName, Dictionary<string, int> info) {
-            parents.Add(assetBundleName);
-            string[] deps = self.GetDependencies(assetBundleName);
+            parents.Add(assetBundleName); // 当前包，加在这里，不会丢掉的。加在链表的尾巴上：链表走向：【头，最不被依赖，＝＝》 最被依赖，尾巴】
+            string[] deps = self.GetDependencies(assetBundleName); // 这才是：所有依赖包
             foreach (string parent in parents) {
-                if (!info.ContainsKey(parent)) {
-                    info[parent] = 0;
+                if (!info.ContainsKey(parent)) { // 字典里添加一个条目
+                    info[parent] = 0; // 原本排第一个
                 }
-                info[parent] += deps.Length;
+                info[parent] += deps.Length; // 排在所有它所依赖的包的后面
             }
             foreach (string dep in deps) {
                 if (parents.Contains(dep)) {
-                    throw new Exception($"包有循环依赖，请重新标记: {assetBundleName} {dep}");
+                    throw new Exception($"包有循环依赖，请重新标记: {assetBundleName} {dep}"); // 循环依赖检测，异常
                 }
-                self.CollectDependencies(parents, dep, info);
+                self.CollectDependencies(parents, dep, info); 
             }
-            parents.RemoveAt(parents.Count - 1);
+            parents.RemoveAt(parents.Count - 1); // 从链表尾巴移除
         }
 
         public static bool Contains(this ResourcesComponent self, string bundleName) {
@@ -206,14 +207,14 @@ namespace ET.Client {
         // 同步加载assetbundle
         // <param name="assetBundleName"></param>
         public static void LoadBundle(this ResourcesComponent self, string assetBundleName) {
-            assetBundleName = assetBundleName.ToLower();
-            string[] dependencies = self.GetSortedDependencies(assetBundleName);
+            assetBundleName = assetBundleName.ToLower(); // 全转成小字字母
+            string[] dependencies = self.GetSortedDependencies(assetBundleName); // 拿所有，当前资源包，所必须的依赖包。这里应该包含了当前包
             // Log.Debug($"-----------dep load start {assetBundleName} dep: {dependencies.ToList().ListToString()}");
             foreach (string dependency in dependencies) {
                 if (string.IsNullOrEmpty(dependency)) {
                     continue;
                 }
-                self.LoadOneBundle(dependency);
+                self.LoadOneBundle(dependency); // 先加载完，所有必备依赖包。若前面没有当前包，不是当前包不曾加载吗？
             }
             // Log.Debug($"-----------dep load finish {assetBundleName} dep: {dependencies.ToList().ListToString()}");
         }

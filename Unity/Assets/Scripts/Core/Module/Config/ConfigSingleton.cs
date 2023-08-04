@@ -22,7 +22,7 @@ namespace ET {
         bool ISingleton.IsDisposed() {
             throw new NotImplementedException();
         }
-        public override void AfterEndInit() {
+        public override void AfterEndInit() { // 这里就是想要桥接：ProtoObject 里所实现过的【初始化前后】可以做的事情，接口，给框架使用者一些可用接口
         }
         public virtual void Dispose() {
         }

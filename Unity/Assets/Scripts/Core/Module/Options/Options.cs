@@ -16,10 +16,10 @@ namespace ET {
         Map, 
         Match
     }
-
-    public class Options: Singleton<Options> { // 这个【单例类】，确实还没能看懂。单例类，不是组件添加形式。把【OptionAttribute】标签看懂
+    public class Options: Singleton<Options> { // 这个【单例类】，是使用命令行命令启动【服务端】来根据命令行参数解析出参数值的全局单例类。它属于谁？场景？活宝妹属于亲爱的表哥！！！
         [Option("AppType", Required = false, Default = AppType.Server, HelpText = "AppType enum")]
         public AppType AppType { get; set; }
+        // StartConfig 初始配置的路径、命令行参数：参数不是必需。缺省为 StartConfig/Localhost 嵌套文件夹路径，字符串
         [Option("StartConfig", Required = false, Default = "StartConfig/Localhost")]
         public string StartConfig { get; set; }
         [Option("Process", Required = false, Default = 1)]

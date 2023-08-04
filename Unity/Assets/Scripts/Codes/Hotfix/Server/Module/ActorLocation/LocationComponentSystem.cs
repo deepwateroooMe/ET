@@ -29,8 +29,8 @@
                 self.locations.Remove(key);
                 Log.Info($"location remove key: {key}");
             }
-        }
-        // 【小伙伴云游】：上报、预报上锁时长，可以更长，因为没玩够还是继续被上锁，同一把锁；直到再上报解锁
+        } // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+        // 【小伙伴云游】：上报、预报上锁时长
         public static async ETTask Lock(this LocationComponent self, long key, long instanceId, int time = 0) { // 忘记这个Key 是什么了，是 actorId
             // 【入队列站列排号】：直到获得异步资源，标记是拿到一把【独占锁】
             CoroutineLock coroutineLock = await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Location, key);
@@ -47,7 +47,7 @@
                         return;
                     Log.Info($"location timeout unlock key: {key} instanceId: {instanceId} newInstanceId: {instanceId}");
                     self.UnLock(key, instanceId, instanceId);
-                }
+                } // 上面：它定义了这个内部方法，只执行了一次，只等待了一次要求的时长，应该不是无限上锁直到再上报的
                 TimeWaitAsync().Coroutine();
             }
         }
@@ -61,7 +61,7 @@
                 return;
             }
             Log.Info($"location unlock key: {key} instanceId: {oldInstanceId} newInstanceId: {newInstanceId}");
-            self.locations[key] = newInstanceId; // 写入小本：【被锁 actorId, 当前锁实例标记号】
+            self.locations[key] = newInstanceId; // 写入小本：【被锁 actorId, 被锁 actorId 所在的进程号】为的是方便它是必消息到被查地址小伙伴所在的进程
             self.lockInfos.Remove(key); // 先从字典管理中移除 
             // 解锁：就是回收掉了呀
             lockInfo.Dispose();
