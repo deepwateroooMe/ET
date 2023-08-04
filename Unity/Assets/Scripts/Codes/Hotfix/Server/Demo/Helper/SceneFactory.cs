@@ -38,18 +38,19 @@ namespace ET.Server { // 【服务端】
                     scene.AddComponent<UnitComponent>();
                     scene.AddComponent<AOIManagerComponent>();
                     break;
-                case SceneType.Location: // 现在也没有位置服吧。。。有要求位置服处理的消息，所以要保留
-                    scene.AddComponent<LocationComponent>(); // 暂时还没有添加这个组件: 可是明明那个分支上是有这个组件的
+                case SceneType.Location: // 一个核中的某个场景，可以是【位置服】，模块功能完整
+                    scene.AddComponent<LocationComponent>();
                     break;
-    //                 // 【检查自己上次删除时，不小心删除的一行】                    ：这里不小心删除多了，加回来说可以了
+    //                 // 【检查自己上次删除时，不小心删除的一行】                    ：这里不小心删除少了，下面的应该全部删除
+                    // 那么我重构游戏，需要再考虑的是：【匹配服】等相关场景组件，就是各个游戏本身相关的小服组件，一一添加进去
     // // 以下是【拖拉机服务端】自定义全局组件
     //                 // GateGlobalComponent
     //                 scene.AddComponent<UserComponent>();
-    //                 scene.AddComponent<LandlordsGateSessionKeyComponent>(); // <<<<<<<<<< 为什么这里要特制一个，同上面有什么不同？如果只是类名的不同，仅只为了客户端热更新方便吗？
+    //                 scene.AddComponent<LandlordsGateSessionKeyComponent>(); 
     //                 // MapGlobalComponent
     //                 scene.AddComponent<RoomComponent>();
     //                 // MatchGlobalComponent
-    //                 scene.AddComponent<AllotMapComponent>(); // 这里不知道，为什么也出错了？
+    //                 scene.AddComponent<AllotMapComponent>(); 
     //                 scene.AddComponent<MatchComponent>();
     //                 scene.AddComponent<MatcherComponent>();
     //                 scene.AddComponent<MatchRoomComponent>();

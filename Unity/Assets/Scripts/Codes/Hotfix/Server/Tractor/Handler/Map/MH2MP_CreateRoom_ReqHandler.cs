@@ -1,8 +1,10 @@
 ﻿using System;
 using ET;
 namespace ET.Server {
+
     [MessageHandler(SceneType.Map)]
     public class MH2MP_CreateRoom_ReqHandler : AMRpcHandler<MH2MP_CreateRoom_Req, MP2MH_CreateRoom_Ack> {
+
         protected override async ETTask Run(Session session, MH2MP_CreateRoom_Req message, MP2MH_CreateRoom_Ack response) {
             // 创建房间: 这里现在的问题是，现重构的游戏项目，我还没能进展到这里来，还不曾在任何地方添加过RoomComponent 组件 !! 添加进了根场景下的全服里
             RoomComponent roomComponent = session.DomainScene().GetComponent<RoomComponent>();
@@ -13,7 +15,8 @@ namespace ET.Server {
             room.AddComponent<DeskCardsCacheComponent>();
             room.AddComponent<OrderControllerComponent>();
             room.AddComponent<GameControllerComponent, RoomConfig>(RoomHelper.GetConfig(RoomLevel.Lv100));
-            await room.AddComponent<MailBoxComponent>().AddLocation();
+// 没看懂这个方法的两处调用；随便什么类型，都可以调用这个方法？
+            await room.AddComponent<MailBoxComponent>().AddLocation(); // <<<<<<<<<<<<<<<<<<<< 
 			RoomComponentSystem.Add(Root.Instance.Scene.GetComponent<RoomComponent>(), room);
             Log.Info($"创建房间{room.InstanceId}");
             response.RoomID = room.InstanceId;

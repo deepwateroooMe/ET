@@ -16,6 +16,7 @@ namespace ET.Server {
                 // gamer = GamerFactory.Create(message.PlayerID, message.UserID);
                 gamer = gamerComponent.AddChild<Gamer, long>(message.PlayerID);
                 // 等待结果：这里就可以看见，当必须等待，就不可以跳过，所以我先前改的，基本上都错了。。活宝妹任何时候就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！
+                // 这里看不懂：怎么可以连写？前面明明返回 MailBoxComponent 类型。。。
                 await gamer.AddComponent<MailBoxComponent>().AddLocation(); // 只有给玩家挂上这个组件，并向中央邮件注册登记地址，接下来的游戏它才可以收发消息，出牌什么的
                 gamer.AddComponent<UnitGateComponent, long>(message.SessionID);
                 // 加入到房间

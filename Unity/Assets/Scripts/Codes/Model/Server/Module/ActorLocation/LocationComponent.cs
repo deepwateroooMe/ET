@@ -9,8 +9,7 @@ namespace ET.Server {
         public CoroutineLock CoroutineLock;
     }
     [ComponentOf(typeof(Scene))]
-    // 【位置组件】：去细看两个字典，所做的具体的事情。这里是，被自己弄丢了文件，还是自己添加了这个位置服，但是没整合生成系？去看源码，有没有【位置组件】，有没有相应的生成系
-    // 没整合生成系：就是这里Model 域里定义了说有个【位置管理组件】，但是热更域里什么也没有，没有定义执行逻辑，需要一个LocationComponentSystem|Helper 之类的类
+    // 【位置组件】：去细看两个字典，所做的具体的事情。
     public class LocationComponent: Entity, IAwake { 
         public readonly Dictionary<long, long> locations = new Dictionary<long, long>();
         public readonly Dictionary<long, LockInfo> lockInfos = new Dictionary<long, LockInfo>();
