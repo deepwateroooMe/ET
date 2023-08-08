@@ -8,14 +8,14 @@ namespace ET.Server {
             protected override void Awake(HttpComponent self, string address) {
                 try {
                     self.Load(); // <<<<<<<<<<<<<<<<<<<< 
-                    self.Listener = new HttpListener();
+                    self.Listener = new HttpListener(); // 它是服务端管理组件，理解为【专职来监听客户端各小服的】（不知道它是否，开启了一个任务线程？）感觉应该是。看下面的
                     foreach (string s in address.Split(';')) {
                         if (s.Trim() == "") 
                             continue;
                         self.Listener.Prefixes.Add(s);
                     }
                     self.Listener.Start();
-                    self.Accept().Coroutine(); // <<<<<<<<<<<<<<<<<<<< 
+                    self.Accept().Coroutine(); // <<<<<<<<<<<<<<<<<<<< 异步接收【客户端】各小服上报。。那么至少，这个异步接收的，是个任务线程？！！
                 }
                 catch (HttpListenerException e) {
                     throw new Exception($"请先在cmd中运行: netsh http add urlacl url=http:// *:你的address中的端口/ user=Everyone, address: {address}", e);
@@ -36,8 +36,8 @@ namespace ET.Server {
             }
         }
         public static void Load(this HttpComponent self) {
-            self.dispatcher = new Dictionary<string, IHttpHandler>();
-            HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (HttpHandlerAttribute)); // 实则，全局只有一个
+            self.dispatcher = new Dictionary<string, IHttpHandler>(); // 初始化管理字典 
+            HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (HttpHandlerAttribute)); // 实则，全局只有一个 HttpGetRouterHandler
             SceneType sceneType = self.GetParent<Scene>().SceneType; // 【RouterManager】场景，才会添加这个组件。框架里只有这个场景，添加过这个组件
             foreach (Type type in types) {
                 object[] attrs = type.GetCustomAttributes(typeof(HttpHandlerAttribute), false);
@@ -69,7 +69,7 @@ namespace ET.Server {
         }
         public static async ETTask Handle(this HttpComponent self, HttpListenerContext context) {
             try {
-                IHttpHandler handler;
+                IHttpHandler handler; // 全框架：现在也只有一个实现类 HttpGetRouterHandler.cs(属于RouterManager 场景 ). 那么，应该就是调用它所定义的处理方法。 
                 if (self.dispatcher.TryGetValue(context.Request.Url.AbsolutePath, out handler)) 
                     await handler.Handle(self.Domain as Scene, context); // 调用注册过、生成的【HttpHandler】标签实例，的处理方法来回调。【异步方法 】
             }

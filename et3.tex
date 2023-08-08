@@ -1,4 +1,4 @@
-% Created 2023-07-27 Thu 15:08
+% Created 2023-08-08 Tue 11:24
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -78,7 +78,6 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 }
 \end{minted}
 
-
 \section{服务器的功能概述：各服务器的作用（这个不是ET7 版本的，以前的）}
 \label{sec-2}
 \begin{itemize}
@@ -91,12 +90,14 @@ public class NetServerComponent: Entity, IAwake<IPEndPoint>, IDestroy {
 \item Benchmark：连接内网和测试服务器承受力。加载有内网组件NetInnerComponent，服务器承受力测试组件BenchmarkComponent。
 \end{itemize}
 
+
 \section{Session 会话框相关}
 \label{sec-3}
 \begin{itemize}
 \item 当需要连的时候，比如网关服与匹配服，新的框架里连接时容易出现困难，找不到组件，或是用不对组件，或是组件用得不对，端没能分清楚。理解不够。
 \item 就是说，这个新的ET7 框架下，服务端的这些，事件机制的，没弄明白没弄透彻。
 \end{itemize}
+
 
 \section{Root 客户端根场景管理以及必要的组件：【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】}
 \label{sec-4}
@@ -237,6 +238,7 @@ public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
     }
 }
 \end{minted}
+
 
 \section{ETTask 和 ETVoid: 第三方库的ETTask, 参考ET-EUI 框架}
 \label{sec-5}
@@ -880,10 +882,11 @@ public sealed class AsyncMethodBuilderAttribute : Attribute {
 \end{minted}
 \end{itemize}
 
+
 \section{Net 网络交互相关：【服务端+客户端】只是稍微改装成事件机制。模块没理解透、总结不全，还需要借助总结，把这两章节理解透彻。}
 \label{sec-6}
 \begin{itemize}
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】先把这个文件再变小一点儿，方便更新与操作。改天再平等几个文件。或直接搬第五个文件里
 \item 感觉核心逻辑，跨进程发消息，收返回消息，什么的，基本都看懂了。可是更底层的，可是相对高层？的服务之间，【NetThreadComponent组件】等，仍是不懂。这个版块还要多花点儿时间上面。
 \item 这个模块：感觉就是 \textbf{【模块，自顶向下，异步网络调用的传递方向等，弄不懂；或底层信道上发消息两端的底层回调，不懂！】}
 \item 还没能真正系统性地自顶向下地梳理一遍事件传递过程。现在整理的阶段，仍然是翻源码的过程中，看见哪里没读过，或是没理解透彻，补上改改。但是当感觉把这块儿补完时，仍然需要一两个例子【自顶向下】，或自消息的发送，到返回消息至客户端，再梳理一遍整个流程。

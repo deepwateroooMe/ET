@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
 using ProtoBuf;
 namespace ET {
+    // 这个类的标签太多了，并且大多早Protobuf 库里的标签，不看这个文件，看个标签少的文件！！【爱表哥，爱生活！！！】
     [ProtoContract]
     [Config]
     public partial class StartMachineConfigCategory : ConfigSingleton<StartMachineConfigCategory>, IMerge { // 实现了这个合并接口
@@ -12,11 +13,11 @@ namespace ET {
         [BsonElement]
         [ProtoMember(1)]
         private List<StartMachineConfig> list = new List<StartMachineConfig>();
-        public void Merge(object o) { // 实现接口里申明的方法
+        public void Merge(object o) { // 实现接口里申明的方法: 可以去找一下，哪里调用了这个方法？
             StartMachineConfigCategory s = o as StartMachineConfigCategory;
             this.list.AddRange(s.list); // 这里就可以是，进程间可传递的消息，的自动合并
         }
-        [ProtoAfterDeserialization]        
+        [ProtoAfterDeserialization] // Protobuf 里：定义的标签，使用它的库里的标签系
         public void ProtoEndInit() {
             foreach (StartMachineConfig config in list) {
                 config.AfterEndInit();

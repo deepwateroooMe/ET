@@ -1,4 +1,4 @@
-% Created 2023-08-03 Thu 10:12
+% Created 2023-08-04 Fri 13:55
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -488,10 +488,23 @@ public static class UnitHelper {
     }
 }
 \end{minted}
-
 \subsection{SceneFactory: ClientScene: 添加三组件：【CurrentScenesComponent】【PlayerComponent】【ObjectWait】。}
 \label{sec-3-2}
 \begin{itemize}
+\item 这个类，加一段网络上分析 ET6 版本这个类时的参照帮助理解：【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\begin{itemize}
+\item 根据传入的服务类型，startScene配置ID，InstanceId（这个很重要，它是由生成对应StartSceneConfig单条配置时，由进程号与配置ID组合成的实体ID，通过这个实体ID可以找到对应的进程IP与端口用于通信），服务区号，服务器类型等信息，创建一个服务Scene。
+\item 对Scene挂载MailBoxComponent组件，用于处理Actor请求，并且区分是否需要按顺序处理收到的请求。（备注：挂在了MailBoxComponent的Entity类就可以处理Actor消息，且可以有顺序处理的功能，Scene也是Entity的一种）
+\item 针对服务器类型，给上面生成的服务Scene挂载各类功能组件：
+\begin{itemize}
+\item NetKcpComponent：网外通信组件，用于监听来自客户端的通信处理【重构后这个组件早移除了】
+\item PlayerComponent：用于管理生成的Player实体
+\item GateSessionKeyComponent：用于管理玩家认证的凭据（主要用于Gate认证玩家连接是否被允许）
+\item UnitComponent：用于管理Map中的Unit实体
+\item LocationComponent：用于管理实体对象ID与InstanceID之间的关系，提供了通过ID查询InstanceID的功能。
+\end{itemize}
+\item 猫大已经在ET6.0中组合好各个服务类型Scene，应该具备的功能组件。当所有服配置在一个进程中时，就相当于5.0的All Server模式了。
+\end{itemize}
 \item SceneChangeHelper 类会调用工厂加工。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class SceneFactory {
@@ -515,8 +528,8 @@ public static class SceneFactory {
     }
 }
 \end{minted}
+\item 下面那个死东西，鬼知道它怎么变成小节了？【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
-
 \subsubsection{UnitFactory: 为什么我抓出两个不一样的定义，还没弄明白}
 \label{sec-3-2-1}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -2014,13 +2027,22 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 \subsection{CoroutineLockType: 静态类定义的几种类型}
 \label{sec-14-1}
 \begin{itemize}
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 就是定义框架中用到的几种使用协程锁的情境，分成几种不同的类型
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 【下面，各种强调】：不用协程锁的使用上下文场景的类型，这个【使用上下文场景类型】，定义的究竟是什么，不同类型之间，是如何区分的？
-
 // 分别对应以下使用情景：
-    // 多个向location查询同一个实体真实进程号地址（在访问跨进程实体时）【这里是，被查询的实体的真实进程号地址，信息会被锁，被查询者！】，访问一次获得进程地址即可 ；
+    // 多个向location查询同一个实体真实进程号地址（在访问跨进程实体时）【这里是，位置服中的被查询的实体的相关信息, 会被锁，被查询者！】，访问一次获得进程地址即可 ；
     // 【多个针对同一个实体对象，发起的Actor消息】；这里是【发送Actor 消息的实体】，同一个实体，发送消息是并发，一次只能发一个消息。加锁是因为，单线程多进程框架里，多个进程想要消息入队这个可【发送消息的 actorid】，对ActorLocationSender 队列上锁？
     // 多个处理针对同一个实体的Mailbox消息处理，处理需要按照先后顺序；
     // 针对Map中单位上下线时，新上线消息需要等待下线消息执行完后再处理；（自己先前接触过的，玩家客户端某端下线、某端上线、或自顶号操作，保证执行先后顺序的锁，锁住针对的是，一个某定玩家 UnitId）
@@ -2029,7 +2051,7 @@ public class GetAllConfigBytes: AInvokeHandler<ConfigComponent.GetAllConfigBytes
 // 【可添加自定义类型：】如果还有自己想要处理的协程锁类型，可自行添加，不过现在这些应该已经够用了，且ET6.0中猫大大部分都已经封装处理好了，不需要我们再写了。
 public static class CoroutineLockType { // 对应的，就是框架里，线程安全、资源安全，几处使用到锁的上下文场景
     public const int None = 0;
-    public const int Location = 1;                  // location进程上使用
+    public const int Location = 1;                  // location 场景上使用，不是什么进程，重构了
     public const int ActorLocationSender = 2;       // ActorLocationSender中队列消息。【重点看这个】: 这个【A发请求拿B 位置的消息】，发起者A, 与【被请求者B】, 锁的是发问者A
     public const int Mailbox = 3;                   // Mailbox中队列
     public const int UnitId = 4;                    // Map服务器上线下线时使用

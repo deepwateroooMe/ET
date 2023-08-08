@@ -1,4 +1,4 @@
-% Created 2023-08-04 Fri 09:37
+% Created 2023-08-07 Mon 10:58
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -1564,10 +1564,12 @@ public static class ActorHandleHelper {
 \end{itemize}
 
 
+
 \section{StartConfigComponent: 找【各种服】的起始初始化地址}
 \label{sec-3}
 \begin{itemize}
-\item 现在，先特殊重点理解：一台【服务端】物理机起来，N 核 N 进程里【主线程 Process 场景】的启动过程。
+\item 【服务端】启动时的特殊管理，感觉先前不曾真正接触过服务端的活宝妹，总是对这块儿读不懂。这个章节是自己最近总结的这一块儿。上午顺着这个先前总结的思路，把服务端的这些起始配置再看一遍。希望能够多些收获，或像昨天晚上哪怕收获不多，读懂了心里会有确信，不用想也会知道这个模块的功能原理等。【如同，亲爱的表哥的活宝妹，永远不用想也知道，亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 现在，先特殊重点理解：一台【服务端】物理机起来，N 核 N 进程里【主线程 Process 场景】的启动过程。这里，把前面读到过的配置里的几个区分联系起来的看：Machine, Process, Scene, Zone, 物理机、多核多进程、每个核每个进程可以有多场景， \textbf{【Zone 不明白】} 活宝妹想把gmail.coml 里该死的几个数字去掉隐藏掉，看见它们烦人。。。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【服务端、各服务器的配置、启动初始化】：是这个模块想要总结的内容。这个模块，因为框架重构里所接入的【路由器系统】的整合（感觉起来，就是通过网络，一台台服务端的服务器起来，一台台起来的服务器都向某个路由服，如同各客户端实时向位置服更新客户端的位置信息般，各小服专职服都向路由服上班打卡？要把这些看明白），让活宝妹理解起这个模块来显得相对困难，大概明天上午一上午的时间，都会花在这个模块上。
 \end{itemize}
 \subsection{OptionAttribute: 系统里的标签属性。}
@@ -1959,10 +1961,12 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
 \subsection{StartMachineConfig: 抓四大单例管理类中的一个来读一下}
 \label{sec-3-9}
 \begin{itemize}
+\item 确定的各小服【自底向上】传各小服配置的方式：感觉狠像【动态路由系统】的每 10 分钟重新自动扫描邻居，小伙伴云游自动上报上锁般，自底向上去上报各小服（这里是物理机？）配置，实现了IMerge 接口，可以进程间传递配置消息（？）
+\item \textbf{【IMerge 接口类所申明的 merge() 方法，真正调用的地方，ExcelExporter.cs！！】} ：找出来。找不到，是说Protobuf 跨进程消息传递库，什么地方，使用IMerge ？
+\item 【现有理解】：ET7 重构后，使用Json 各种 .txt 配置文件来启动服务器。同一类型，如同Machine|Process|Scene|Zone, 不同配置文件合并的时候，会调用这里几大类型所实现过的IMerge 接口里的Merge() 方法，把对，比如所有小区的管理，纳入单例区Zone 管理类StartZoneConfigCategory.cs. 以后再有更深入理解再添加。
 \item 同样的命名空间，同一个文件，完全相同的类型，没弄明白的是，它为什么会在框架里出现两遍？是叫 partial-class, 可是这样的原理、两个文件的区别，以及用途，是在哪里是什么？
 \item 这个单例类型只存在于【服务端】。但是ET 框架里，双端框架有多种不同运行模式。客户端可以作为独立客户端来运行，也可以作为双端模式运行（就是内自带一个服务端）。这里的服务端就同理，可是作为独立服务端，只作服务端，也可以作为客户端在双端运行模式中，客户端自身所携带的服务端来运行。所以，框架里它出现了两次。
 \item 另一个问题是：这个类是 Generated （/Users/hhj/pubFrameWorks/ET/Unity/Assets/Scripts/Codes/Model/Generate/ClientServer/Config/StartMachineConfig.cs）, 是框架自动生成的类，没有看懂。为什么框架会生成这个类？
-\item 今天大概就只能读到这里了，剩下的明天上午再读。。。
 \item 独立的服务端，框架生成的文件？作为客户端双端运行模式下的服务端：框架生成的文件？
 \item Proto 相关的标签，各种各样的标签，看得懂的标签还好，不懂的Proto 标签看得。。。
 \end{itemize}
@@ -2194,5 +2198,9 @@ public partial class StartSceneConfigCategory {
     }
 }
 \end{minted}
+\begin{itemize}
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

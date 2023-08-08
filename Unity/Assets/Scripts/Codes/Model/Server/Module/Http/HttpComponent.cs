@@ -5,6 +5,6 @@ namespace ET.Server {
     [ComponentOf(typeof(Scene))]
     public class HttpComponent: Entity, IAwake<string>, IDestroy, ILoad {
         public HttpListener Listener;
-        public Dictionary<string, IHttpHandler> dispatcher; // 管理各种回调，吗？
+        public Dictionary<string, IHttpHandler> dispatcher; // 管理各种回调
     }
 }

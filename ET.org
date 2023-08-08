@@ -423,8 +423,17 @@ public static class UnitHelper {
     }
 }
     #+END_SRC
-
 ** SceneFactory: ClientScene: 添加三组件：【CurrentScenesComponent】【PlayerComponent】【ObjectWait】。
+- 这个类，加一段网络上分析 ET6 版本这个类时的参照帮助理解：【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+  - 根据传入的服务类型，startScene配置ID，InstanceId（这个很重要，它是由生成对应StartSceneConfig单条配置时，由进程号与配置ID组合成的实体ID，通过这个实体ID可以找到对应的进程IP与端口用于通信），服务区号，服务器类型等信息，创建一个服务Scene。
+  - 对Scene挂载MailBoxComponent组件，用于处理Actor请求，并且区分是否需要按顺序处理收到的请求。（备注：挂在了MailBoxComponent的Entity类就可以处理Actor消息，且可以有顺序处理的功能，Scene也是Entity的一种）
+  - 针对服务器类型，给上面生成的服务Scene挂载各类功能组件：
+    - NetKcpComponent：网外通信组件，用于监听来自客户端的通信处理【重构后这个组件早移除了】
+    - PlayerComponent：用于管理生成的Player实体
+    - GateSessionKeyComponent：用于管理玩家认证的凭据（主要用于Gate认证玩家连接是否被允许）
+    - UnitComponent：用于管理Map中的Unit实体
+    - LocationComponent：用于管理实体对象ID与InstanceID之间的关系，提供了通过ID查询InstanceID的功能。
+  - 猫大已经在ET6.0中组合好各个服务类型Scene，应该具备的功能组件。当所有服配置在一个进程中时，就相当于5.0的All Server模式了。
 - SceneChangeHelper 类会调用工厂加工。
      #+BEGIN_SRC csharp
 public static class SceneFactory {
@@ -448,7 +457,7 @@ public static class SceneFactory {
     }
 }
      #+END_SRC
- 
+- 下面那个死东西，鬼知道它怎么变成小节了？【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 *** UnitFactory: 为什么我抓出两个不一样的定义，还没弄明白
     #+BEGIN_SRC csharp
 public static class UnitFactory {
@@ -2020,6 +2029,16 @@ public class CoroutineLockComponent: Singleton<CoroutineLockComponent>, ISinglet
     }
 }
 #+END_SRC
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+- 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
