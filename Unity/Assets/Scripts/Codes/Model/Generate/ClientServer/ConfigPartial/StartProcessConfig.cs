@@ -12,7 +12,7 @@ namespace ET {
                 return this.innerIPPort;
             }
         }
-        public string InnerIP => this.StartMachineConfig.InnerIP;
+        public string InnerIP => this.StartMachineConfig.InnerIP; // 宝妹：不分。。
         public string OuterIP => this.StartMachineConfig.OuterIP;
         public StartMachineConfig StartMachineConfig => StartMachineConfigCategory.Instance.Get(this.MachineId);
 

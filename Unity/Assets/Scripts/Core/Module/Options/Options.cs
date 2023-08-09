@@ -31,7 +31,7 @@ namespace ET {
         public int LogLevel { get; set; }
         [Option("Console", Required = false, Default = 0)]
         public int Console { get; set; }
-        // 进程启动是否创建该进程的scenes
+        // 进程启动是否创建该进程的scenes 【源】：同一进程下可以有M 多不同用小服，重启进程，是否重启该进程下的所有配置过的小服呢？一死全死，全进程里的小服全部死掉了。。。
         [Option("CreateScenes", Required = false, Default = 1)]
         public int CreateScenes { get; set; }
     }

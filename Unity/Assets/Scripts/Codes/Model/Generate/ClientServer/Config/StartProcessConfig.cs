@@ -48,10 +48,10 @@ namespace ET {
     [ProtoContract]
     public partial class StartProcessConfig: ProtoObject, IConfig {
         [ProtoMember(1)]
-        public int Id { get; set; }
+        public int Id { get; set; } // 标记号
         [ProtoMember(2)]
-        public int MachineId { get; set; }
+        public int MachineId { get; set; } // 机器号
         [ProtoMember(3)]
-        public int InnerPort { get; set; }
+        public int InnerPort { get; set; } // 什么端口呢
     }
 }

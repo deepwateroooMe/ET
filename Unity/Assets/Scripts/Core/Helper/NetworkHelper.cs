@@ -5,14 +5,13 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 namespace ET {
-    // ET 命名空间：应该不是热更域，提供最底层最基础的帮助方法。热更域里可以实时调用。
-    // 这个类，不用了解细节，太底层了
+    // 帮助类：
     public static class NetworkHelper {
         // 方法的逻辑细节：极底层。现在并不想花时间去弄懂。
-        // 只了解什么情况下会调用这个底层方法：有个工监服，实时扫描服务端系统，有没有哪个宕机了掉线了WatcherComponentSystem.cs WatcherHelp.cs 里会调用这个方法
+        // 只了解什么情况下会调用这个底层方法：有个工监服，实时扫描服务端系统，有没有哪个【进程】死翘翘了？WatcherComponentSystem.cs WatcherHelp.cs 里会调用这个方法
         public static string[] GetAddressIPs() {
             List<string> list = new List<string>();
-            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces()) {
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces()) { // 搞不懂：这里调用的是什么方法，某天早上有时间的时候再看一下
                 if (networkInterface.NetworkInterfaceType != NetworkInterfaceType.Ethernet) { // 必须是 Ethernet
                     continue;
                 }

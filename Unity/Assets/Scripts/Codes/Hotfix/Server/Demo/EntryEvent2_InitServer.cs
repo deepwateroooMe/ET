@@ -15,21 +15,20 @@ namespace ET.Server {
             Root.Instance.Scene.AddComponent<ServerSceneManagerComponent>();
             Root.Instance.Scene.AddComponent<RobotCaseComponent>();
             Root.Instance.Scene.AddComponent<NavmeshComponent>();
-            // 【添加组件】：这里，还可以再添加一些游戏必要【根组件】，如果可以在服务器启动的时候添加的话。会影响服务器启动性能
-            StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process);
-            switch (Options.Instance.AppType) {
-                case AppType.Server: {
+            StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process); // 把这里，根先前某处，一个命令行，启动服务端进程的逻辑连接起来，就是【服务端】的命令行启动的过程
+            switch (Options.Instance.AppType) { // 这里没弄清楚：它为什么，如此区分三种不同的进程？功能上的不同，主要服务端进程，工监进程、工具类进程
+            case AppType.Server: { // 当启动一个进程的时候，如果是【服务端】进程：启动该进程下的，N 多小服场景。。。
                     Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.InnerIPPort);
                     var processScenes = StartSceneConfigCategory.Instance.GetByProcess(Options.Instance.Process);
-                    foreach (StartSceneConfig startConfig in processScenes) {
+                    foreach (StartSceneConfig startConfig in processScenes) { // 下面的管理组件，要再看下
                         await SceneFactory.CreateServerScene(ServerSceneManagerComponent.Instance, startConfig.Id, startConfig.InstanceId, startConfig.Zone, startConfig.Name, startConfig.Type, startConfig);
                     }
                     break;
                 }
-                case AppType.Watcher: {
-                    StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig();
-                    WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>();
-                    watcherComponent.Start(Options.Instance.CreateScenes);
+                case AppType.Watcher: { // 【专用监视进程】：某台物理机上的某个核，是专职用来监视其它进程【或是场景的？】现在看到，重启至少可以以核为单位，重启某个进程【下的M 多服。。】
+                    StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig(); // 拿到：本监视进程，所在的物理机的机器配置
+                    WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>(); // 添加监视组件
+                    watcherComponent.Start(Options.Instance.CreateScenes); // 下面的方法：是监视，还是帮助真正启动并监视？是后者，是真正重启了进程与其上附生的各小服，并将进程纳入管理内容
                     Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
                     break;
                 }
