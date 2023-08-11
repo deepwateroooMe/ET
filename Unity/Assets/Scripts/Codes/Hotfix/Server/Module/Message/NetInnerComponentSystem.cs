@@ -47,6 +47,7 @@ namespace ET.Server {
                 NetServices.Instance.RemoveService(self.ServiceId);
             }
         }
+
         // 从这里，再往前找，什么时候回调OnRead(), 私有方法 
         private static void OnRead(this NetInnerComponent self, long channelId, long actorId, object message) {
             Session session = self.GetChild<Session>(channelId);
@@ -82,9 +83,8 @@ namespace ET.Server {
             // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
             return session;
         }
-        // 去找一下：框架里是否有样例使用如下方法
         // 内网actor session，channelId是进程号。【自己的理解】：这些内网服务器间，或说重构的SceneType 间，有维护着会话框的，比如Realm 注册登录服与Gate 网关服等
-        public static Session Get(this NetInnerComponent self, long channelId) {
+        public static Session Get(this NetInnerComponent self, long channelId) { // 这里是，自己搞不清楚，IP 地址与端口，与 channelId 的关系，是什么，如何转化
             Session session = self.GetChild<Session>(channelId);
             if (session != null) { // 有已经创建过，就直接返回
                 return session;

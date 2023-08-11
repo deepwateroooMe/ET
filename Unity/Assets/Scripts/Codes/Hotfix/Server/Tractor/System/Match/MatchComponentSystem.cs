@@ -9,6 +9,7 @@ namespace ET.Server {
             self.Update();
         }
     }
+
     [FriendOfAttribute(typeof(ET.Server.MatchComponent))]
     public static class MatchComponentSystem {
         public static void Update(this MatchComponent self) {
@@ -38,14 +39,14 @@ namespace ET.Server {
             }
         }
         // 创建房间
-        // public static async void CreateRoom(this MatchComponent self) { // 禁止返回类型为 void 的异步方法，没弄明白呀。。。
         public static async ETTask CreateRoomAsync(this MatchComponent self) { // 禁止返回类型为 void 的异步方法，没弄明白呀。。。
             if (self.CreateRoomLock) 
                 return;
             // 消息加锁，避免因为延迟重复发多次创建消息
             self.CreateRoomLock = true;
             // 发送创建房间消息
-            IPEndPoint mapIPEndPoint = Root.Instance.Scene.GetComponent<AllotMapComponent>().GetAddress().GetComponent<InnerConfig>().IPEndPoint;
+            // IPEndPoint mapIPEndPoint = Root.Instance.Scene.GetComponent<AllotMapComponent>().GetAddress().GetComponent<InnerConfig>().IPEndPoint;
+            IPEndPoint mapIPEndPoint = StartSceneConfigCategory.Instance.Match.InnerIPOutPort;
             // Session mapSession = Root.Instance.Scene.GetComponent<NetInnerComponent>().Get(mapIPEndPoint);
             Session mapSession = NetInnerComponentSystem.Get(Root.Instance.Scene.GetComponent<NetInnerComponent>(), mapIPEndPoint);
             MP2MH_CreateRoom_Ack createRoomRE = await mapSession.Call(new MH2MP_CreateRoom_Req()) as MP2MH_CreateRoom_Ack;

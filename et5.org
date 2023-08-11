@@ -1952,6 +1952,7 @@ public partial class StartSceneConfig: ISupportInitialize {
 }
 #+END_SRC
 ** StartSceneConfigCategory : 【Matchs!】ConfigSingleton<StartSceneConfigCategory>, IMerge
+- 我觉得这里，重点还是 Protobuf 的 Partial 类，亲爱的表哥的活宝妹没能弄明白。所以四大主要配置与其它小杂琐，是每台物理机上都有（应该不是），或是说整个【服务端】服务器只有一个？感觉像是整个服务器只有一个，可以跨进程传递的。就是 Protobuf 这里跨进程传递的配置消息，没弄明白。
 - 为什么这个类，会是写了两遍呢？有什么不同？跟前面类似，存在于任何具备服务端功能的模块。【服务端】【双端】
 - 读里面的登录服，会知道它是如何管理登录服的（就是后面的例子，当它要拿登录服的地址的时候），它们是区服，就是分各个小区管理。如果集群是这个样子，大概匹配服也就是一样分小区管理了。
 - 那么这个配置管理里，因为我要用匹配服与地图服，也要对至少是匹配服进行管理。那么，我在申请匹配的时候，网关服才能拿到匹配服的地址。

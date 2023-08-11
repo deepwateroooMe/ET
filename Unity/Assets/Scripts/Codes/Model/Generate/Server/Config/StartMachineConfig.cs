@@ -49,14 +49,14 @@ namespace ET { // 感觉这个文件的标签稍微少一点儿: 【IMerge 接�
         }
     }
     [ProtoContract]
-    public partial class StartMachineConfig: ProtoObject, IConfig {
-        // 是台物理机：就会有IP 地址，方便通信
+    public partial class StartMachineConfig: ProtoObject, IConfig {  
+        // 是台物理机：就会有IP 地址，方便通信。这些，是自己迷迷糊糊的地方
         [ProtoMember(1)]
         public int Id { get; set; }
         [ProtoMember(2)]
-        public string InnerIP { get; set; }
+        public string InnerIP { get; set; } // 内网地址：大概是说，内网里机器之间可以通信
         [ProtoMember(3)]
-        public string OuterIP { get; set; }
+        public string OuterIP { get; set; } // 外网地址：对外，只能看见外网地址
         [ProtoMember(4)]
         public string WatcherPort { get; set; }
     }

@@ -9,8 +9,8 @@ namespace ET {
         public Dictionary<long, Dictionary<string, StartSceneConfig>> ClientScenesByName = new Dictionary<long, Dictionary<string, StartSceneConfig>>();
         public StartSceneConfig LocationConfig;
         // 【一堆链表】：就是把同一类型的区服系统，再放回一个链表里，方便某小区用户，或是网关服要拿某种服地址的时候，可以相对快速地专服链表里去取
-        public List<StartSceneConfig> Realms = new List<StartSceneConfig>();
-        public List<StartSceneConfig> Matchs = new List<StartSceneConfig>(); // 我记得我有添加这个，可能是加在双端里 ?
+        public StartSceneConfig Realm;
+        public StartSceneConfig Match;
         public List<StartSceneConfig> Routers = new List<StartSceneConfig>();
         public List<StartSceneConfig> Robots = new List<StartSceneConfig>();
         public StartSceneConfig BenchmarkServer;
@@ -34,10 +34,10 @@ namespace ET {
                 
                 switch (startSceneConfig.Type) {
                     case SceneType.Realm:
-                        this.Realms.Add(startSceneConfig);
+                        this.Realm = startSceneConfig;
                         break;
-                    case SceneType.Match: // 不知道这里加得对不对，再检查一下
-                        this.Matchs.Add(startSceneConfig);
+                    case SceneType.Match:
+                        this.Match = startSceneConfig;
                         break;
                     case SceneType.Gate:
                         this.Gates.Add(startSceneConfig.Zone, startSceneConfig);

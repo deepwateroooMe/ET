@@ -55,20 +55,22 @@ namespace ET.Client {
                 ipAddress = ipAddress.MapToIPv6();
             return new IPEndPoint(ipAddress, int.Parse(ss[1]));
         }
-        // 【自己模仿出来的方法】：
+        // 【自己模仿出来的方法】：按照下面的方法模仿出来的。现在全局唯一【匹配服】，就直接返回，就可以了
         public static IPEndPoint GetMatchAddress(this RouterAddressComponent self, string account) {
-            int v = account.Mode(self.Info.Matchs.Count); // 它说，给它随机分配一个取模后的下编匹配服。。。
-            string address = self.Info.Matchs[v];
-            string[] ss = address.Split(':');
-            IPAddress ipAddress = IPAddress.Parse(ss[0]);
-            // if (self.IPAddress.AddressFamily == AddressFamily.InterNetworkV6) 
-            //    ipAddress = ipAddress.MapToIPv6();
-            return new IPEndPoint(ipAddress, int.Parse(ss[1]));
+            // int v = account.Mode(self.Info.Matchs.Count); // 它说，给它随机分配一个取模后的下编匹配服。。。
+            // string address = self.Info.Matchs[v];
+            // string[] ss = address.Split(':');
+            // IPAddress ipAddress = IPAddress.Parse(ss[0]);
+            // // if (self.IPAddress.AddressFamily == AddressFamily.InterNetworkV6) 
+            // //    ipAddress = ipAddress.MapToIPv6();
+            // return new IPEndPoint(ipAddress, int.Parse(ss[1]));
+            return StartSceneConfigCategory.Instance.Match.InnerIPOutPort;
         }
         // 随机分配了一个Realm 注册登录服。。。去框架里找：为每个【客户端】所随机分配的这些小服编号，哪里有什么记载吗？因为晚些时候，感觉还会用到的
         public static IPEndPoint GetRealmAddress(this RouterAddressComponent self, string account) {
-            int v = account.Mode(self.Info.Realms.Count); // 这里 mod: 随机分配了一个Realm 注册登录服。。。
-            string address = self.Info.Realms[v];
+            // int v = account.Mode(self.Info.Realms.Count); // 这里 mod: 随机分配了一个Realm 注册登录服。。。
+            // string address = self.Info.Realms[v];
+            string address = self.Info.Realm;
             string[] ss = address.Split(':');
             IPAddress ipAddress = IPAddress.Parse(ss[0]);
             // if (self.IPAddress.AddressFamily == AddressFamily.InterNetworkV6) 

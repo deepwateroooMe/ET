@@ -6,7 +6,7 @@
 - 就是不懂底层的原理是什么，方法定义是什么，返回的是什么，在有 await 等关键字的时候，返回的内容等是如何变换的，以及它背后的那个异步状态机，就是想不明白。
 - 现在参考网上的一个例子，记一下异步任务C# 幕后封装的那些执行步骤什么的，把 async await 之类的关键字，背后的逻辑理解明白。
 - 就是，可能也可以在异步任务的这个模块，添加无数的日志，通过读日志来把这块儿弄明白。下面就截图网上的这个参考例子。
-   #+BEGIN_SRC csharp
+  #+BEGIN_SRC csharp
 [AsyncMethodBuilder(typeof (AsyncETVoidMethodBuilder))]
 internal struct ETVoid: ICriticalNotifyCompletion {
     [DebuggerHidden]
@@ -18,7 +18,7 @@ internal struct ETVoid: ICriticalNotifyCompletion {
     [DebuggerHidden]
     public void UnsafeOnCompleted(Action continuation) { }
 }
-   #+END_SRC
+  #+END_SRC
 - 上面是找了一个最短小的类ETVoid, 网上例子自己构建一个类，这个类麻雀虽小五脏俱全的 *几个【缺一不可】的方法* （所以知道ETTask|ETVoid 自定义封装，这几个方法也是一定不能少的，只是多了Coroutine() 方法不知道是怎么回事儿？）如上如下：
   
 [[./pic/et3_20230609_105627.png]]
@@ -105,13 +105,13 @@ public class Program {
 - （此处写的比较抽象，看下面3 结合代码编译再分析）
 - 感觉今天读这个状态机：https://linuxcpp.0voice.com/?id=1380 终于有点儿开窃了！！【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 ** 如果方法声明为 async，那么可以直接 return 具体的值，不再用创建Task，由编译器创建 Task： 
-    #+BEGIN_SRC csharp
+#+BEGIN_SRC csharp
 // 只要标记了async 就会被编译成状态机
 // 如果方法声明为 async，那么可以直接 return 具体的值，不再用创建Task，由编译器创建 Task： 
-  public static async Task<int> F2Async() {
-      return 2;
-  }
-    #+END_SRC
+public static async Task<int> F2Async() {
+    return 2;
+}
+#+END_SRC
 - F2Async：只加了async，会生成状态机，但由于没有加await所以不会涉及到中间状态的变化，从-1默认状态 变为 结束的-2状态。
 #+BEGIN_SRC csharp
 #+END_SRC
@@ -133,9 +133,9 @@ message Actor_GamerPlayCard_Req // IActorRequest
   #+END_SRC
 - 【Windows 下的 Protobuf 编译环境】：配置好，只是作为与ET 框架的Proto2CS.cs 所指挥的编译结果，作一个对比，两者应该效果是一样的，或是基本一样的，除了自定义里没有处理 enum.
 - Windows 下的命令行，就是用 protoc 来编译，可以参考如下. （这是 .cs 源码下的）
-    #+BEGIN_SRC csharp
+  #+BEGIN_SRC csharp
 CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{protoPath}\" {protoName}");
-    #+END_SRC
+  #+END_SRC
 - 现在的问题是， *Protobuf消息里面居然是有 unity 第三方库的索引* 。
 - 直接把 enum 生成的那三个 .cs 类分别复制进双端，服务器端与客户端。包括Card 类。那些编译错误会去天边。哈哈哈，除了一个Card 的两个变量之外（CardSuits, CardWeight）。
 - 【热更新库】：现在剩下的问题，就成为，判定是用了哪个热更新的库，ILRuntime, 还是 HybridCLR, 如果帮它连那两个变量。好像接的是 HybridCLR. 这个库是我之前还不曾真正用过的。
@@ -145,7 +145,7 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 - 【Unit】究竟是什么：感觉像是视图里的控件的基本单位？它带位置、旋转信息
 - 有个编译错误说：这个组件不可以同时成分多于一个不同组件组成元件。。。可是框架中使用的地方，明明把它添加进了不同的组件。去弄明白框架里，如何控件一个组件只能成为一个【不能多于1 个】组件的组成部分的？
 ** UnitGateComponent: 
-   #+BEGIN_SRC csharp
+#+BEGIN_SRC csharp
 [ComponentOf(typeof(Gamer))]
 // [ComponentOf(typeof(User))]  // 这里为什么会成为：同一个组件只能为一个什么XX 的子组件组成部分？
 // [ComponentOf(typeof(Unit))]
@@ -157,7 +157,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
     // 	return Game.Scene.GetComponent<ActorMessageSenderComponent>().Get(this.GateSessionActorId);
     // }
 }
-   #+END_SRC
+#+END_SRC
 ** UnitGateComponentSystem
 #+BEGIN_SRC csharp
 public static class UnitGateComponentSystem {
@@ -174,7 +174,7 @@ public static class UnitGateComponentSystem {
 ** IComponentSerialize: 
 - ET7 的重构里，系统框架比较强大，这些必要的接口，都变成了必要的标签系，狠多可以自动系统触发或是调用。必要时只需要必布必要事件就可以了
 - 这个接口的功能，与 Unity 自带的 ISerializationCallbackReceiver 功能类似。Unity 提供两个回调接口，通过实现该接口的两个方法OnBeforeSerialize 和 OnAfterDeserialize，使得原本不能被引擎正确序列化的类可以按照程序员的要求被加工成引擎能够序列化的类型。
-   #+BEGIN_SRC csharp
+  #+BEGIN_SRC csharp
 // 在序列化前或者反序列化之后需要做一些操作，可以实现该接口，该接口的方法需要手动调用
 // 相比ISupportInitialize接口，BeginSerialize在BeginInit之前调用，EndDeSerialize在EndInit之后调用
 // 并且需要手动调用，可以在反序列化之后，在次方法中将注册组件到EventSystem之中等等
@@ -184,7 +184,7 @@ public interface IComponentSerialize {
     // 反序列化之后调用
     void EndDeSerialize();
 }
-#+END_SRC
+  #+END_SRC
 - 可以去找：【ET7 框架】里，相关的接口与标签触发和发布逻辑。
 - ET7 提供了 ISerializeToEntity 接口和IDeserialize，但是并没有接到任何使用的地方。
 #+BEGIN_SRC csharp
@@ -216,7 +216,7 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
 
 ** ClientComponent:【参考项目】客户端组件，找个ET7 里的组件
 - 这个组件，感觉是客户端单例，帮助把本地玩家给绑定到客户端单例。
-   #+BEGIN_SRC csharp
+  #+BEGIN_SRC csharp
 [ObjectSystem]
 public class ClientComponentAwakeSystem : AwakeSystem<ClientComponent> {
     public override void Awake(ClientComponent self) {
@@ -230,7 +230,7 @@ public class ClientComponent : Component {
         Instance = this;
     }
 }
-   #+END_SRC 
+  #+END_SRC 
 
 * TODO 其它的：部分完成，或是待完成的大的功能版块，列举
 - emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
@@ -508,6 +508,13 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 - 还需要把重构前【参考项目】的InnerConfig,OuterConfig,ClientConfig 之类的再瓣一瓣。。。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】   
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】   
 - 亲爱的表哥的活宝妹，也已经狠久没有运行任何一个项目了。再看不懂，就再次 *【先运行一两个参考项目，打出日志无数，用来用作参考，或是帮助自己理解项目中不太懂的地方】*
+- 现在觉得只有运行项目，才能更快地进步。 *【最后一个重构模块 StartConfigComponent 还没有弄明白，要怎么办呢？】* 把这最后一个模块的所有的编译错误先哑掉，让项目运行起来（试着解决接下来可能会遇见的问题），等过几天，熟悉了，再把这此错误加回来，再改进。
+- 【匹配服】：【参考项目】全局只有一个【匹配服】，活宝妹全局一条链表的【匹配服】。那么就是说，重构项目，需要一个标准：随机分配匹配服，或是按小区分配匹配服？按此标准，需不需要每台物理机，或是每个用户去记，分配给它的匹配服是谁？ *游戏逻辑简单，暂时，活宝妹把重构项目改成，如【参考项目】全局只有一个【匹配服】来处理。* 相对简单一点儿。
+- 如上， *同【匹配服】全局只有一个【匹配服】* ；同理处理的逻辑包括， *【Realm 注册登录服】，全局只有一个。* 这么改有个缺点就是，当玩家稍微多一点儿的时候，这些，尤其是【注册登录服】，会成为影响服务器响应速度的，性能瓶颈。需要多几个小服分身分担压力。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 我想要去看ExcelExport 什么所谓的【导表工具】的原理。去读一下那个文件，导的原理，做了哪些工作？
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】  
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】  
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】  
 - 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - 感觉我对源码的管理做得不够好。过程中为什么有很多类，过程中都没能看见呢？为什么分支里明明是有LocationComponent 类，而我先前找不到？
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
@@ -540,17 +547,17 @@ public static class SceneFactory {
         // 任何场景：无序消息分发器，可接收消息，队列处理；【发呢？去想，网关服，转发客户端发向地图服的消息，的过程？】
         scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher); 
         switch (scene.SceneType) {
-            case SceneType.Router:
-                // 云服务器中，一般来说router要单独部署，不过大家经常放在一起，那么下面要修改
-                // startSceneConfig.OuterIPPort改成startSceneConfig.InnerIPOutPort
-                // 然后云服务器防火墙把端口映射过来
-                scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
-                break;
-            case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
-                // 云服务器在防火墙那里做端口映射
-                scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
-                break; // 其它省略掉了
-    #+END_SRC
+        case SceneType.Router:
+            // 云服务器中，一般来说router要单独部署，不过大家经常放在一起，那么下面要修改
+            // startSceneConfig.OuterIPPort改成startSceneConfig.InnerIPOutPort
+            // 然后云服务器防火墙把端口映射过来
+            scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+            break;
+        case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+            // 云服务器在防火墙那里做端口映射
+            scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+            break; // 其它省略掉了
+#+END_SRC
 ** ProtoObject 最基础知识点：AfterEndInit() 回调时，会上报本服配置 
 - 这个类有个特殊的地方：通过它的两个回调接口的调用，可以帮助自己理解，【服务端】启动，到底是根据Json.txt 配置文件启动的，还是各小服【自底向上】命令行启动并上报的？
 #+BEGIN_SRC csharp
@@ -558,8 +565,8 @@ public abstract class ProtoObject: Object, ISupportInitialize {
     public object Clone() { // 【进程间可传递的消息】：为什么这里的复制过程，是先序列化，再反序列化？框架里，也找不到真正调用它的地方
         // 【复制：序列化与反序列化】复制跨进程的消息，【复制】，实际是要传一个版本跨进程到其它进程，那么就需要【序列化】到内存流、内存流上发消息、【反序列化】读取（这里想得未必对）
         // 消息明明就是反序列化好的，为什么再来一遍？得【序列化、反序列化】过程到其它进程。【序列化】到内存流的过程，若是内存流缓过过的最后一条消息，序列化步骤可短路跳过
-            // 在底层内存流上的反序列化方法时（ProtobufHelper.Deserialize()），会调用 ISupportInitialize 的EndInit()回调，反序列化后可做的事的回调
-            // 序列化前的回调，是哪里调用的？BeginInit() 回调在框架里，只有在MongoHelper.cs 的Json 序列化前，会调用；ProtoBuf 序列化前，不曾注册过这个回调
+        // 在底层内存流上的反序列化方法时（ProtobufHelper.Deserialize()），会调用 ISupportInitialize 的EndInit()回调，反序列化后可做的事的回调
+        // 序列化前的回调，是哪里调用的？BeginInit() 回调在框架里，只有在MongoHelper.cs 的Json 序列化前，会调用；ProtoBuf 序列化前，不曾注册过这个回调
         // 上下两句：紧接着。。。并没有跨进程什么？？？【这个方法，没能看懂】 
         byte[] bytes = SerializeHelper.Serialize(this);
         return SerializeHelper.Deserialize(this.GetType(), bytes, 0, bytes.Length);
@@ -675,7 +682,7 @@ public static class HttpComponentSystem {
 // 【路由器管理器场景】：热更域里，帮助【动态路由器系统】扫描周围邻居的帮助方法类
 // 调用的地方在 RouterAddressComponentSystem.cs 里，会想从这里，从管理处？拿网络里的【路由表】
 // 【异步方法】：物理机以IP 地址相区分，同一物理机上的不同进程，如果端口不复用，以端口相区分。
-    // 这里去想：异步方法时，不同物理机，是如何一个一个把各自路由整合起来的？这里想得不对
+// 这里去想：异步方法时，不同物理机，是如何一个一个把各自路由整合起来的？这里想得不对
 // 【服务端】启动时，先前分【四大主要管理类】＋其它小杂琐，是写在单例管理类里的。这里直接去读，先前写过的信息。
 [HttpHandler(SceneType.RouterManager, "/get_router")]
 public class HttpGetRouterHandler : IHttpHandler {
@@ -1134,7 +1141,7 @@ public class HttpHandlerAttribute: BaseAttribute {
 }
 #+END_SRC
 ** NetworkHelper.cs: ET 空间存在这个静态帮助类
-   #+BEGIN_SRC csharp
+#+BEGIN_SRC csharp
 // ET 命名空间：应该不是热更域，提供最底层最基础的帮助方法。热更域里可以实时调用。
 // 这个类，不用了解细节，太底层了
 public static class NetworkHelper {
@@ -1186,7 +1193,7 @@ public static class NetworkHelper {
         socket.IOControl(SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
     }
 }
-   #+END_SRC
+#+END_SRC
 ** SceneFactory 里可以给【匹配服】添加组件：
 #+BEGIN_SRC java
 public static class SceneFactory {

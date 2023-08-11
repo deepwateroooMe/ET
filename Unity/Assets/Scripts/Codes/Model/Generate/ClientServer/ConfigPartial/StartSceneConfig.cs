@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Net;
 namespace ET {
+
     public partial class StartSceneConfigCategory { // 【双端】
         // 数据结构：MultiMap, 它的值，实际是K 类型的链表，不止一个，是链表
         public MultiMap<int, StartSceneConfig> Gates = new MultiMap<int, StartSceneConfig>();
@@ -10,8 +11,8 @@ namespace ET {
         // 【位置服】：可以只有一个，可以有分身与备份。这里所拿到的，可以是全局唯一的位置服，也可以是如同【网关服】【数据库】一样分配在当前小区下的【位置服】
         // 最主要的，这里拿到的，或全局唯一【位置服】；或至少【随机分配】、或按小区分配给，当前物理机当前核当前进程当前场景的，它可以使用的【位置服】索引
         public StartSceneConfig LocationConfig; 
-        public List<StartSceneConfig> Realms = new List<StartSceneConfig>();
-        public List<StartSceneConfig> Matchs = new List<StartSceneConfig>(); // <<<<<<<<<<<<<<<<<<<< 添加管理
+        public StartSceneConfig Realm; // 可是这里感觉，好像是ET7 重构成这样的，【改天，去对比一下】
+        public StartSceneConfig Match; // 添加管理：不再使用一条链表，全局一个【匹配服】
         public List<StartSceneConfig> Routers = new List<StartSceneConfig>();
         public List<StartSceneConfig> Robots = new List<StartSceneConfig>();
         public StartSceneConfig BenchmarkServer;
@@ -31,27 +32,27 @@ namespace ET {
                 }
                 this.ClientScenesByName[startSceneConfig.Zone].Add(startSceneConfig.Name, startSceneConfig);
                 switch (startSceneConfig.Type) { // 其它添加管理事项
-                        case SceneType.Realm:
-                            this.Realms.Add(startSceneConfig);
-                            break;
-                        case SceneType.Match: // 对【匹配服】的管理, 参照登录服来的
-                            this.Matchs.Add(startSceneConfig);
-                            break;
-                        case SceneType.Gate: // 网关：小区区号，与配置 
-                            this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
-                            break;
-                case SceneType.Location: // <<<<<<<<<<<<<<<<<<<< 【原本的】：就是假定了一个核进程下，仅存在一个【本小区位置服】
-                            this.LocationConfig = startSceneConfig;
-                            break;
-                        case SceneType.Robot:
-                            this.Robots.Add(startSceneConfig);
-                            break;
-                case SceneType.Router: // 【路由器】场景：是自己现在看的重点
-                            this.Routers.Add(startSceneConfig);
-                            break;
-                        case SceneType.BenchmarkServer: //【特殊】：因为它只有一个
-                            this.BenchmarkServer = startSceneConfig;
-                            break;
+                    case SceneType.Realm:
+                        this.Realm = startSceneConfig;
+                        break;
+                    case SceneType.Match: // 对【匹配服】的管理
+                        this.Match = startSceneConfig;
+                        break;
+                    case SceneType.Gate: // 网关：小区区号，与配置 
+                        this.Gates.Add(startSceneConfig.Zone, startSceneConfig);
+                        break;
+                    case SceneType.Location: // <<<<<<<<<<<<<<<<<<<< 【原本的】：就是假定了一个核进程下，仅存在一个【本小区位置服】
+                        this.LocationConfig = startSceneConfig;
+                        break;
+                    case SceneType.Robot:
+                        this.Robots.Add(startSceneConfig);
+                        break;
+                    case SceneType.Router: // 【路由器】场景：是自己现在看的重点
+                         this.Routers.Add(startSceneConfig);
+                        break;
+                    case SceneType.BenchmarkServer: //【特殊】：因为它只有一个
+                        this.BenchmarkServer = startSceneConfig;
+                        break;
                 }
             }
         }

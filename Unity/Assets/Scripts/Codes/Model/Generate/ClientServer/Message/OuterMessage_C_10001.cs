@@ -44,11 +44,11 @@ namespace ET {
     [ProtoContract]
     public partial class HttpGetRouterResponse: ProtoObject {
         [ProtoMember(1)]
-        public List<string> Realms { get; set; }
+        public string Realm { get; set; }
         [ProtoMember(2)]
         public List<string> Routers { get; set; }
         [ProtoMember(3)]
-        public List<string> Matchs { get; set; }
+        public string Match { get; set; }
     }
     [Message(OuterMessage.RouterSync)]
     [ProtoContract]
