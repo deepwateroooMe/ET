@@ -16,7 +16,7 @@ namespace ET {
         }
         public virtual void EndInit() {
         }
-        public virtual void AfterEndInit() { // 这个回调，与上一个 EndInit() 区别是？
+        public virtual void AfterEndInit() { // 这个回调，与上一个 EndInit() 区别是？试着去找一个例子出来看看
         }
     }
 }

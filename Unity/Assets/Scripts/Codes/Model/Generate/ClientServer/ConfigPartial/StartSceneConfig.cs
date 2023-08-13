@@ -57,21 +57,21 @@ namespace ET {
             }
         }
     }
-    public partial class StartSceneConfig: ISupportInitialize {
+    public partial class StartSceneConfig: ISupportInitialize { // 这里是，每台小服，专职服，各自的初始化场景
         public long InstanceId;
         public SceneType Type; // 场景类型
 
         public StartProcessConfig StartProcessConfig {
-            get { // 从下面这行来看，每台小服、专职服都有他们各自的初始化场景？这里问得什么牛头不对马尾的？！！明明是，Process 进程的配置
-                return StartProcessConfigCategory.Instance.Get(this.Process); // 通过进程号，去拿各小服专职服的【进程初始化配置】
+            get { // Process 进程的配置：每台物理机上的每个核每个进程的配置
+                return StartProcessConfigCategory.Instance.Get(this.Process); // 通过进程号，去拿各小服专职服所在的【进程】的【进程初始化配置】
             }
         }
-        public StartZoneConfig StartZoneConfig {
+        public StartZoneConfig StartZoneConfig { // 区
             get {
                 return StartZoneConfigCategory.Instance.Get(this.Zone);
             }
         }
-        // 内网地址外网端口，通过防火墙映射端口过来：【通过防火墙映射端口过来】没看懂。。
+        // 【内网地址外网端口，源】，通过防火墙映射端口过来：【通过防火墙映射端口过来】没看懂。。反应就是说，如同先前的内网组件，有可通信的IP 地址，有可通信的区分进程的外网可连接通信的端口，用来远程通信，应该基本就可以了
         private IPEndPoint innerIPOutPort;
         public IPEndPoint InnerIPOutPort {
             get {
@@ -91,7 +91,7 @@ namespace ET {
                 return this.outerIPPort;
             }
         }
-        public override void AfterEndInit() {
+        public override void AfterEndInit() { // 【初始化完成后】：做件事，把这个进程上的当前小服，将其所在的这个进程号封装好，封装的目的当然是将来再用，给任意进程上小伙伴发消息的时候。。。就可以不必知道它的进程号了呀，场景实例标记号，自带进程号。。。
             this.Type = EnumHelper.FromString<SceneType>(this.SceneType);
             InstanceIdStruct instanceIdStruct = new InstanceIdStruct(this.Process, (uint) this.Id);
             this.InstanceId = instanceIdStruct.ToLong();

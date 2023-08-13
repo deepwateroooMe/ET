@@ -3,6 +3,12 @@ using System.Net.Sockets;
 namespace ET.Server { // 【服务端】
 
     public static class SceneFactory {
+<<<<<<< Updated upstream
+=======
+
+        // 根据配置文件来创建的 ??? 
+        // 【添加全服：】（自己加一个全服） 全服是：当所有的【服务端】场景SceneType集中在同一个进程上，这个进程（服务器）它就是一个全服了。所以我不需要再添加任何全服。之前想错了，说明先前没能想明天这个游戏框架的架构
+>>>>>>> Stashed changes
         public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
             await ETTask.CompletedTask; // 当框架限定了这个方法的 async ETTask<Scene> 返回类型，加这句，可以骗过编译器别报错。。。
             Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);

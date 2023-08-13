@@ -14,7 +14,7 @@ namespace ET { // 感觉这个文件的标签稍微少一点儿: 【IMerge 接�
         [BsonElement]
         [ProtoMember(1)]
         private List<StartMachineConfig> list = new List<StartMachineConfig>();
-// 重点：找这个公用方法，调用的地方。框架找不到，活宝妹怀疑它是 protobuf 的库里。暂时放一下，被这个拌了一下午，明天上午或是改天再看
+// 重点：找这个公用方法，调用的地方。框架找不到，活宝妹怀疑它是 protobuf 的库里。暂时放一下, 改天再回来看、和找这个细节
         // 现在，开始觉得：这个方法，是提供给【服务端】根据Json.txt 的各种配置文件，来合并同一类型的服务器配置的。比如StartZoneConfig, 无数个小区，小区间的合同会调用到IMerge 接口里的Merge 方法。慢慢会理解得更为透彻的
         // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
         public void Merge(object o) { // IMerge 接口类申明的这个方法: 或者我找到任何可能调用这里的方法

@@ -1,4 +1,4 @@
-% Created 2023-08-08 Tue 10:00
+% Created 2023-08-13 Sun 14:19
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -178,9 +178,9 @@ public class Program {
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 只要标记了async 就会被编译成状态机
 // 如果方法声明为 async，那么可以直接 return 具体的值，不再用创建Task，由编译器创建 Task： 
-  public static async Task<int> F2Async() {
-      return 2;
-  }
+public static async Task<int> F2Async() {
+    return 2;
+}
 \end{minted}
 \begin{itemize}
 \item F2Async：只加了async，会生成状态机，但由于没有加await所以不会涉及到中间状态的变化，从-1默认状态 变为 结束的-2状态。
@@ -692,7 +692,7 @@ public static class Game {
 \end{itemize}
 \item \textbf{【VS 自动跳转Emacs 中打开当前 buffer】}: 我记得上次两个电脑对照，我已经解决了这个问题，从VS 中是可以实现C-c i 跳转到 emacs 中打开VS 中当前 buffer 的。怎么过段时间，这个便利功能又丢了，不能用了？
 \begin{itemize}
-\item 到亲爱的表哥的活宝妹想要好好改改项目，能够真正 debug 的时候，这些原本便利的功能居然出出错作怪，笔记本打开，再弄一次。我居然忘记了上次我是如何实现这个功能的？我忘记这里当初是怎么实现的了，今天晚上晚些时候，再来调整这些其它功能。【现在暂时就仍然点菜单好了】忍一晚上晚点儿再弄
+\item 到亲爱的表哥的活宝妹想要好好改改项目，能够真正 debug 的时候，这些原本便利的功能居然出出错作怪，笔记本打开，再弄一次。我居然忘记了上次我是如何实现这个功能的？改的办法狠简单， \textbf{把ExternalTools ExternalCommand 绑定到 C-c i 就可以了。就是VS 自动把活宝妹自定义的OpenInEmacsClient ExternalTools 当作了 ExternalCommand1. 所以绑定上这个热键就可以用了。}
 \end{itemize}
 \end{itemize}
 \subsection{StartConfigComponent: 现框架里有重构了的版本，在理解现ET7 框架的基础上进行必要适配：先把之前总结的再熟悉一下，下午有时间也看看这个}
@@ -714,16 +714,24 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \item 【地图服Map 服】：在整理MapHelper.cs 的逻辑的时候，因为游戏的这块儿逻辑不够熟悉，具体原理，或说是连接过程仍然不是狠懂。
 \item 去想的话，感觉当用户注册或是登录帐户的时候，是随机分配一个网关服；框架里也随机分配给用户一个 Realm 注册登录服；当用户点击进入地图，或是重构游戏开始游戏的某个地方，是需要与地图服建立起连接的，大概如果有多个地图服，又随机分配一个。。框架里，虽然分配给每个用户的各个小服，是完全随机的，但是一旦分配给一个用户，除非用户登出下线、或是用户掉线，或是用户其它客户端顶号（用其它客户端的登录顶掉先前某个客户端的登录？这里先前分配的，会变吗？再读的时候看下这块儿），分配给用户的这些小服编号是可能会变的，与先前不同。但同户的同一个玩耍 session ，应该是保持不变的。所以，框架里应该是有某些组件，是可以记录这些小服编号的。要找出来。
 \item 感觉我还是需要回去再读一下参考项目斗地主游戏里进入地图服的这块儿逻辑。当地图服要给某个用户发消息，MapHelper 这里的作用，应该就是帮助地图服找到有当前用户所在的网关服会话框，以便地图服向用户所在的网关服发消息。可是，感觉起来，地图服与网关服之间，不该是内网组件去管理吗？如果内网组件能够管理，MapHelper 就显得多余了呀。要去检查的还有RealmHelper. 这里感觉没能理解透彻为什么ET7 要把一个个好多个弄成帮助类。
+\item 现在是， \textbf{用重构前【参加项目】中的老模块StartConfigComponent, 替换成ET7 重构后的通过【动态路由系统】来获取【地图服】等的相关地址，与连接会话框。}
+\item 这里还不知道怎么改的话，就再回【参考项目】里去看看，先前的重构前的起始配置组件里的功能作用，必要的情况下，ET7 重构后的模块添加上这此没有逻辑与内容应该就可以了。感觉今天晚上再爬一部分源码之后，关于【服务端】，关于IP 地址、甚至工监进程、进程上的场景启动等，都基本看懂了。
+\item 接下来，要再看网络更底层的各种调用，以及区分进程的端口等，端口复用，要怎么才能读懂？还需要把重构前【参考项目】的InnerConfig,OuterConfig,ClientConfig 之类的再瓣一瓣。。。InnerConfig OuterConfig 之在的参考先前的【参考项目】的编译错误还需要改掉。现在是IPEndPoint 还是InnerIPOuterPort 之类的IP 地址端口相关的，转化为 Long, 以及 channelId 搞不清楚。不知道【会话框】上的 channelId 是什么。
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 亲爱的表哥的活宝妹，也已经狠久没有运行任何一个项目了。再看不懂，就再次 \textbf{【先运行一两个参考项目，打出日志无数，用来用作参考，或是帮助自己理解项目中不太懂的地方】}
+\item 现在觉得只有运行项目，才能更快地进步。 \textbf{【最后一个重构模块 StartConfigComponent 还没有弄明白，要怎么办呢？】} 把这最后一个模块的所有的编译错误先哑掉，让项目运行起来（试着解决接下来可能会遇见的问题），等过几天，熟悉了，再把这此错误加回来，再改进。
+\item 【匹配服】：【参考项目】全局只有一个【匹配服】，活宝妹全局一条链表的【匹配服】。那么就是说，重构项目，需要一个标准：随机分配匹配服，或是按小区分配匹配服？按此标准，需不需要每台物理机，或是每个用户去记，分配给它的匹配服是谁？ \textbf{游戏逻辑简单，暂时，活宝妹把重构项目改成，如【参考项目】全局只有一个【匹配服】来处理。} 相对简单一点儿。
+\item 如上， \textbf{同【匹配服】全局只有一个【匹配服】} ；同理处理的逻辑包括， \textbf{【Realm 注册登录服】，全局只有一个。} 这么改有个缺点就是，当玩家稍微多一点儿的时候，这些，尤其是【注册登录服】，会成为影响服务器响应速度的，性能瓶颈。需要多几个小服分身分担压力。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 我想要去看ExcelExport 什么所谓的【导表工具】的原理。去读一下那个文件，导的原理，做了哪些工作？
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 感觉我对源码的管理做得不够好。过程中为什么有很多类，过程中都没能看见呢？为什么分支里明明是有LocationComponent 类，而我先前找不到？
-\item 【这几天两三天看异步作务异步共享资源锁】：基本把框架里的锁、协程锁，与ETTask 基本上全看懂了。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 现在就是，接着去看，先前看时，曾经感觉有困难的，参照上面的学习方法，不懂的网络上搜，走到自己把这些先前不太懂的模块都看懂看明白。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【亲爱的表哥，现在是，一年中活宝妹的本尊（狮子月）！！】这个月，从今天晚上开始，活宝妹都要尽力好好学习了！！一年 12 个月，只有活宝妹的狮子月，活宝妹的理解力、学习效率最高！！！订个小计划：（看完了【协程锁】与【异步任务】）
-\begin{itemize}
-\item 搬家前的五天，把框架，如读【协程锁】如读今天晚上，以前看不懂的地方【网络模块】【Actor 模块】【Handler?】【动态路由模块】今晚能懂般，把它们都看懂，作好笔记；
-\item 周日周一尽量只下午傍晚去搬，两个下午三四次应该能够搬完。上午和晚上的时间，仍然需要好好学习
-\item 8/1/2023: 搬家后，需要尽快适应新环境，找到早上尽早来到学校后，傍晚才回家的午餐不致病健康午餐饮食。如果每天一定需要呆家里一会儿，尽量留在晚上，傍晚弄点儿吃的，晚上家里再学习会儿，保障白天呆学校
-\end{itemize}
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 \item 早上读NetService.cs 里面异步线程三主要回调同步到主线程，感觉仍然读得昏昏的，要再读一遍，找下是哪里调用的。破车昨晚没补好，今天走回家。。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
@@ -733,7 +741,59 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \item 回去继续读【服务端的启动配置】相关的模块。这个暂时先放这里。剩下，运行时再一一细看。
 \item 趁着早上脑袋还算清醒：去读：【动态路由系统】理论，上次还不懂的地方
 \end{itemize}
-
+\subsection{ET 框架的【热更新】束缚条约：Model 层与热更新域}
+\label{sec-7-12}
+\begin{itemize}
+\item 现在重构项目里存在一个问题就是HandCardSprite.cs 类放在了Model 层，有对Unity API 的引用。这在重构后有着严格数据与逻辑分离，Model 层不能有对Unity API 引用的框架束缚里，是不允许的。活宝妹必须把这此个理解透彻，并想出该如何适配以添加重构游戏的需求。
+\item 按下面查到的网络上的梳理，大概HandCardSprite.cs 类是需要放进ModelView 程序域里去的。
+\end{itemize}
+\subsubsection{Model:}
+\label{sec-7-12-1}
+\begin{itemize}
+\item Model层负责定义实体和组件，在这里要定义实体Unit，以及一些组件（MoveComponent，CombatComponent等）以及还需定义UnitType的枚举，以便后续逻辑的分发处理
+\item 注意：
+\begin{itemize}
+\item Model下的实体， \textbf{不能调用UnityAPI，与Unity交互的组件实体只能放在ModelView下}
+\item Model中只能存在数据，例如position,UnitType, \textbf{不能有对数据的操作}
+\end{itemize}
+\end{itemize}
+\subsubsection{ModelView:}
+\label{sec-7-12-2}
+\begin{itemize}
+\item 负责定义与Unity交互的实体和组件，有一些诸如动画组件，GameObject组件用到的数据由Unity提供，就需要将这些实体组件放到这个下面。
+\end{itemize}
+\subsubsection{Hotfix:}
+\label{sec-7-12-3}
+\begin{itemize}
+\item Hotfix负责System行为的定义，提供创建实体和为实体挂载组件的功能。此时定义的UnitFactory工厂就应为不同的实体提供不同的创建方法，例如CreatePlayer，就应先将UnitType置为Player，为其添加MoveComponent组件等待操作。再如CreateNPC，UnitType设置为NPC后，由于npc一般不会移动则无需添加移动组件，可以添加对话组件等待。
+\item 注意：
+\begin{itemize}
+\item Hotfix下只能定义行为，不能包含数据状态，只能对Model提供的数据状态进行相关操作
+\item Hotfix下也不能使用Unity Api, 对于一些需要Unity才能挂载的组件，需要放到view中执行
+\end{itemize}
+\end{itemize}
+\subsubsection{HotfixView:}
+\label{sec-7-12-4}
+\begin{itemize}
+\item HotfixView负责需要与Unity交互的System行为，例如加载模型prefab，实例化游戏对象GameObject，若实体中需要用到GameObject对象，则还应为Unit实体添加GameObject组件，里面存有gameObject。若Unit实体还需要在场景中播放动画，还需要为其添加使用了UnityApi的AnimatorComponent。
+\item 同理，在处理与Unity交互的System行为时，不同类型的Unit也可能行为有所不同，在此需要针对UnitType提供不同的行为。
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
 \section{RouterAddressComponent: 【动态路由组件、模块】相关：这个模块就还是狠迷糊。。。}
 \label{sec-8}
 \begin{itemize}
@@ -755,16 +815,16 @@ public static class SceneFactory {
         // 任何场景：无序消息分发器，可接收消息，队列处理；【发呢？去想，网关服，转发客户端发向地图服的消息，的过程？】
         scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher); 
         switch (scene.SceneType) {
-            case SceneType.Router:
-                // 云服务器中，一般来说router要单独部署，不过大家经常放在一起，那么下面要修改
-                // startSceneConfig.OuterIPPort改成startSceneConfig.InnerIPOutPort
-                // 然后云服务器防火墙把端口映射过来
-                scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
-                break;
-            case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
-                // 云服务器在防火墙那里做端口映射
-                scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
-                break; // 其它省略掉了
+        case SceneType.Router:
+            // 云服务器中，一般来说router要单独部署，不过大家经常放在一起，那么下面要修改
+            // startSceneConfig.OuterIPPort改成startSceneConfig.InnerIPOutPort
+            // 然后云服务器防火墙把端口映射过来
+            scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+            break;
+        case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+            // 云服务器在防火墙那里做端口映射
+            scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+            break; // 其它省略掉了
 \end{minted}
 \subsection{ProtoObject 最基础知识点：AfterEndInit() 回调时，会上报本服配置}
 \label{sec-8-2}
@@ -776,8 +836,8 @@ public abstract class ProtoObject: Object, ISupportInitialize {
     public object Clone() { // 【进程间可传递的消息】：为什么这里的复制过程，是先序列化，再反序列化？框架里，也找不到真正调用它的地方
         // 【复制：序列化与反序列化】复制跨进程的消息，【复制】，实际是要传一个版本跨进程到其它进程，那么就需要【序列化】到内存流、内存流上发消息、【反序列化】读取（这里想得未必对）
         // 消息明明就是反序列化好的，为什么再来一遍？得【序列化、反序列化】过程到其它进程。【序列化】到内存流的过程，若是内存流缓过过的最后一条消息，序列化步骤可短路跳过
-            // 在底层内存流上的反序列化方法时（ProtobufHelper.Deserialize()），会调用 ISupportInitialize 的EndInit()回调，反序列化后可做的事的回调
-            // 序列化前的回调，是哪里调用的？BeginInit() 回调在框架里，只有在MongoHelper.cs 的Json 序列化前，会调用；ProtoBuf 序列化前，不曾注册过这个回调
+        // 在底层内存流上的反序列化方法时（ProtobufHelper.Deserialize()），会调用 ISupportInitialize 的EndInit()回调，反序列化后可做的事的回调
+        // 序列化前的回调，是哪里调用的？BeginInit() 回调在框架里，只有在MongoHelper.cs 的Json 序列化前，会调用；ProtoBuf 序列化前，不曾注册过这个回调
         // 上下两句：紧接着。。。并没有跨进程什么？？？【这个方法，没能看懂】 
         byte[] bytes = SerializeHelper.Serialize(this);
         return SerializeHelper.Deserialize(this.GetType(), bytes, 0, bytes.Length);
@@ -794,6 +854,9 @@ public abstract class ProtoObject: Object, ISupportInitialize {
 \label{sec-8-3}
 \begin{itemize}
 \item 这个组件，全局只有【路由器管理器场景SceneType.RouterManager】添加有这个组件。去想它的功能作用
+\item 每个进程，有一个这个【路由器管理组件】。它自进程启动，就可始专职接收其它路由器客户端？那么，这里还需要去想，各小服上报，上报管理器的逻辑上报申请与过程，在哪里？
+\item RouterAddressComponent 会向上上报，各小服自己申请的连接？需要把几个模块的上层逻辑连接想明白【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 添加RouterAddressComponent组件的地方：当【客户端】登录时（LoginHelper.cs），会为每个【客户端】添加这个组件。这个组件的初始化就会上报【路由器总管】，想要从管理者组件拿所有路由表信息，同时应该也是一个小路由器组件上报的过程？这里，就开始需要，把底层原理弄明白！！【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // http请求分发器
@@ -892,11 +955,12 @@ public static class HttpComponentSystem {
 \item 这个，接上面的HttpComponent 组件，扫描程序域里的 HttpHandlerAttribute 标签属性，全局只有这一个处理器。
 \item 这个类，是框架里全局唯一的【HttpHandler(SceneType.RouterManager)】属性标签。
 \item 这个类里，现在去细看一下StartSceneConfigCategory.Instance 里各类管理，AfterEndInit() 回调里添加的过程，以及ConfigSigleton 相关原理
+\item 这个类里，是去 StartSceneConfigCategory.Instance 等相关配置单例类里去读。但是，这里重点是，【每10 分钟周期性扫描】来这里重读的过程，是想要读到最新配置。也就是，每 10 分钟的周期里，网络里的动态变化，应该是能够反应在，这些配置单例类里的。可是这个动态更新的过程，活宝妹现在还没能读明白！！
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 【路由器管理器场景】：热更域里，帮助【动态路由器系统】扫描周围邻居的帮助方法类
 // 调用的地方在 RouterAddressComponentSystem.cs 里，会想从这里，从管理处？拿网络里的【路由表】
 // 【异步方法】：物理机以IP 地址相区分，同一物理机上的不同进程，如果端口不复用，以端口相区分。
-    // 这里去想：异步方法时，不同物理机，是如何一个一个把各自路由整合起来的？这里想得不对
+// 这里去想：异步方法时，不同物理机，是如何一个一个把各自路由整合起来的？这里想得不对
 // 【服务端】启动时，先前分【四大主要管理类】＋其它小杂琐，是写在单例管理类里的。这里直接去读，先前写过的信息。
 [HttpHandler(SceneType.RouterManager, "/get_router")]
 public class HttpGetRouterHandler : IHttpHandler {
@@ -984,19 +1048,6 @@ public class RouterComponent: Entity, IAwake<IPEndPoint, string>, IDestroy, IUpd
 \label{sec-8-8}
 \begin{itemize}
 \item 这个热更域里的组件相关生命周期方法的定义，必要功能的定义等，这个类太长了，不贴这里。必要的时候去翻了看下就行。
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
@@ -1132,8 +1183,100 @@ message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
     repeated string Matchs = 3;// 这行是我需要添加，和生成消息的。【上面： HttpGetRouterResponse】的进程间可传递消息的定义里，也需要添加多一个链表
 }
 \end{minted}
-\subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了}
+\subsection{EntryEvent2\_InitServer: AppType.Watcher 守护进程，及其功能}
 \label{sec-8-12}
+\begin{itemize}
+\item 这个类SceneFactory，现在看几个【路由器】相关的重点。主要是想要从源码中读明白：【服务端】启动的过程。这里写错了，去找AppType 的类，这个类才是进程层面的上的区分各进程
+\item 昨天晚上看，当一个进程标记为守护进程【亲爱的表哥，是亲爱的表哥的活宝妹的守候进程！！爱表哥，爱生活！！！】。当ET7 重构后的框架里，有这个专职的守护进程，此进程专职守护，它所守护的是这台物理机上所有的核与进程，它并帮助把守护进程所在的物理机上，所有的核、所有的进程、所有进程里的各小服，一一启动并监视看护。
+\item 上面，有【守护进程】的物理机上：所有核进程、所有核进程上的各小服，全部由【守护进程】命令行启动并监护。（这里鸡生蛋蛋生鸡的问题）
+\item 上面，当【守护进程】命令行启动有守护进程的物理机上的所有进程小服，它仍然需要配置，它的配置是 \textbf{（读取本【守护进程】所在的物理机上所有的核、进程、小服的配置）} 。这里的鸡或蛋是：它的配置读的来源，最初是来自于哪里？
+\item 这里，最初的配置，可以追到 \textbf{Json.txt 【服务端】启动前的配置文件（还不确定是否正确）} 。可是没能弄明白，一个进程可能的，如安卓上低内存时会各种被安卓系统杀死，服务器里一台物理机上什么情况下一个进程会死掉（还是整台机器死掉宕机？一个进程的死掉，可以是，破烂弱弱程序员，写出来的程序异常百出不处理，一个应用程序抛出了系统无法识别的异常，它狠无奈，不知道怎么办，只能把进程给杀死了。。。网上查到过的官话有这么写的： \textbf{【进程被kill掉，就是其他进程给目标进程发送了信号（signal），当然也可以是自己给自己发的信号，而目标进程没有正确处理这些信号，或者根本没有机会（权力）处理这些信号，那么目标进程就有可能会终止。】} ），一个进程死掉，带死的全进程上所有的各小服。。。一个进程若是被看护，会被重启，这个进程上所有的小服再被重启，这个死掉与重启的过程，如何动态反应到全局几大类的单例配置管理类里？ \textbf{【今天上午看这个】} 。
+\item 一台物理机上有【守护进程】的是这么启动其它进程和物理机上所有小服的；没有【守护进程】的物理机，是什么情况？
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
+[Event(SceneType.Process)] // 作用于【同一进程】的服务端：同一核、同一进程，可以有多个不同的场景
+public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
+    protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
+        // 发送普通actor消息
+        Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
+        // 自已添加：【数据库管理类组件】
+        Root.Instance.Scene.AddComponent<DBManagerComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
+        // 发送location actor消息
+        Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>(); // 【服务端】全局（同一进程）单例
+        // 访问location server的组件
+        Root.Instance.Scene.AddComponent<LocationProxyComponent>();
+        Root.Instance.Scene.AddComponent<ActorMessageDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ServerSceneManagerComponent>();
+        Root.Instance.Scene.AddComponent<RobotCaseComponent>();
+        Root.Instance.Scene.AddComponent<NavmeshComponent>();
+        StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process); // 把这里，根先前某处，一个命令行，启动服务端进程的逻辑连接起来，就是【服务端】的命令行启动的过程
+        switch (Options.Instance.AppType) { // 这里没弄清楚：它为什么，如此区分三种不同的进程？功能上的不同，主要服务端进程，工监进程、工具类进程
+        case AppType.Server: { // 当启动一个进程的时候，如果是【服务端】进程：启动该进程下的，N 多小服场景。。。
+                Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.InnerIPPort);
+                var processScenes = StartSceneConfigCategory.Instance.GetByProcess(Options.Instance.Process);
+                foreach (StartSceneConfig startConfig in processScenes) { // 下面的管理组件，要再看下
+                    await SceneFactory.CreateServerScene(ServerSceneManagerComponent.Instance, startConfig.Id, startConfig.InstanceId, startConfig.Zone, startConfig.Name, startConfig.Type, startConfig);
+                }
+                break;
+            }
+            case AppType.Watcher: { // 【专用监视进程】：某台物理机上的某个核，是专职用来监视其它进程【或是场景的？】现在看到，重启至少可以以核为单位，重启某个进程【下的M 多服。。】
+                StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig(); // 拿到：本监视进程，所在的物理机的机器配置
+                WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>(); // 添加监视组件
+                watcherComponent.Start(Options.Instance.CreateScenes); // 下面的方法：是监视，还是帮助真正启动并监视？是后者，是真正重启了进程与其上附生的各小服，并将进程纳入管理内容
+                Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
+                break;
+            }
+            case AppType.GameTool:
+                break;
+        }
+        if (Options.Instance.Console == 1) {
+            Root.Instance.Scene.AddComponent<ConsoleComponent>();
+        }
+    }
+}
+\end{minted}
+\subsection{SceneFactory 里可以给【匹配服】添加组件：}
+\label{sec-8-13}
+\begin{minted}[fontsize=\scriptsize,linenos=false]{java}
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
+        await ETTask.CompletedTask;
+        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
+        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
+        switch (scene.SceneType) {
+            case SceneType.Router:
+                scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+                break;
+            case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+                // 云服务器在防火墙那里做端口映射
+                scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+                break;
+            case SceneType.Realm:
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                break;
+            case SceneType.Match: // <<<<<<<<<<<<<<<<<<<< 这里是，我可以添加【匹配服】相关功能组件的地方。【参考项目原原码】感觉被我弄丢了
+                break;
+            case SceneType.Gate:
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                scene.AddComponent<PlayerComponent>();
+                scene.AddComponent<GateSessionKeyComponent>();
+                break;
+            case SceneType.Map:
+                scene.AddComponent<UnitComponent>();
+                scene.AddComponent<AOIManagerComponent>();
+                break;
+            case SceneType.Location:
+                scene.AddComponent<LocationComponent>();
+                break;//...
+        }
+        return scene;
+    }
+}
+\end{minted}
+\subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了}
+\label{sec-8-14}
 \begin{itemize}
 \item 这里没太看懂：是在用户注册或是登录前的处理逻辑；那么如果同户登录活动状态，再要拿Realm 地址，会是一样的方法吗？想要把、或去找，把随机分配给各客户端的小服编号记住？
 \item 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下？
@@ -1175,7 +1318,7 @@ public static class LoginHelper { // 程序域：热更新域在。调用自热�
 }
 \end{minted}
 \subsection{RouterHelper: 【客户端——路由器帮助类】，向路由器注册、申请？LoginHelper.cs 的逻辑里用到这个帮助类。}
-\label{sec-8-13}
+\label{sec-8-15}
 \begin{itemize}
 \item 理论上讲，它帮助【客户端】建一个【客户端】与【网关服】的【会话框】。这里，没能想明白，重构，改为【动态路由系统】的原因、原理是什么？
 \end{itemize}
@@ -1264,7 +1407,7 @@ public static class RouterHelper {
 }
 \end{minted}
 \subsection{PingComponent: 路由组件的几个子组件之一，分辨路由器是否掉线？}
-\label{sec-8-14}
+\label{sec-8-16}
 \begin{itemize}
 \item 在RouterHelper.cs 类中，为【客户端场景】与客户端所在网络下的【RouterAddressComponent? 路由总代理】（就是同一个路由网络下可以对外发消息的那个局域网络上、管理的总代理）所建立起来的会话框（Session）所添加的几个组件之一。因为路由器可能会掉线？会话框可能会意外中断？所以心跳包可以让服务端知道，这个客户端所在的路由点？是否掉线？会话框是否有效，是否可发收消息等
 \item 标签申明得狠清楚：它是会话框的子部件。
@@ -1276,7 +1419,7 @@ public class PingComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{PingComponentSystem: 添加组件时的自启动轮循逻辑}
-\label{sec-8-15}
+\label{sec-8-17}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ObjectSystem]
 public class PingComponentAwakeSystem: AwakeSystem<PingComponent> {
@@ -1317,13 +1460,13 @@ public class PingComponentDestroySystem: DestroySystem<PingComponent> {
 }
 \end{minted}
 \subsection{RouterCheckComponent:}
-\label{sec-8-16}
+\label{sec-8-18}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Session))]
 public class RouterCheckComponent: Entity, IAwake {}
 \end{minted}
 \subsection{RouterCheckerComponentSystem:【局域网内网自刷新系统】}
-\label{sec-8-17}
+\label{sec-8-19}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ObjectSystem]
 public class RouterCheckComponentAwakeSystem: AwakeSystem<RouterCheckComponent> {
@@ -1366,14 +1509,14 @@ public class RouterCheckComponentAwakeSystem: AwakeSystem<RouterCheckComponent> 
 }
 \end{minted}
 \subsection{IHttpHandler: 【服务端】接口类。定义一个异步处理的方法}
-\label{sec-8-18}
+\label{sec-8-20}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IHttpHandler {
     ETTask Handle(Scene scene, HttpListenerContext context);
 }
 \end{minted}
 \subsection{HttpHandlerAttribute 标签系：标签自带场景类型}
-\label{sec-8-19}
+\label{sec-8-21}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class HttpHandlerAttribute: BaseAttribute {
     public SceneType SceneType { get; }
@@ -1385,7 +1528,7 @@ public class HttpHandlerAttribute: BaseAttribute {
 }
 \end{minted}
 \subsection{NetworkHelper.cs: ET 空间存在这个静态帮助类}
-\label{sec-8-20}
+\label{sec-8-22}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // ET 命名空间：应该不是热更域，提供最底层最基础的帮助方法。热更域里可以实时调用。
 // 这个类，不用了解细节，太底层了
@@ -1440,7 +1583,7 @@ public static class NetworkHelper {
 }
 \end{minted}
 \subsection{SceneFactory 里可以给【匹配服】添加组件：}
-\label{sec-8-21}
+\label{sec-8-23}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -1478,7 +1621,7 @@ public static class SceneFactory {
 }
 \end{minted}
 \subsection{GateSessionKeyComponent: 【活宝妹的全局唯一代理！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】}
-\label{sec-8-22}
+\label{sec-8-24}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class GateSessionKeyComponent : Entity, IAwake {
@@ -1487,7 +1630,7 @@ public class GateSessionKeyComponent : Entity, IAwake {
 }
 \end{minted}
 \subsection{GateSessionKeyComponentSystem: 应该是会话框的管理类。服务端类}
-\label{sec-8-23}
+\label{sec-8-25}
 \begin{itemize}
 \item 亲爱的表哥，为什么他们总是莫名其妙地发疯犯贱？还能让活宝妹好好学习吗？感觉他们阴阳怪气的，弄得亲爱的表哥的活宝妹任何时候都狠胆小担心。
 \begin{itemize}
@@ -1525,7 +1668,7 @@ public static class GateSessionKeyComponentSystem {
 \end{minted}
 
 \subsection{RouterNode: 一个路由器节点：}
-\label{sec-8-24}
+\label{sec-8-26}
 \begin{itemize}
 \item 亲爱的表哥，贱公寓里的大机器又开始故意吵人，他们昨天又故意把机器的噪音调得更大了，活宝妹有很长一段时间至少是白天，不曾听见这么大的噪音了。
 \item 从昨天傍晚起，活宝妹的自行车也得皮长紧点儿了，活宝妹再不小心，活宝妹的自行车被拖走，活宝妹又要被割肉了。。。
@@ -1557,7 +1700,7 @@ public class RouterNode: Entity, IDestroy, IAwake {
 }
 \end{minted}
 \subsection{RouterNodeSystem: 小单元小行星的生命周期回调类，如同先前的PlayerSystem, 实现框架里的必要回调}
-\label{sec-8-25}
+\label{sec-8-27}
 \begin{itemize}
 \item 那么就是每扫到一个邻居，每添加一个邻居，生成一个新的邻居实例，都会调用这里的相关方法。
 \end{itemize}
@@ -1597,5 +1740,40 @@ public static class RouterNodeSystem {
     }
 }
 \end{minted}
+\begin{itemize}
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
 % Emacs 28.2 (Org mode 8.2.7c)
 \end{document}

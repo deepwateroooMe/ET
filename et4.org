@@ -486,7 +486,7 @@ public static class Game {
   - 我必须得，自己 *构建自己手动修改了词库之后的Rime-dylib 第三方引用库给 emacs 用* ，才能把词库改过来。下午看看这个，免得睡着了。。
   - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - *【VS 自动跳转Emacs 中打开当前 buffer】*: 我记得上次两个电脑对照，我已经解决了这个问题，从VS 中是可以实现C-c i 跳转到 emacs 中打开VS 中当前 buffer 的。怎么过段时间，这个便利功能又丢了，不能用了？
-  - 到亲爱的表哥的活宝妹想要好好改改项目，能够真正 debug 的时候，这些原本便利的功能居然出出错作怪，笔记本打开，再弄一次。我居然忘记了上次我是如何实现这个功能的？我忘记这里当初是怎么实现的了，今天晚上晚些时候，再来调整这些其它功能。【现在暂时就仍然点菜单好了】忍一晚上晚点儿再弄
+  - 到亲爱的表哥的活宝妹想要好好改改项目，能够真正 debug 的时候，这些原本便利的功能居然出出错作怪，笔记本打开，再弄一次。我居然忘记了上次我是如何实现这个功能的？改的办法狠简单， *把ExternalTools ExternalCommand 绑定到 C-c i 就可以了。就是VS 自动把活宝妹自定义的OpenInEmacsClient ExternalTools 当作了 ExternalCommand1. 所以绑定上这个热键就可以用了。*
 ** StartConfigComponent: 现框架里有重构了的版本，在理解现ET7 框架的基础上进行必要适配：先把之前总结的再熟悉一下，下午有时间也看看这个
 - 下面是两个重复了的消息，需要删除掉：
   - C2G_LoginGate_Req ＝＝》 C2G_LoginGate 这些重复的消息，我还没有删除掉。改天最后整理清理源码的时候一起再删除
@@ -504,8 +504,8 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 - 感觉我还是需要回去再读一下参考项目斗地主游戏里进入地图服的这块儿逻辑。当地图服要给某个用户发消息，MapHelper 这里的作用，应该就是帮助地图服找到有当前用户所在的网关服会话框，以便地图服向用户所在的网关服发消息。可是，感觉起来，地图服与网关服之间，不该是内网组件去管理吗？如果内网组件能够管理，MapHelper 就显得多余了呀。要去检查的还有RealmHelper. 这里感觉没能理解透彻为什么ET7 要把一个个好多个弄成帮助类。
 - 现在是， *用重构前【参加项目】中的老模块StartConfigComponent, 替换成ET7 重构后的通过【动态路由系统】来获取【地图服】等的相关地址，与连接会话框。*
 - 这里还不知道怎么改的话，就再回【参考项目】里去看看，先前的重构前的起始配置组件里的功能作用，必要的情况下，ET7 重构后的模块添加上这此没有逻辑与内容应该就可以了。感觉今天晚上再爬一部分源码之后，关于【服务端】，关于IP 地址、甚至工监进程、进程上的场景启动等，都基本看懂了。
-- 接下来，要再看网络更底层的各种调用，以及区分进程的端口等，端口复用，要怎么才能读懂？明天上午读。今天晚上剩下的时间能够看多少就看多少，看到哪里是哪里，作记号
-- 还需要把重构前【参考项目】的InnerConfig,OuterConfig,ClientConfig 之类的再瓣一瓣。。。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】   
+- 接下来，要再看网络更底层的各种调用，以及区分进程的端口等，端口复用，要怎么才能读懂？还需要把重构前【参考项目】的InnerConfig,OuterConfig,ClientConfig 之类的再瓣一瓣。。。InnerConfig OuterConfig 之在的参考先前的【参考项目】的编译错误还需要改掉。现在是IPEndPoint 还是InnerIPOuterPort 之类的IP 地址端口相关的，转化为 Long, 以及 channelId 搞不清楚。不知道【会话框】上的 channelId 是什么。
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】   
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】   
 - 亲爱的表哥的活宝妹，也已经狠久没有运行任何一个项目了。再看不懂，就再次 *【先运行一两个参考项目，打出日志无数，用来用作参考，或是帮助自己理解项目中不太懂的地方】*
 - 现在觉得只有运行项目，才能更快地进步。 *【最后一个重构模块 StartConfigComponent 还没有弄明白，要怎么办呢？】* 把这最后一个模块的所有的编译错误先哑掉，让项目运行起来（试着解决接下来可能会遇见的问题），等过几天，熟悉了，再把这此错误加回来，再改进。
@@ -517,12 +517,9 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】  
 - 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - 感觉我对源码的管理做得不够好。过程中为什么有很多类，过程中都没能看见呢？为什么分支里明明是有LocationComponent 类，而我先前找不到？
+- 【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 - 现在就是，接着去看，先前看时，曾经感觉有困难的，参照上面的学习方法，不懂的网络上搜，走到自己把这些先前不太懂的模块都看懂看明白。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【亲爱的表哥，现在是，一年中活宝妹的本尊（狮子月）！！】这个月，从今天晚上开始，活宝妹都要尽力好好学习了！！一年 12 个月，只有活宝妹的狮子月，活宝妹的理解力、学习效率最高！！！订个小计划：（看完了【协程锁】与【异步任务】）
-  - 搬家前的五天，把框架，如读【协程锁】如读今天晚上，以前看不懂的地方【网络模块】【Actor 模块】【Handler?】【动态路由模块】今晚能懂般，把它们都看懂，作好笔记；
-  - 周日周一尽量只下午傍晚去搬，两个下午三四次应该能够搬完。上午和晚上的时间，仍然需要好好学习
-  - 8/1/2023: 搬家后，需要尽快适应新环境，找到早上尽早来到学校后，傍晚才回家的午餐不致病健康午餐饮食。如果每天一定需要呆家里一会儿，尽量留在晚上，傍晚弄点儿吃的，晚上家里再学习会儿，保障白天呆学校
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
 - 早上读NetService.cs 里面异步线程三主要回调同步到主线程，感觉仍然读得昏昏的，要再读一遍，找下是哪里调用的。破车昨晚没补好，今天走回家。。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
@@ -531,7 +528,43 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 - 【今天早上】：先去读一个帮助工具类程序集：从Json 配置文件 .txt 里（前两天参考网络上的，ET7 重构后，服务端启动的配置是记在 .txt 里）读取配置，并怎么记录到配置文件的过程。感觉不去深入理解【服务端启动过程中】的每个细节，都感觉服务端的启动没读懂。可是，这块儿不知道从哪里下口。。。
 - 回去继续读【服务端的启动配置】相关的模块。这个暂时先放这里。剩下，运行时再一一细看。
 - 趁着早上脑袋还算清醒：去读：【动态路由系统】理论，上次还不懂的地方
-
+** ET 框架的【热更新】束缚条约：Model 层与热更新域
+- 现在重构项目里存在一个问题就是HandCardSprite.cs 类放在了Model 层，有对Unity API 的引用。这在重构后有着严格数据与逻辑分离，Model 层不能有对Unity API 引用的框架束缚里，是不允许的。活宝妹必须把这此个理解透彻，并想出该如何适配以添加重构游戏的需求。
+- 按下面查到的网络上的梳理，大概HandCardSprite.cs 类是需要放进ModelView 程序域里去的。
+*** Model: 
+- Model层负责定义实体和组件，在这里要定义实体Unit，以及一些组件（MoveComponent，CombatComponent等）以及还需定义UnitType的枚举，以便后续逻辑的分发处理
+- 注意：
+  - Model下的实体， *不能调用UnityAPI，与Unity交互的组件实体只能放在ModelView下*
+  - Model中只能存在数据，例如position,UnitType, *不能有对数据的操作*
+*** ModelView: 
+- 负责定义与Unity交互的实体和组件，有一些诸如动画组件，GameObject组件用到的数据由Unity提供，就需要将这些实体组件放到这个下面。
+*** Hotfix: 
+- Hotfix负责System行为的定义，提供创建实体和为实体挂载组件的功能。此时定义的UnitFactory工厂就应为不同的实体提供不同的创建方法，例如CreatePlayer，就应先将UnitType置为Player，为其添加MoveComponent组件等待操作。再如CreateNPC，UnitType设置为NPC后，由于npc一般不会移动则无需添加移动组件，可以添加对话组件等待。
+- 注意：
+  - Hotfix下只能定义行为，不能包含数据状态，只能对Model提供的数据状态进行相关操作
+  - Hotfix下也不能使用Unity Api, 对于一些需要Unity才能挂载的组件，需要放到view中执行
+*** HotfixView: 
+- HotfixView负责需要与Unity交互的System行为，例如加载模型prefab，实例化游戏对象GameObject，若实体中需要用到GameObject对象，则还应为Unit实体添加GameObject组件，里面存有gameObject。若Unit实体还需要在场景中播放动画，还需要为其添加使用了UnityApi的AnimatorComponent。
+- 同理，在处理与Unity交互的System行为时，不同类型的Unit也可能行为有所不同，在此需要针对UnitType提供不同的行为。
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 * RouterAddressComponent: 【动态路由组件、模块】相关：这个模块就还是狠迷糊。。。
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 - 也还需要更多的搜索网络，来从概念上理解【动态路由系统】的原理。感觉个模块更像是【动态路由系统】。因为这个章节是搬、修改自以前理解不够透彻的总结，所以还残留了不少其它可能不太相关的在这里。暂时仍放这里。 
@@ -678,6 +711,7 @@ public static class HttpComponentSystem {
 - 这个，接上面的HttpComponent 组件，扫描程序域里的 HttpHandlerAttribute 标签属性，全局只有这一个处理器。
 - 这个类，是框架里全局唯一的【HttpHandler(SceneType.RouterManager)】属性标签。
 - 这个类里，现在去细看一下StartSceneConfigCategory.Instance 里各类管理，AfterEndInit() 回调里添加的过程，以及ConfigSigleton 相关原理
+- 这个类里，是去 StartSceneConfigCategory.Instance 等相关配置单例类里去读。但是，这里重点是，【每10 分钟周期性扫描】来这里重读的过程，是想要读到最新配置。也就是，每 10 分钟的周期里，网络里的动态变化，应该是能够反应在，这些配置单例类里的。可是这个动态更新的过程，活宝妹现在还没能读明白！！
   #+BEGIN_SRC csharp
 // 【路由器管理器场景】：热更域里，帮助【动态路由器系统】扫描周围邻居的帮助方法类
 // 调用的地方在 RouterAddressComponentSystem.cs 里，会想从这里，从管理处？拿网络里的【路由表】
@@ -765,20 +799,6 @@ public class RouterComponent: Entity, IAwake<IPEndPoint, string>, IDestroy, IUpd
 - 这个热更域里的组件相关生命周期方法的定义，必要功能的定义等，这个类太长了，不贴这里。必要的时候去翻了看下就行。
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-<<<<<<< Updated upstream
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 - 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
@@ -900,6 +920,94 @@ message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
     repeated string Realms = 1;
     repeated string Routers = 2;
     repeated string Matchs = 3;// 这行是我需要添加，和生成消息的。【上面： HttpGetRouterResponse】的进程间可传递消息的定义里，也需要添加多一个链表
+}
+#+END_SRC
+** EntryEvent2_InitServer: AppType.Watcher 守护进程，及其功能 
+- 这个类SceneFactory，现在看几个【路由器】相关的重点。主要是想要从源码中读明白：【服务端】启动的过程。这里写错了，去找AppType 的类，这个类才是进程层面的上的区分各进程
+- 昨天晚上看，当一个进程标记为守护进程【亲爱的表哥，是亲爱的表哥的活宝妹的守候进程！！爱表哥，爱生活！！！】。当ET7 重构后的框架里，有这个专职的守护进程，此进程专职守护，它所守护的是这台物理机上所有的核与进程，它并帮助把守护进程所在的物理机上，所有的核、所有的进程、所有进程里的各小服，一一启动并监视看护。
+- 上面，有【守护进程】的物理机上：所有核进程、所有核进程上的各小服，全部由【守护进程】命令行启动并监护。（这里鸡生蛋蛋生鸡的问题）
+- 上面，当【守护进程】命令行启动有守护进程的物理机上的所有进程小服，它仍然需要配置，它的配置是 *（读取本【守护进程】所在的物理机上所有的核、进程、小服的配置）* 。这里的鸡或蛋是：它的配置读的来源，最初是来自于哪里？
+- 这里，最初的配置，可以追到 *Json.txt 【服务端】启动前的配置文件（还不确定是否正确）* 。可是没能弄明白，一个进程可能的，如安卓上低内存时会各种被安卓系统杀死，服务器里一台物理机上什么情况下一个进程会死掉（还是整台机器死掉宕机？一个进程的死掉，可以是，破烂弱弱程序员，写出来的程序异常百出不处理，一个应用程序抛出了系统无法识别的异常，它狠无奈，不知道怎么办，只能把进程给杀死了。。。网上查到过的官话有这么写的： *【进程被kill掉，就是其他进程给目标进程发送了信号（signal），当然也可以是自己给自己发的信号，而目标进程没有正确处理这些信号，或者根本没有机会（权力）处理这些信号，那么目标进程就有可能会终止。】* ），一个进程死掉，带死的全进程上所有的各小服。。。一个进程若是被看护，会被重启，这个进程上所有的小服再被重启，这个死掉与重启的过程，如何动态反应到全局几大类的单例配置管理类里？ *【今天上午看这个】* 。
+- 一台物理机上有【守护进程】的是这么启动其它进程和物理机上所有小服的；没有【守护进程】的物理机，是什么情况？
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+- 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+#+BEGIN_SRC csharp
+[Event(SceneType.Process)] // 作用于【同一进程】的服务端：同一核、同一进程，可以有多个不同的场景
+public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
+    protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
+        // 发送普通actor消息
+        Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
+        // 自已添加：【数据库管理类组件】
+        Root.Instance.Scene.AddComponent<DBManagerComponent>(); // 【服务端】几个组件：现在这个组件，最熟悉
+        // 发送location actor消息
+        Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>(); // 【服务端】全局（同一进程）单例
+        // 访问location server的组件
+        Root.Instance.Scene.AddComponent<LocationProxyComponent>();
+        Root.Instance.Scene.AddComponent<ActorMessageDispatcherComponent>();
+        Root.Instance.Scene.AddComponent<ServerSceneManagerComponent>();
+        Root.Instance.Scene.AddComponent<RobotCaseComponent>();
+        Root.Instance.Scene.AddComponent<NavmeshComponent>();
+        StartProcessConfig processConfig = StartProcessConfigCategory.Instance.Get(Options.Instance.Process); // 把这里，根先前某处，一个命令行，启动服务端进程的逻辑连接起来，就是【服务端】的命令行启动的过程
+        switch (Options.Instance.AppType) { // 这里没弄清楚：它为什么，如此区分三种不同的进程？功能上的不同，主要服务端进程，工监进程、工具类进程
+        case AppType.Server: { // 当启动一个进程的时候，如果是【服务端】进程：启动该进程下的，N 多小服场景。。。
+                Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(processConfig.InnerIPPort);
+                var processScenes = StartSceneConfigCategory.Instance.GetByProcess(Options.Instance.Process);
+                foreach (StartSceneConfig startConfig in processScenes) { // 下面的管理组件，要再看下
+                    await SceneFactory.CreateServerScene(ServerSceneManagerComponent.Instance, startConfig.Id, startConfig.InstanceId, startConfig.Zone, startConfig.Name, startConfig.Type, startConfig);
+                }
+                break;
+            }
+            case AppType.Watcher: { // 【专用监视进程】：某台物理机上的某个核，是专职用来监视其它进程【或是场景的？】现在看到，重启至少可以以核为单位，重启某个进程【下的M 多服。。】
+                StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig(); // 拿到：本监视进程，所在的物理机的机器配置
+                WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>(); // 添加监视组件
+                watcherComponent.Start(Options.Instance.CreateScenes); // 下面的方法：是监视，还是帮助真正启动并监视？是后者，是真正重启了进程与其上附生的各小服，并将进程纳入管理内容
+                Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.ToIPEndPoint($"{startMachineConfig.InnerIP}:{startMachineConfig.WatcherPort}"));
+                break;
+            }
+            case AppType.GameTool:
+                break;
+        }
+        if (Options.Instance.Console == 1) {
+            Root.Instance.Scene.AddComponent<ConsoleComponent>();
+        }
+    }
+}
+#+END_SRC
+** SceneFactory 里可以给【匹配服】添加组件：
+#+BEGIN_SRC java
+public static class SceneFactory {
+    public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
+        await ETTask.CompletedTask;
+        Scene scene = EntitySceneFactory.CreateScene(id, instanceId, zone, sceneType, name, parent);
+        scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
+        switch (scene.SceneType) {
+            case SceneType.Router:
+                scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort, startSceneConfig.StartProcessConfig.InnerIP);
+                break;
+            case SceneType.RouterManager: // 正式发布请用CDN代替RouterManager
+                // 云服务器在防火墙那里做端口映射
+                scene.AddComponent<HttpComponent, string>($"http:// *:{startSceneConfig.OuterPort}/");
+                break;
+            case SceneType.Realm:
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                break;
+            case SceneType.Match: // <<<<<<<<<<<<<<<<<<<< 这里是，我可以添加【匹配服】相关功能组件的地方。【参考项目原原码】感觉被我弄丢了
+                break;
+            case SceneType.Gate:
+                scene.AddComponent<NetServerComponent, IPEndPoint>(startSceneConfig.InnerIPOutPort);
+                scene.AddComponent<PlayerComponent>();
+                scene.AddComponent<GateSessionKeyComponent>();
+                break;
+            case SceneType.Map:
+                scene.AddComponent<UnitComponent>();
+                scene.AddComponent<AOIManagerComponent>();
+                break;
+            case SceneType.Location:
+                scene.AddComponent<LocationComponent>();
+                break;//...
+        }
+        return scene;
+    }
 }
 #+END_SRC
 ** LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了

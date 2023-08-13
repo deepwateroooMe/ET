@@ -1,5 +1,6 @@
 ﻿using System;
 namespace ET {
+    
     public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
         [StaticField]
         private static T instance;
@@ -23,7 +24,7 @@ namespace ET {
         }
         bool ISingleton.IsDisposed() {
             throw new NotImplementedException();
-        }
+        }  // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 // ConfigSingleton: 桥接了这两个 ProtoObject 里的【反序列化】结束的接口        
         public override void AfterEndInit() { // 这里就是想要桥接：ProtoObject 里所实现过的【初始化前后】可以做的事情，接口，给框架使用者一些可用接口
         }
