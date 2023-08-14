@@ -576,7 +576,7 @@ namespace ET {
         [ProtoMember(1)]
         public long UserID { get; set; }
         [ProtoMember(2)]
-        public bool isTrusteeship { get; set; }
+        public bool IsTrusteeship { get; set; }
     }
     [Message(InnerMessage.GamerInfo)]
     [ProtoContract]
