@@ -67,8 +67,8 @@ namespace ET.Client {
             return StartSceneConfigCategory.Instance.Match.InnerIPOutPort;
         }
         // 随机分配了一个Realm 注册登录服。。。去框架里找：为每个【客户端】所随机分配的这些小服编号，哪里有什么记载吗？因为晚些时候，感觉还会用到的
-        public static IPEndPoint GetRealmAddress(this RouterAddressComponent self, string account) {
-            // int v = account.Mode(self.Info.Realms.Count); // 这里 mod: 随机分配了一个Realm 注册登录服。。。
+        public static IPEndPoint GetRealmAddress(this RouterAddressComponent self, string account) { // 框架里，原本【注册登录服】是有分身的，可是自己把链表变成了一个，没有分身备份
+            // int v = account.Mode(self.Info.Realms.Count); // 这里 mod: 随机分配了一个Realm 注册登录服。。。 
             // string address = self.Info.Realms[v];
             string address = self.Info.Realm;
             string[] ss = address.Split(':');

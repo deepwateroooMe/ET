@@ -2,7 +2,7 @@ using System.Net;
 namespace ET {
     public partial class StartProcessConfig {
         private IPEndPoint innerIPPort;
-        public long SceneId;
+        public long SceneId; // 我把它：当作了进程号 fromProcess 标记号，不知道是否正确
 
         public IPEndPoint InnerIPPort {
             get {

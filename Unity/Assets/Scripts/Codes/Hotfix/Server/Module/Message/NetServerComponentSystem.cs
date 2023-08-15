@@ -25,7 +25,8 @@ namespace ET.Server {
             session.Error = error;
             session.Dispose();
         }
-        // 这个channelId是由CreateAcceptChannelId生成的
+        // 这个channelId是由CreateAcceptChannelId生成的: 这里就是，搞不明白，这个 channelId 是个什么？倒着找回去，看能找到哪里去？三大回调，回调回来的第一个参数就是 channelId
+        // 现在，去找，它是怎么生成的？ CreateAcceptChannelId() ？
         private static void OnAccept(this NetServerComponent self, long channelId, IPEndPoint ipEndPoint) {
             // 【创建会话框】：当此【服务端】组件，接受了一个客户端，就建一个与接收的【客户端】的会话框
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);

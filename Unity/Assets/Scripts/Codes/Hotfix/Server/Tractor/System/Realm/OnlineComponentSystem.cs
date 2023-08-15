@@ -6,7 +6,7 @@ namespace ET.Server {
     public static class OnlineComponentSystem {
         // 添加在线玩家
         public static void Add(OnlineComponent self, long userId, int gateAppId) {
-            self.dictionary.Add(userId, gateAppId);
+            self.dictionary.Add(userId, gateAppId); // 找个例子看： gateAppId 传进来的是什么
         }
         // 获取在线玩家网关服务器ID
         public static int Get(OnlineComponent self, long userId) {
