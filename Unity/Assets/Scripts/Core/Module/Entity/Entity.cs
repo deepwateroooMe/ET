@@ -513,7 +513,7 @@ namespace ET {
             Entity component = Create(type, isFromPool);
             component.Id = this.Id;
             component.ComponentParent = this;
-            EventSystem.Instance.Awake(component);
+            EventSystem.Instance.Awake(component); // 这里，添加任何一个组件的时候，框架都会适配，自动调用Awake() 一次
             if (this is IAddComponent) {
                 EventSystem.Instance.AddComponent(this, component);
             }

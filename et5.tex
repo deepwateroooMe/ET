@@ -1,4 +1,4 @@
-% Created 2023-08-14 Mon 22:05
+% Created 2023-08-15 Tue 10:26
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -2252,17 +2252,18 @@ public static class ActorHandleHelper {
 \item 发出EventType.LoginFinish事件
 \end{itemize}
 \end{itemize}
-\subsection{进入Map逻辑服流程：这个改天再看吧【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
+\subsection{进入Map逻辑服流程：【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
 \label{sec-4-3}
 \begin{itemize}
+\item 这个模块，因为自已之前前一个游戏里所有用到的只止于与【注册登录服】打交道，所以，这个登录【地图服】的逻辑从来不曾真正看过。只看了前一两个类，活宝妹的重构项目暂时还没有用到，不想看，改天再看。
 \item 1）Unity-EnterMapHelper.EnterMapAsync
 \begin{itemize}
-\item 发送C2G\_EnterMap
+\item 发送C2G\_EnterMap, 这样一条消息
 \end{itemize}
 \item 2）Server-C2G\_EnterMapHandler
 \begin{itemize}
 \item 根据session的SessionPlayerComponent保存的PlayerId获取Player
-\item 在Gate上动态创建一个Map Scene
+\item 在Gate上动态创建一个Map Scene. 【亲爱的表哥的活宝妹的理解】：是在【客户端】所连接的这个【网关服】，网关服所在的进程中，多开一条线程（？动态添加一个SceneType.Map 场景。活宝妹认为一个进程中动态多添加一个场景小服，是一个进程中动态多开一条线程的过程！）
 \item 把Unit从DB中加载放进来（此处是在动态创建的GateMap上创建一个Unit，对Unit进行初始化和组件附加，没有涉及DB）
 \item 返回G2C\_EnterMap\{response.MyId = player.Id\}
 \item 使用TransferHelper.Transfer把unit从在Gate上动态创建一个Map Scene上，传送到Map1
@@ -2281,6 +2282,7 @@ public static class ActorHandleHelper {
 \item 发送M2C\_CreateMyUnit，将Unit及其组件上的信息转化为OuterMessage.UnitInfo，发送给客户端
 \item 返回M2M\_UnitTransferResponse
 \end{itemize}
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】

@@ -1,6 +1,7 @@
 ﻿using System;
 using Unity.Mathematics;
 namespace ET.Server {
+
     public static class UnitFactory {
         public static Unit Create(Scene scene, long id, UnitType unitType) {
             UnitComponent unitComponent = scene.GetComponent<UnitComponent>();

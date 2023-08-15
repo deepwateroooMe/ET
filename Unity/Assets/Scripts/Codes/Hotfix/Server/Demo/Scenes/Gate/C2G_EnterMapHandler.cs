@@ -1,13 +1,14 @@
 ﻿using System;
 namespace ET.Server {
-    // 【网关服】：客户端申请，进入房间。也有可能这个类，这个方法，确实存在没有返回正确的类型ETTask|Void 之类的？
+    // 【网关服】：客户端申请，进入房间。
     [MessageHandler(SceneType.Gate)]
     public class C2G_EnterMapHandler : AMRpcHandler<C2G_EnterMap, G2C_EnterMap> {
 
 		protected override async ETTask Run(Session session, C2G_EnterMap request, G2C_EnterMap response) { 
-// 方法变成回调的形式：就是，先自己创建一个回复消息的实例，再用传参进来的回调函数把返回消息回复回去：【活宝妹就是一定要嫁给亲爱的表哥！！！】
             Player player = session.GetComponent<SessionPlayerComponent>().GetMyPlayer();
-            // 在Gate上动态创建一个Map Scene，把Unit从DB中加载放进来，然后传送到真正的Map中，这样登陆跟传送的逻辑就完全一样了
+            // 在Gate上动态创建一个Map Scene，把Unit从DB中加载放进来，然后传送到真正的Map中，这样登陆跟传送的逻辑就完全一样了【源】
+            // 【在Gate上动态创建一个Map Scene】, 是SceneType.Map, 是，网关服同一进程上再多开一条线程的真正场景，调用的创建场景的方法，创建场景的类型
+            // 是创建了一个真正的【SceneType.Map 场景】，并把索引传给了 gateMapComponent.Scene. 没读懂，怎么哪里是从数据库中加载进来的？
             GateMapComponent gateMapComponent = player.AddComponent<GateMapComponent>();
             gateMapComponent.Scene = await SceneFactory.CreateServerScene(gateMapComponent, player.Id, IdGenerater.Instance.GenerateInstanceId(), gateMapComponent.DomainZone(), "GateMap", SceneType.Map);
             Scene scene = gateMapComponent.Scene;
@@ -16,7 +17,7 @@ namespace ET.Server {
             Unit unit = UnitFactory.Create(scene, player.Id, UnitType.Player);
             unit.AddComponent<UnitGateComponent, long>(session.InstanceId); 
                 
-            StartSceneConfig startSceneConfig = StartSceneConfigCategory.Instance.GetBySceneName(session.DomainZone(), "Map1");
+            StartSceneConfig startSceneConfig = StartSceneConfigCategory.Instance.GetBySceneName(session.DomainZone(), "Map1"); // 这个东西，应该也是设置在配置里，存在预设的哪里。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
             response.MyId = player.Id;
 
             // 等到一帧的最后面再传送，先让G2C_EnterMap返回，否则传送消息可能比G2C_EnterMap还早
