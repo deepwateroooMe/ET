@@ -8,6 +8,7 @@ namespace ET.Client {
             self.Awake(panel);
         }
     }
+    [ComponentOf(typeof(Gamer))] // 这些，我都改过，为什么它们会又崩出来了？【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
     public class HandCardsComponent : Entity, IAwake<GameObject> { // 某个玩家：手上的手牌，随游戏的进展会变少，每次出牌的时候，会看看牌型什么的
         public const string HANDCARD_NAME = "HandCard";
         public const string PLAYCARD_NAME = "PlayCard";

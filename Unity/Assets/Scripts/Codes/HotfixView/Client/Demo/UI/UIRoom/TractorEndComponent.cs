@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using ETModel;
 using System;
 namespace ET.Client {
 

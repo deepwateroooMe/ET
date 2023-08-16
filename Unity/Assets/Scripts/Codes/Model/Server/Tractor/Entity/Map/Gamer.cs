@@ -9,7 +9,7 @@ namespace ET {
     //     }
     // }
     // 房间玩家对象
-    [ChildOf(typeof(GamerComponent))]
+    [ChildOf(typeof(GamerComponent))] // 先把这个去掉：这就是刚才的那个报错了
     public sealed class Gamer : Entity, IAwake<long> {
     // public sealed class Gamer : Entity {
         // 用户ID（唯一）

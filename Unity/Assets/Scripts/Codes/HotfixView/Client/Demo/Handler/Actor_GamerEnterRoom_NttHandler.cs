@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using ETModel;
 using System.Collections.Generic;
 namespace ET.Client {
 

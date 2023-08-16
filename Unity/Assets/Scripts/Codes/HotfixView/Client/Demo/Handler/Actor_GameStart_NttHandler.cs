@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using ETModel;
 using UnityEngine;
 using UnityEngine.UI;
 namespace ET.Client {
 
     [MessageHandler]
     public class Actor_GameStart_NttHandler : AMHandler<Actor_GameStart_Ntt> {
-        protected override void Run(ETModel.Session session, Actor_GameStart_Ntt message) {
-            UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
+        protected override void Run(Session session, Actor_GameStart_Ntt message) {
+            UI uiRoom = session.DomainScene().GetComponent<UIComponent>().Get(UIType.TractorRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             // 初始化玩家UI: 这里不知道为什么会有多个不同消息
             foreach (GamerCardNum gamerCardNum in message.GamersCardNum) {

@@ -38,7 +38,7 @@ namespace ET.Client {
         }
         // 获取卡牌精灵
         public static Sprite GetCardSprite(string cardName) {
-            GameObject atlas = (GameObject)ETModel.Game.Scene.GetComponent<ResourcesComponent>().GetAsset($"{ATLAS_NAME}.unity3d", ATLAS_NAME);
+            GameObject atlas = (GameObject)Game.Scene.GetComponent<ResourcesComponent>().GetAsset($"{ATLAS_NAME}.unity3d", ATLAS_NAME);
             return atlas.Get<Sprite>(cardName);
         }
     }

@@ -10,6 +10,7 @@ namespace ET.Client {
         }
     }
     // 玩家UI组件
+    [ComponentOf(typeof(Gamer))]
     public class GamerUIComponent : Entity, IStart { 
         // UI面板
         public GameObject Panel { get; private set; }
@@ -104,16 +105,4 @@ namespace ET.Client {
             ResetPanel(); // 重置玩家UI
         }
     }
-}
-
-message GamerInfo
-{
-    int64 UserID = 1;
-    bool IsReady = 2;
-}
-message GamerState
-{
-    int64 UserID = 1;
-    ETModel.Identity UserIdentity = 2;
-	GrabLandlordState State = 3;
 }

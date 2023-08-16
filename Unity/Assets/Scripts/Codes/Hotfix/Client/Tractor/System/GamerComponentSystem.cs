@@ -5,20 +5,16 @@ using System.Threading.Tasks;
 using ET;
 namespace ET { 
 // 【爱表哥，爱生活！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+    [ObjectSystem] // 只有这样，生成系，System 才能与固定层桥接起来？爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
+    public class GamerComponentAwakeSystem : AwakeSystem<GamerComponent> {
+        protected override void Awake(GamerComponent self) {
+            self.seats = new Dictionary<long, int>();
+            self.gamers = new Gamer[4];
+        }
+    }
 // 玩家组件管理生成系：
     [FriendOf(typeof(GamerComponent))]
     public static class GamerComponentSystem {
-        [ObjectSystem]
-        // 不明白：这里，为什么会找不到组件申明类，下午家里看一下.
-        // 狠奇怪，难道这个系统还有同步不到位的问题？还是如昨天 .csproj 项目里引入文件的问题，下午要运行测试一下
-        // 乌龟王八蛋：调了半天，等了那么久，它就自已以好了，一群死乌龟王八蛋贱畜牲，操纵帐户的？！！！
-        // 乌龟王八蛋：它就自已以好了, 它自己又滚没了，一群死乌龟王八蛋贱畜牲，操纵帐户的？！！！都它妈的不得好死！！！
-        public class GamerComponentAwakeSystem : AwakeSystem<GamerComponent> {
-            protected override void Awake(GamerComponent self) {
-                self.seats = new Dictionary<long, int>();
-                self.gamers = new Gamer[4];
-            }
-        }
         // public static LocalGamer() { get; set; } 
 // 提供给房间组件用的：就是当前玩家。。。这里狠奇怪：当有一个当前玩家，就是说，它应该是背在某个玩家身上，是客户端组件？！！
 

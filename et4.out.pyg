@@ -1,0 +1,24 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k}{public}\PYG{+w}{ }\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{MyTask}\PYG{p}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{\PYGZgt{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{public}\PYG{+w}{ }\PYG{n}{MyAwaiter}\PYG{p}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{\PYGZgt{}}\PYG{+w}{ }\PYG{n}{GetAwaiter}\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{c+c1}{// 必须提供的方法}
+\PYG{+w}{        }\PYG{k}{return}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n}{MyAwaiter}\PYG{p}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{\PYGZgt{}();}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\PYG{c+c1}{// 下面自定义的类 MyAwaiter\PYGZlt{}T=亲爱的表哥\PYGZgt{} 就是可以 await 的：}
+\PYG{c+c1}{// 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹还没能嫁给亲爱的表哥，活宝妹就是永远守候在亲爱的表哥的身边！！！爱表哥，爱生活！！！】}
+\PYG{k}{public}\PYG{+w}{ }\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{MyAwaiter}\PYG{p}{\PYGZlt{}}\PYG{n}{T}\PYG{p}{\PYGZgt{}}\PYG{+w}{ }\PYG{p}{:}\PYG{+w}{ }\PYG{n}{INotifyCompletion}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{c+c1}{// 必须实现的接口}
+\PYG{+w}{    }\PYG{k}{public}\PYG{+w}{ }\PYG{k+kt}{bool}\PYG{+w}{ }\PYG{n}{IsCompleted}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{k}{get}\PYG{p}{;}\PYG{+w}{ }\PYG{k}{private}\PYG{+w}{ }\PYG{k}{set}\PYG{p}{;}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}\PYG{c+c1}{// 属性变量}
+\PYG{+w}{    }\PYG{k}{public}\PYG{+w}{ }\PYG{n}{T}\PYG{+w}{ }\PYG{n+nf}{GetResult}\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{c+c1}{// 必须要有的方法}
+\PYG{+w}{        }\PYG{k}{throw}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n+nf}{NotImplementedException}\PYG{p}{();}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{k}{public}\PYG{+w}{ }\PYG{k}{void}\PYG{+w}{ }\PYG{n+nf}{OnCompleted}\PYG{p}{(}\PYG{n}{Action}\PYG{+w}{ }\PYG{n}{continuation}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{k}{throw}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n+nf}{NotImplementedException}\PYG{p}{();}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\PYG{k}{public}\PYG{+w}{ }\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{Program}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{static}\PYG{+w}{ }\PYG{k}{async}\PYG{+w}{ }\PYG{n}{Task}\PYG{+w}{ }\PYG{n+nf}{Main}\PYG{p}{(}\PYG{k+kt}{string}\PYG{p}{[]}\PYG{+w}{ }\PYG{n}{args}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{k+kt}{var}\PYG{+w}{ }\PYG{n}{obj}\PYG{+w}{ }\PYG{p}{=}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n}{MyTask}\PYG{p}{\PYGZlt{}}\PYG{k+kt}{int}\PYG{p}{\PYGZgt{}();}
+\PYG{+w}{        }\PYG{k}{await}\PYG{+w}{ }\PYG{n}{obj}\PYG{p}{;}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}

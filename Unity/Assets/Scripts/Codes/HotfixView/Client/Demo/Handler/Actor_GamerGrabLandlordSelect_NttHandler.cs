@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using ETModel;
 namespace ET.Client {
 
     [MessageHandler]
     public class Actor_GamerGrabLandlordSelect_NttHandler : AMHandler<Actor_GamerGrabLandlordSelect_Ntt> {
         protected override void Run(ET.Session session, Actor_GamerGrabLandlordSelect_Ntt message) {
-            UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
+            UI uiRoom = session.DomainScene().GetComponent<UIComponent>().Get(UIType.TractorRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             Gamer gamer = gamerComponent.Get(message.UserID);
             if (gamer != null) {
