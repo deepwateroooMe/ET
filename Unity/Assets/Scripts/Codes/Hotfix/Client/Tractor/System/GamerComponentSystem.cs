@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ET;
-namespace ET { 
+// using ET;
+namespace ET.Client { 
 // 【爱表哥，爱生活！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
     [ObjectSystem] // 只有这样，生成系，System 才能与固定层桥接起来？爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
     public class GamerComponentAwakeSystem : AwakeSystem<GamerComponent> {

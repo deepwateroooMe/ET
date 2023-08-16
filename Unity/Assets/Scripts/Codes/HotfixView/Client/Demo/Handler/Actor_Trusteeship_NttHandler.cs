@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using ET;
-
 namespace ET.Client {
     [MessageHandler]
     public class Actor_Trusteeship_NttHandler : AMHandler<Actor_Trusteeship_Ntt> {
 
-        protected override void Run(ET.Session session, Actor_Trusteeship_Ntt message) {
+        protected override async ETTask Run(ET.Session session, Actor_Trusteeship_Ntt message) {
             UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             Gamer gamer = gamerComponent.Get(message.UserID);
@@ -15,6 +14,7 @@ namespace ET.Client {
                 LandlordsInteractionComponent interaction = uiRoom.GetComponent<LandlordsRoomComponent>().Interaction;
                 interaction.isTrusteeship = message.IsTrusteeship;
             }
+            await ETTask.CompletedTask; // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
         }
     }
 }

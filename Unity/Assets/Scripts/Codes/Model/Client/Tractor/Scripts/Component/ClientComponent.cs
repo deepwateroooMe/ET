@@ -8,7 +8,7 @@ namespace ET.Client { // 本来就是要么单例 Instance, 要么生成系呀�
     //        // // self.Instance = this;  
     //    }
     // }
-    public class ClientComponent : Entity, IAwake {
+    public class ClientComponent : Entity, IAwake { // 去找：这个组件是在哪里添加的？它说的是客户端组件，这个好像也重构了。。。
         // public static ClientComponent Instance { get; private set; }
         // public static ClientComponent Instance { get; set; }
         public User LocalPlayer { get; set; }

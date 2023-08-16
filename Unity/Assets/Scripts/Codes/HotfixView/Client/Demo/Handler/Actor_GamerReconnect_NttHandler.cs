@@ -7,8 +7,8 @@ namespace ET.Client {
     [MessageHandler]
     public class Actor_GamerReconnect_NttHandler : AMHandler<Actor_GamerReconnect_Ntt> {
 
-        protected override void Run(ET.Session session, Actor_GamerReconnect_Ntt message) {
-            UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
+        protected override async ETTask Run(ET.Session session, Actor_GamerReconnect_Ntt message) {
+            UI uiRoom = session.DomainScene().GetComponent<UIComponent>().Get(UIType.TractorRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             foreach (GamerState gamerState in message.GamersState) {
                 Gamer gamer = gamerComponent.Get(gamerState.UserID);
@@ -28,7 +28,7 @@ namespace ET.Client {
                 }
             }
             // 初始化界面
-            LandlordsRoomComponent uiRoomComponent = uiRoom.GetComponent<LandlordsRoomComponent>();
+            TractorRoomComponent uiRoomComponent = uiRoom.GetComponent<TractorRoomComponent>();
             // 隐藏准备按钮，避免重连时还显示准备按钮
             uiRoom.GameObject.Get<GameObject>("ReadyButton").SetActive(false);
             // 设置倍率
@@ -45,6 +45,7 @@ namespace ET.Client {
                     lordPokers.transform.GetChild(i).GetComponent<Image>().sprite = lordCardSprite;
                 }
             }
+            await ETTask.CompletedTask;
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿// 不知道这里，为什么它说，找不到 Gamer 类，先改成是ET 命名空间。原本写的是服务端
-// namespace ET.Server {
-namespace ET {
+﻿namespace ET {
     // [ObjectSystem]
     // public class GamerAwakeSystem : AwakeSystem<Gamer,long> {
     //     protected override void Awake(Gamer self, long id) {
@@ -8,8 +6,9 @@ namespace ET {
     //         // self.UserID = id;
     //     }
     // }
+
     // 房间玩家对象
-    [ChildOf(typeof(GamerComponent))] // 先把这个去掉：这就是刚才的那个报错了
+    [ChildOf(typeof(GamerComponent))] // 它说，在DOTNET.MODEL 里找不到 GamerComponent
     public sealed class Gamer : Entity, IAwake<long> {
     // public sealed class Gamer : Entity {
         // 用户ID（唯一）

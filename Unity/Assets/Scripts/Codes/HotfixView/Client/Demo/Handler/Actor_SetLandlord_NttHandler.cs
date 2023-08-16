@@ -8,8 +8,8 @@ namespace ET.Client {
     [MessageHandler]
     public class Actor_SetLandlord_NttHandler : AMHandler<Actor_SetLandlord_Ntt> {
 
-        protected override void Run(ET.Session session, Actor_SetLandlord_Ntt message) {
-            UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
+        protected override async ETTask Run(ET.Session session, Actor_SetLandlord_Ntt message) {
+            UI uiRoom = session.DomainScene().GetComponent<UIComponent>().Get(UIType.TractorRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             Gamer gamer = gamerComponent.Get(message.UserID);
             if (gamer != null) {
@@ -47,6 +47,7 @@ namespace ET.Client {
             }
             // 显示切换游戏模式按钮
             uiRoom.GetComponent<LandlordsRoomComponent>().Interaction.GameStart();
+            await ETTask.CompletedTask;
         }
     }
 }

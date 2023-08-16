@@ -35,16 +35,10 @@
             <Link>Share\%(RecursiveDir)%(FileName)%(Extension)</Link> 
         </Compile> 
     </ItemGroup>
-    <ItemGroup>
-      <!-- 下面这行，应该是先前自己添入框架的IStartSystem 必须复制一份文件的原因，去掉：这说明，每天都还是可以有长足进步！爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！ -->
+    <ItemGroup><!-- 留下面这行，用作自己的样例，应该是先前自己添入框架的IStartSystem 必须复制一份文件的原因，去掉：这说明，每天都还是可以有长足进步！爱表哥，爱生活！！！活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！ -->
       <!-- <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Client\Module\IStartSystem.cs" /> -->
-      <!-- 我把下面的移除后，可以删除 LocationComponent 相关的编译错误，现在我不需要它们 -->
+    
       <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Server\Module\ActorLocation\LocationOneTypeSystem.cs" />
-      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Server\Module\ActorLocation\ObjectAddRequestHandler.cs" />
-      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Server\Module\ActorLocation\ObjectGetRequestHandler.cs" />
-      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Server\Module\ActorLocation\ObjectLockRequestHandler.cs" />
-      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Server\Module\ActorLocation\ObjectRemoveRequestHandler.cs" />
-      <Compile Remove="..\..\Unity\Assets\Scripts\Codes\Hotfix\Server\Module\ActorLocation\ObjectUnlockRequestHandler.cs" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\Share\Analyzer\Share.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

@@ -6,7 +6,8 @@ namespace ET.Client {
 
     [MessageHandler]
     public class Actor_GameStart_NttHandler : AMHandler<Actor_GameStart_Ntt> {
-        protected override void Run(Session session, Actor_GameStart_Ntt message) {
+
+        protected override async ETTask Run(Session session, Actor_GameStart_Ntt message) {
             UI uiRoom = session.DomainScene().GetComponent<UIComponent>().Get(UIType.TractorRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             // 初始化玩家UI: 这里不知道为什么会有多个不同消息
@@ -40,11 +41,13 @@ namespace ET.Client {
             for (int i = 0; i < lordPokers.transform.childCount; i++) {
                 lordPokers.transform.GetChild(i).GetComponent<Image>().sprite = lordSprite;
             }
-            LandlordsRoomComponent uiRoomComponent = uiRoom.GetComponent<LandlordsRoomComponent>();
+            TractorRoomComponent uiRoomComponent = uiRoom.GetComponent<TractorRoomComponent>();
             // 清空选中牌
             uiRoomComponent.Interaction.Clear();
             // 设置初始倍率
             uiRoomComponent.SetMultiples(1);
+
+            await ETTask.CompletedTask;
         }
     }
 }

@@ -6,8 +6,8 @@ namespace ET.Client {
 
     [MessageHandler]
     public class Actor_GamerReady_NttHandler : AMHandler<Actor_GamerReady_Ntt> {
-        protected override void Run(ET.Session session, Actor_GamerReady_Ntt message) {
-            UI uiRoom = Game.Scene.GetComponent<UIComponent>().Get(UIType.LandlordsRoom);
+        protected override async ETTask Run(ET.Session session, Actor_GamerReady_Ntt message) {
+            UI uiRoom = session.DomainScene().GetComponent<UIComponent>().Get(UIType.TractorRoom);
             GamerComponent gamerComponent = uiRoom.GetComponent<GamerComponent>();
             Gamer gamer = gamerComponent.Get(message.UserID);
             gamer.GetComponent<GamerUIComponent>().SetReady();
@@ -15,6 +15,7 @@ namespace ET.Client {
             if (gamer.UserID == gamerComponent.LocalGamer.UserID) {
                 uiRoom.GameObject.Get<GameObject>("ReadyButton").SetActive(false);
             }
+            await ETTask.CompletedTask;
         }
     }
 }

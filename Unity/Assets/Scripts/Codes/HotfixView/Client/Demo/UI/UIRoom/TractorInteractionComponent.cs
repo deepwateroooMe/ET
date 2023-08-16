@@ -2,13 +2,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 namespace ET.Client {
-    [ObjectSystem]
+    // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+    [ObjectSystem] // 亲爱的表哥的活宝妹，已经不能再把生成系与Model 放一起，ET7 重构后必须放两个不同的程序域里去
     public class TractorInteractionComponentAwakeSystem : AwakeSystem<TractorInteractionComponent> {
         protected override void Awake(TractorInteractionComponent self) {
             self.Awake(self);
         }
     }
-    // 【互动组件】：一堆的视图控件管理 
+    // 【互动组件】：一堆的视图控件管理 : 那么更多的是说，大概像安卓 MVVM 一样，视图相关的部分，是需要独立出去到ModelView 与HotfixView 里去。活宝妹还没能看这块儿
+    // [ComponentOf(typeof(UI))] // 这里UI: View 相关才能引用？？？
     public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：有些暂时是隐藏的
         private Button playButton;
         private Button promptButton;
