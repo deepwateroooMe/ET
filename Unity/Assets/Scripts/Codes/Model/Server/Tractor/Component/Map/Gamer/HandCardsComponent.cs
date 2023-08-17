@@ -3,7 +3,7 @@ using ET;
 namespace ET.Server {
 
     [ComponentOf(typeof(Gamer))]
-    public class HandCardsComponent : Entity, IAwake {
+    public class HandCardsComponent  : Entity, IAwake {
         // 所有手牌
         public readonly List<Card> library = new List<Card>();
         // 身份

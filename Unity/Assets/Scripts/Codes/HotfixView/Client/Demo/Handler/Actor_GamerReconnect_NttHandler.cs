@@ -23,7 +23,7 @@ namespace ET.Client {
                         gamerHandCards.PopCards(message.Cards);
                     }
                 }
-                else if (message.LordCards.count == 0) {
+                else if (message.LordCards.Count == 0) {
                     gamer.GetComponent<GamerUIComponent>().SetGrab(gamerState.State);
                 }
             }
@@ -34,11 +34,11 @@ namespace ET.Client {
             // 设置倍率
             uiRoomComponent.SetMultiples(message.Multiples);
             // 当抢完地主时才能显示托管按钮
-            if (message.LordCards.count > 0) {
+            if (message.LordCards.Count > 0) {
                 uiRoomComponent.Interaction.GameStart();
             }
             // 初始化地主牌
-            if (message.LordCards.count > 0) {
+            if (message.LordCards.Count > 0) {
                 GameObject lordPokers = uiRoom.GameObject.Get<GameObject>("Desk").Get<GameObject>("LordPokers");
                 for (int i = 0; i < lordPokers.transform.childCount; i++) {
                     Sprite lordCardSprite = CardHelper.GetCardSprite(message.LordCards[i].GetName());

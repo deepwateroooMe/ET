@@ -10,6 +10,7 @@ namespace ET.Client {
         }
     }
     // 【互动组件】：一堆的视图控件管理 : 那么更多的是说，大概像安卓 MVVM 一样，视图相关的部分，是需要独立出去到ModelView 与HotfixView 里去。活宝妹还没能看这块儿
+    // 这里涉及大的重构：晚点儿再读源码了之后再写。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
     // [ComponentOf(typeof(UI))] // 这里UI: View 相关才能引用？？？
     public class TractorInteractionComponent : Entity, IAwake { // 多个按钮：有些暂时是隐藏的
         private Button playButton;

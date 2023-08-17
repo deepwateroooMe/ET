@@ -31,8 +31,11 @@ namespace ET {
             }
             return null;
         }
-        // 获取所有玩家
-        public static Gamer[] GetAll(GamerComponent self) {
+
+		public static Gamer Get(Client.GamerComponent gamerComponent, long userID) => throw new NotImplementedException();
+
+		// 获取所有玩家
+		public static Gamer[] GetAll(GamerComponent self) {
             return self.gamers;
         }
         // 获取玩家座位索引

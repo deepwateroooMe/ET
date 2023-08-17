@@ -83,12 +83,12 @@ namespace ET.Client {
             this.multiples.text = "1";
         }
         // 退出房间
-        private static async ETTask OnQuit(TractorRoomComponent self) {
+        public static async ETTask OnQuit(TractorRoomComponent self) {
             // 发送退出房间消息: 要去大厅
             self.ClientScene().GetComponent<SessionComponent>().Session.Send(new C2G_ReturnLobby_Ntt());
             // 切换到大厅界面【不等结果吗？】也该是发布一个自定义的事件 TODO
-            Root.Scene.GetComponent<UIComponent>().Create(UIType.UILobby);
-            Root.Scene.GetComponent<UIComponent>().Remove(UIType.TractorRoom);
+            Root.Instance.Scene.GetComponent<UIComponent>().Create(UIType.UILobby);
+            Root.Instance.Scene.GetComponent<UIComponent>().Remove(UIType.TractorRoom);
         }
         // 准备
         private static async ETTask OnReady(TractorRoomComponent self) {
