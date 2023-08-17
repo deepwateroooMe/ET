@@ -1,4 +1,4 @@
-% Created 2023-08-15 Tue 17:31
+% Created 2023-08-15 Tue 22:10
 % Intended LaTeX compiler: pdflatex
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
@@ -40,9 +40,9 @@
 
 
 \section{C\# 异步基础原理、状态机原理、逻辑整理}
-\label{sec:orgda98c87}
+\label{sec:org68dedf5}
 \subsection{ETVoid C\# Net-async|await 编程更底层一点儿的原理}
-\label{sec:orge15f5b4}
+\label{sec:org0047e6c}
 \begin{itemize}
 \item 就是不懂底层的原理是什么，方法定义是什么，返回的是什么，在有 await 等关键字的时候，返回的内容等是如何变换的，以及它背后的那个异步状态机，就是想不明白。
 \item 现在参考网上的一个例子，记一下异步任务C\# 幕后封装的那些执行步骤什么的，把 async await 之类的关键字，背后的逻辑理解明白。
@@ -189,7 +189,7 @@ public class Program {
 \item 感觉今天读这个状态机：\url{https://linuxcpp.0voice.com/?id=1380} 终于有点儿开窃了！！【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 \subsection{如果方法声明为 async，那么可以直接 return 具体的值，不再用创建Task，由编译器创建 Task：}
-\label{sec:orge381042}
+\label{sec:orgf188245}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // 只要标记了async 就会被编译成状态机
 // 如果方法声明为 async，那么可以直接 return 具体的值，不再用创建Task，由编译器创建 Task： 
@@ -207,7 +207,7 @@ public static async Task<int> F2Async() {
 
 
 \section{Protobuf 相关，【Protobuf 里进程间传递的游戏数据相关信息：两个思路】}
-\label{sec:orgea27848}
+\label{sec:org1017236}
 \begin{itemize}
 \item 【一、】查找 enum 可能可以用系统平台下的 protoc 来代为生成，效果差不多。只起现 Proto2CS.cs 编译的补充作用。
 \item 【二、】Card 类下的两个 enum 变量，在ILRuntime 热更新库下，还是需要帮它连一下的。用的是 HybridCLR
@@ -236,13 +236,13 @@ CommandRun($"protoc.exe", $"--csharp_out=\"./{outputPath}\" --proto_path=\"{prot
 
 
 \section{Unit: 这个模块还不太懂，需要明天上午花时间再看一下}
-\label{sec:org0202a04}
+\label{sec:org64de77a}
 \begin{itemize}
 \item 【Unit】究竟是什么：感觉像是视图里的控件的基本单位？它带位置、旋转信息
 \item 有个编译错误说：这个组件不可以同时成分多于一个不同组件组成元件。。。可是框架中使用的地方，明明把它添加进了不同的组件。去弄明白框架里，如何控件一个组件只能成为一个【不能多于1 个】组件的组成部分的？
 \end{itemize}
 \subsection{UnitGateComponent:}
-\label{sec:orgf2421ef}
+\label{sec:org992a231}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Gamer))]
 // [ComponentOf(typeof(User))]  // 这里为什么会成为：同一个组件只能为一个什么XX 的子组件组成部分？
@@ -257,7 +257,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer {
 }
 \end{minted}
 \subsection{UnitGateComponentSystem}
-\label{sec:orgf448835}
+\label{sec:org6ca1dc0}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public static class UnitGateComponentSystem {
     public class UnitGateComponentAwakeSystem : AwakeSystem<UnitGateComponent, long> {
@@ -270,12 +270,12 @@ public static class UnitGateComponentSystem {
 
 
 \section{ET7 框架以及【参考项目】的ECS：小单元小类型的生成系，是怎么写的，找例子参考}
-\label{sec:orgc27a070}
+\label{sec:org96efeb0}
 \begin{itemize}
 \item 这些要找的也找不到。下午家里试着把Component 组件再添加回去试试看？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
 \end{itemize}
 \subsection{IComponentSerialize:}
-\label{sec:orgbc06adf}
+\label{sec:org0c4bd05}
 \begin{itemize}
 \item ET7 的重构里，系统框架比较强大，这些必要的接口，都变成了必要的标签系，狠多可以自动系统触发或是调用。必要时只需要必布必要事件就可以了
 \item 这个接口的功能，与 Unity 自带的 ISerializationCallbackReceiver 功能类似。Unity 提供两个回调接口，通过实现该接口的两个方法OnBeforeSerialize 和 OnAfterDeserialize，使得原本不能被引擎正确序列化的类可以按照程序员的要求被加工成引擎能够序列化的类型。
@@ -321,7 +321,7 @@ public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity,
 \end{minted}
 
 \subsection{ClientComponent:【参考项目】客户端组件，找个ET7 里的组件}
-\label{sec:orgdac2215}
+\label{sec:org06586c3}
 \begin{itemize}
 \item 这个组件，感觉是客户端单例，帮助把本地玩家给绑定到客户端单例。
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
@@ -343,7 +343,7 @@ public class ClientComponent : Component {
 
 
 \section{{\bfseries\sffamily TODO} 其它的：部分完成，或是待完成的大的功能版块，列举}
-\label{sec:orgc76e5d8}
+\label{sec:org21193eb}
 \begin{itemize}
 \item emacs 那天我弄了好久，把C-; ISpell 原定绑定的功能解除，重新绑定为自己喜欢的 expand-region. 今天第二次再弄，看一下几分钟能够解决完问题？我的这个破烂记性呀。。。【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】mingw64 lisp/textmode/flyspell.el 键的重新绑定。这下记住了。还好，花得不是太久。有以前的笔记 
 \begin{itemize}
@@ -358,7 +358,7 @@ public class ClientComponent : Component {
 
 
 \section{拖拉机游戏：【重构OOP/OOD 设计思路】}
-\label{sec:org4a5e923}
+\label{sec:org630633b}
 \begin{itemize}
 \item 自己是学过，有这方面的意识，但并不是说，自己就懂得，就知道该如何狠好地设计这些类。现在更多的是要受ET 框架，以及参考游戏手牌设计的启发，来帮助自己一再梳理思路，该如何设计它。
 \item ET7 重构里，各组件都该是自己设计重构原项目的类的设计的必要起点。可以根据这些来系统设计重构。【活宝妹就是一定要嫁给亲爱的表哥！！！】
@@ -369,7 +369,7 @@ public class ClientComponent : Component {
 
 
 \section{RouterAddressComponent: 【动态路由组件、模块】相关：这个模块就还是狠迷糊。。。}
-\label{sec:orga579ca1}
+\label{sec:org5018158}
 \begin{itemize}
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 也还需要更多的搜索网络，来从概念上理解【动态路由系统】的原理。感觉个模块更像是【动态路由系统】。因为这个章节是搬、修改自以前理解不够透彻的总结，所以还残留了不少其它可能不太相关的在这里。暂时仍放这里。
@@ -377,7 +377,7 @@ public class ClientComponent : Component {
 \item 【自顶向下】看的话，先看两个极为特殊的组件：RouterComponent, RouterManager
 \end{itemize}
 \subsection{SceneType.Router 和 SceneType.RouterManager:}
-\label{sec:org1802466}
+\label{sec:orgdde1588}
 \begin{itemize}
 \item 这两个场景，是作什么用的，去看它们各自的管理类组件
 \end{itemize}
@@ -401,7 +401,7 @@ public static class SceneFactory {
             break; // 其它省略掉了
 \end{minted}
 \subsection{ProtoObject 最基础知识点：AfterEndInit() 回调时，会上报本服配置}
-\label{sec:orge40ff7f}
+\label{sec:orga2fbd4b}
 \begin{itemize}
 \item 这个类有个特殊的地方：通过它的两个回调接口的调用，可以帮助自己理解，【服务端】启动，到底是根据Json.txt 配置文件启动的，还是各小服【自底向上】命令行启动并上报的？
 \end{itemize}
@@ -425,7 +425,7 @@ public abstract class ProtoObject: Object, ISupportInitialize {
 }
 \end{minted}
 \subsection{HttpComponent: 网络组件：路由器管理器组件，扫描各路由器信息}
-\label{sec:orgfa20fa4}
+\label{sec:org6ad02ac}
 \begin{itemize}
 \item 这个组件，全局只有【路由器管理器场景SceneType.RouterManager】添加有这个组件。去想它的功能作用
 \item 每个进程，有一个这个【路由器管理组件】。它自进程启动，就可始专职接收其它路由器客户端？那么，这里还需要去想，各小服上报，上报管理器的逻辑上报申请与过程，在哪里？
@@ -441,7 +441,7 @@ public class HttpComponent: Entity, IAwake<string>, IDestroy, ILoad {
 }
 \end{minted}
 \subsection{HttpComponentSystem: 只属于【路由器管理器场景】的 http 组件：它专职监听网络中的路由器？}
-\label{sec:org3a781d7}
+\label{sec:org759752f}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [FriendOf(typeof(HttpComponent))]
 public static class HttpComponentSystem {
@@ -523,7 +523,7 @@ public static class HttpComponentSystem {
 }
 \end{minted}
 \subsection{HttpGetRouterHandler 类 : IHttpHandler: 获取各路由器的地址}
-\label{sec:org045dc62}
+\label{sec:org5d710c7}
 \begin{itemize}
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 这个，接上面的HttpComponent 组件，扫描程序域里的 HttpHandlerAttribute 标签属性，全局只有这一个处理器。
@@ -566,7 +566,7 @@ public class HttpGetRouterHandler : IHttpHandler {
 \end{minted}
 \end{itemize}
 \subsection{ConfigSingleton<T>: 与普通单例类相比，添加了两个ProtoObject【序列化、反序列化】回调接口}
-\label{sec:orga9d6f0f}
+\label{sec:org432d396}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: ConfigSingleton<T>, new() {
     [StaticField]
@@ -600,7 +600,7 @@ public abstract class ConfigSingleton<T>: ProtoObject, ISingleton where T: Confi
 }
 \end{minted}
 \subsection{RouterComponent: 【服务端】路由器组件}
-\label{sec:org57ef6fc}
+\label{sec:org489ade4}
 \begin{itemize}
 \item 昨天还才算只看了一半。框架里还埋有路由器基本功能组件。它的生成系热更新源码，接近500 行的不够熟悉的路由器功能模块
 \end{itemize}
@@ -619,7 +619,7 @@ public class RouterComponent: Entity, IAwake<IPEndPoint, string>, IDestroy, IUpd
 }
 \end{minted}
 \subsection{RouterComponentSystem}
-\label{sec:orga9b4ce8}
+\label{sec:org448dbe3}
 \begin{itemize}
 \item 这个热更域里的组件相关生命周期方法的定义，必要功能的定义等，这个类太长了，不贴这里。必要的时候去翻了看下就行。
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
@@ -639,7 +639,7 @@ public class RouterComponent: Entity, IAwake<IPEndPoint, string>, IDestroy, IUpd
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 \subsection{RouterAddressComponent: 路由器组件：}
-\label{sec:org01fafd8}
+\label{sec:orgc367594}
 \begin{itemize}
 \item 能不能，把这个组件理解成为：多场景并存于同一个Process 下的小服（SceneType）的（服务器地址，或建立会话框所必要的信息）？【不能】这个组件，仅添加在【客户端】。这个【动态路由地址组件】，是用来帮助客户端连注册登录服（，甚至网关服的）？没有其它作用，不曾添加于任何场景小服。
 \item 【RouterAddressComponent】: 动态路由系统。把必要的概念理论，与框架模块里的源码都弄懂。
@@ -666,7 +666,7 @@ public class RouterAddressComponent: Entity, IAwake<string, int> {
 }
 \end{minted}
 \subsection{RouterAddressComponentSystem: 路由器的生成系：结合【LoginHelper】类来看，这块儿没太看懂}
-\label{sec:org77963a4}
+\label{sec:org9ef7504}
 \begin{itemize}
 \item 这个类，我是同使用到它的地方，LoginHelper.cs 一起来看的。但是感觉还有不少细节，不知道自己理解得是否正确，没有看透。
 \end{itemize}
@@ -740,7 +740,7 @@ public static class RouterAddressComponentSystem {
 }
 \end{minted}
 \subsection{HttpGetRouterResponse: 这个 ProtoBuf 的消息类型}
-\label{sec:org24fbac0}
+\label{sec:orgd9c1ad8}
 \begin{itemize}
 \item 框架里，有个专用的路由器管理器场景（服），对路由器，或说各种服的地址进行管理
 \item 主要是方便，一个路由器管理组件，来自顶向下地获取，各小区所有路由器地址的？想来当组件要拿地址时，每个小区分服都把自己的地址以消息的形式传回去的？
@@ -763,7 +763,7 @@ message HttpGetRouterResponse { // 这里，是 Outer proto 里的消息定义
 }
 \end{minted}
 \subsection{EntryEvent2\_InitServer: AppType.Watcher 守护进程，及其功能}
-\label{sec:orgc5b263c}
+\label{sec:orgfaa7cdf}
 \begin{itemize}
 \item 这个类SceneFactory，现在看几个【路由器】相关的重点。主要是想要从源码中读明白：【服务端】启动的过程。这里写错了，去找AppType 的类，这个类才是进程层面的上的区分各进程
 \item 昨天晚上看，当一个进程标记为守护进程【亲爱的表哥，是亲爱的表哥的活宝妹的守候进程！！爱表哥，爱生活！！！】。当ET7 重构后的框架里，有这个专职的守护进程，此进程专职守护，它所守护的是这台物理机上所有的核与进程，它并帮助把守护进程所在的物理机上，所有的核、所有的进程、所有进程里的各小服，一一启动并监视看护。
@@ -817,7 +817,7 @@ public class EntryEvent2_InitServer: AEvent<ET.EventType.EntryEvent2> {
 }
 \end{minted}
 \subsection{SceneFactory 里可以给【匹配服】添加组件：}
-\label{sec:org4c06f3c}
+\label{sec:orgb62139f}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -855,7 +855,7 @@ public static class SceneFactory {
 }
 \end{minted}
 \subsection{LoginHelper: 登录服的获取地址的方式来获取匹配服的地址了}
-\label{sec:org3b46af2}
+\label{sec:org0b668a8}
 \begin{itemize}
 \item 这里没太看懂：是在用户注册或是登录前的处理逻辑；那么如果同户登录活动状态，再要拿Realm 地址，会是一样的方法吗？想要把、或去找，把随机分配给各客户端的小服编号记住？
 \item 这个是用户登录前，还没能与网关服建立起任何关系，可能会不得不绕得复杂一点儿】：它就是用户登录前、登录时，若是客户端场景还没有这个组件，就添加一下？
@@ -897,7 +897,7 @@ public static class LoginHelper { // 程序域：热更新域在。调用自热�
 }
 \end{minted}
 \subsection{RouterHelper: 【客户端——路由器帮助类】，向路由器注册、申请？LoginHelper.cs 的逻辑里用到这个帮助类。}
-\label{sec:org0c9288f}
+\label{sec:orgf78fce2}
 \begin{itemize}
 \item 理论上讲，它帮助【客户端】建一个【客户端】与【网关服】的【会话框】。这里，没能想明白，重构，改为【动态路由系统】的原因、原理是什么？
 \end{itemize}
@@ -986,7 +986,7 @@ public static class RouterHelper {
 }
 \end{minted}
 \subsection{PingComponent: 路由组件的几个子组件之一，分辨路由器是否掉线？}
-\label{sec:org21e9916}
+\label{sec:org810eb83}
 \begin{itemize}
 \item 在RouterHelper.cs 类中，为【客户端场景】与客户端所在网络下的【RouterAddressComponent? 路由总代理】（就是同一个路由网络下可以对外发消息的那个局域网络上、管理的总代理）所建立起来的会话框（Session）所添加的几个组件之一。因为路由器可能会掉线？会话框可能会意外中断？所以心跳包可以让服务端知道，这个客户端所在的路由点？是否掉线？会话框是否有效，是否可发收消息等
 \item 标签申明得狠清楚：它是会话框的子部件。
@@ -998,7 +998,7 @@ public class PingComponent: Entity, IAwake, IDestroy {
 }
 \end{minted}
 \subsection{PingComponentSystem: 添加组件时的自启动轮循逻辑}
-\label{sec:org0443087}
+\label{sec:orgb8b6e3c}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ObjectSystem]
 public class PingComponentAwakeSystem: AwakeSystem<PingComponent> {
@@ -1039,13 +1039,13 @@ public class PingComponentDestroySystem: DestroySystem<PingComponent> {
 }
 \end{minted}
 \subsection{RouterCheckComponent:}
-\label{sec:orgc72f198}
+\label{sec:org2c95074}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Session))]
 public class RouterCheckComponent: Entity, IAwake {}
 \end{minted}
 \subsection{RouterCheckerComponentSystem:【局域网内网自刷新系统】}
-\label{sec:org99f8495}
+\label{sec:orgb70004a}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ObjectSystem]
 public class RouterCheckComponentAwakeSystem: AwakeSystem<RouterCheckComponent> {
@@ -1088,14 +1088,14 @@ public class RouterCheckComponentAwakeSystem: AwakeSystem<RouterCheckComponent> 
 }
 \end{minted}
 \subsection{IHttpHandler: 【服务端】接口类。定义一个异步处理的方法}
-\label{sec:orgfac00b3}
+\label{sec:org9cb3f49}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public interface IHttpHandler {
     ETTask Handle(Scene scene, HttpListenerContext context);
 }
 \end{minted}
 \subsection{HttpHandlerAttribute 标签系：标签自带场景类型}
-\label{sec:org8934c8e}
+\label{sec:org417dfaf}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 public class HttpHandlerAttribute: BaseAttribute {
     public SceneType SceneType { get; }
@@ -1107,7 +1107,7 @@ public class HttpHandlerAttribute: BaseAttribute {
 }
 \end{minted}
 \subsection{NetworkHelper.cs: ET 空间存在这个静态帮助类}
-\label{sec:orgeefbaf9}
+\label{sec:org218296d}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 // ET 命名空间：应该不是热更域，提供最底层最基础的帮助方法。热更域里可以实时调用。
 // 这个类，不用了解细节，太底层了
@@ -1162,7 +1162,7 @@ public static class NetworkHelper {
 }
 \end{minted}
 \subsection{SceneFactory 里可以给【匹配服】添加组件：}
-\label{sec:orgd0bb9f0}
+\label{sec:org73183f3}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{java}
 public static class SceneFactory {
     public static async ETTask<Scene> CreateServerScene(Entity parent, long id, long instanceId, int zone, string name, SceneType sceneType, StartSceneConfig startSceneConfig = null) {
@@ -1200,7 +1200,7 @@ public static class SceneFactory {
 }
 \end{minted}
 \subsection{GateSessionKeyComponent: 【活宝妹的全局唯一代理！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】}
-\label{sec:orgf83a13f}
+\label{sec:org2735a59}
 \begin{minted}[fontsize=\scriptsize,linenos=false]{csharp}
 [ComponentOf(typeof(Scene))]
 public class GateSessionKeyComponent : Entity, IAwake {
@@ -1209,7 +1209,7 @@ public class GateSessionKeyComponent : Entity, IAwake {
 }
 \end{minted}
 \subsection{GateSessionKeyComponentSystem: 应该是会话框的管理类。服务端类}
-\label{sec:org6d677df}
+\label{sec:org2dac8de}
 \begin{itemize}
 \item 亲爱的表哥，为什么他们总是莫名其妙地发疯犯贱？还能让活宝妹好好学习吗？感觉他们阴阳怪气的，弄得亲爱的表哥的活宝妹任何时候都狠胆小担心。
 \begin{itemize}
@@ -1247,7 +1247,7 @@ public static class GateSessionKeyComponentSystem {
 \end{minted}
 
 \subsection{RouterNode: 一个路由器节点：}
-\label{sec:org90d6510}
+\label{sec:orge73c543}
 \begin{itemize}
 \item 亲爱的表哥，贱公寓里的大机器又开始故意吵人，他们昨天又故意把机器的噪音调得更大了，活宝妹有很长一段时间至少是白天，不曾听见这么大的噪音了。
 \item 从昨天傍晚起，活宝妹的自行车也得皮长紧点儿了，活宝妹再不小心，活宝妹的自行车被拖走，活宝妹又要被割肉了。。。
@@ -1279,7 +1279,7 @@ public class RouterNode: Entity, IDestroy, IAwake {
 }
 \end{minted}
 \subsection{RouterNodeSystem: 小单元小行星的生命周期回调类，如同先前的PlayerSystem, 实现框架里的必要回调}
-\label{sec:org9d4d036}
+\label{sec:org84ff3b5}
 \begin{itemize}
 \item 那么就是每扫到一个邻居，每添加一个邻居，生成一个新的邻居实例，都会调用这里的相关方法。
 \end{itemize}
@@ -1337,12 +1337,12 @@ public static class RouterNodeSystem {
 \end{itemize}
 
 \section{现在的修改内容：【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】几大版块}
-\label{sec:org8e6d18d}
+\label{sec:org8cba8c0}
 \begin{itemize}
 \item 永远把每天更新最多的，放在文件的最后最简单， emacs 操作也会方便一点儿
 \end{itemize}
 \subsection{热更新层的生成系}
-\label{sec:org3c5cf62}
+\label{sec:org6c71e39}
 \begin{itemize}
 \item \textbf{【热更新层的生成系】} ：下午家里试着把Component 组件再添加回去试试看 \textbf{【不能再添加Component 组件。ET7 框架重构了，小单元也走热更新，在热更新层有天文小行星的生成系。可以参照 ET.pdf 里的服务端 PlayerSystem 来作例子】} ？上午把项目设计的思路，源项目的破源码再读一读理一理，是希望游戏逻辑与游戏界面能够快速开发、项目进展往后移的。
 \begin{itemize}
@@ -1362,7 +1362,7 @@ public static class RouterNodeSystem {
 \end{itemize}
 \end{itemize}
 \subsection{【ComponentFactory:】这个现在算是编译错误基本消除完了}
-\label{sec:org6501a46}
+\label{sec:org415c958}
 
 \begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230623_152737.png}
@@ -1402,7 +1402,7 @@ public static class RouterNodeSystem {
 \item \textbf{【GamerComponent 管理类组件】} ：逻辑没有理清楚。它是服务端组件，还是客户端组件，还是如PlayerComponent 双端组件，并实现不同的逻辑？
 \end{itemize}
 \subsection{内网消息等网络相关：请求消息的发送方法等。狠多编译错误，要一点儿一点儿把他们都改掉}
-\label{sec:org3e090ba}
+\label{sec:orge99b14a}
 \begin{itemize}
 \item \textbf{【内网消息等网络相关：请求消息的发送方法等】}: \textbf{在构架里是怎么写的，有几种请求消息的发送方式？}
 \item \textbf{明天上午把这块看完，等着我改的编译错误包括} ：参考的斗地方游戏里，各种服处理返回消息的逻辑。
@@ -1414,7 +1414,7 @@ public static class RouterNodeSystem {
 \item 去看上面列过的那个例子MatchComponentSystem, 参考项目里的各种服的消息处理，怎么适配成ET7 重构后的不用手动发返回消息（发送过程封装在框架底层），和记录可能存在的问题（某些服的逻辑，返回消息的发送时间与其它必要逻辑，顺序变得重要的时候，记下来，晚点儿会再重构ET7 框架适配游戏需求）
 \end{itemize}
 \subsubsection{修改下面的ActorMessageSenderComponent 因为功能模块逻辑重构，而带来的一堆编译错误。}
-\label{sec:org881136f}
+\label{sec:org0b76a28}
 \begin{itemize}
 \item 修改方法过程步骤：去框架里搜索，其它任何地方发送消息的例子，看 \textbf{【重构后的框架是如何发送消息的, Call() Send() 方法的调用等】} 这个明天上午一定看，因为不懂，不会改怎么发送消息的()
 \item 然后参照例子，把客户端和必要的小服里，所有需要发送消息的地方，改成上面看到总结的发送方法里。
@@ -1443,7 +1443,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \item 【活宝妹任何时候就是一定要嫁给亲爱的表哥！！！】迷迷糊糊地把一个模块改完了，可是感觉那个改掉的模块，像是还没能理解透彻。明天上午会再看一下。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹，就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】70 Compile Errors 还没有改完，涉及功能模块人接入与整合。会明天上午看过读一下相关模块的源码后再试着改。【活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
 \subsubsection{【ActorMessageSenderComponent】：这个类狠重要、狠重要，现在是活宝妹理解网络模块的核心。爱表哥，爱生活！！！}
-\label{sec:org1a18b2f}
+\label{sec:org293f00d}
 \begin{itemize}
 \item 得去想：ActorMessageSenderComponent, 是只能用来处理跨进程消息的吗？普通消息的发送是如何处理的？该弄明白，它的适用范围，适用哪些情境上下文
 \item \textbf{【ActorMessageSenderComponent】} ：因为ET7 这个模块的重构。不再需要每个返回消息手动去拿消息发送器，交由框架底部去处理。
@@ -1453,7 +1453,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \begin{enumerate}
 \item ActorMessageSenderComponentSystem Send():
-\label{sec:orgc702ad0}
+\label{sec:org54976ee}
 \begin{itemize}
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！活宝妹若是还没能嫁给亲爱的表哥，活宝妹就永远守候在亲爱的表哥的身边！！爱表哥，爱生活！！！】
 \item 今天终于把里面的计时器原理看懂了。
@@ -1464,7 +1464,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \end{itemize}
 \item ActorMessageSenderComponentSystem Call()
-\label{sec:org10d163d}
+\label{sec:orgfb2af33}
 \begin{itemize}
 \item \textbf{【ActorMessageSenderComponentSystem Call()】} 发的是要求返回结果的消息：返回 ETTask<IActorResponse>
 \begin{itemize}
@@ -1474,7 +1474,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \end{enumerate}
 \subsection{静态类的环形引用问题}
-\label{sec:orgbf291e1}
+\label{sec:org80811e3}
 \begin{itemize}
 \item 静态类 CardsHelper, 与静态类 DeskCardsCacheComponent.System 之间，存在静态类的互相引用：就是说，两个静态类，互相引用了对方的方法
 \begin{itemize}
@@ -1484,7 +1484,7 @@ ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>
 \end{itemize}
 \end{itemize}
 \subsection{下面是已经改好了的：还是先放着，备查}
-\label{sec:orge989cc6}
+\label{sec:orgf3cc91c}
 
 \begin{center}
 \includegraphics[width=.9\linewidth]{./pic/et4_20230616_162711.png}
@@ -1523,7 +1523,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEn
 \end{minted}
 \end{itemize}
 \subsection{先前列的相对杂一点儿}
-\label{sec:org25a2470}
+\label{sec:org8c5c6cd}
 \begin{itemize}
 \item 【问题】：上次那个ET-EUI 框架的时候，曾经出现过 opcode 不对应，也就是说，我现在生成的进程间消息，有可能还是会存在服务器码与客户端码不对应，这个完备的框架，这次应该不至于吧？
 \item 【UIType】部分类：这个类出现在了三四个不同的程序域，现在重构了，好像添加得不对。要再修改
@@ -1610,7 +1610,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEn
 \item 【爱表哥，爱生活！！！任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \end{itemize}
 \subsection{LocationComponent: 【任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！！爱表哥，爱生活！！！】}
-\label{sec:orgfbf99f2}
+\label{sec:orgddbb79e}
 \begin{itemize}
 \item 【今天上午】：从这里开始，把先前总结 Actor 消息以及处理器时，所有关于位置的消息，以及相关的消息处理器弄懂。【没看完】
 \begin{itemize}
@@ -1623,7 +1623,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEn
 \item 这个模块的编译错误，被活宝妹全部给消除掉了。。。
 \end{itemize}
 \subsection{【数据库模块：】：这个模块的编译错误，昨天下午清理完了}
-\label{sec:orgb6181ad}
+\label{sec:orga839d1f}
 \begin{itemize}
 \item DBProxyComponent: 这个类被重构丢了。数据库分区管理。根据用户所在的区号，去拿该区数据库索引办事就可以了。
 \item DBManagerComponent: 全框架找不到一个使用的样例。我认为数据库应该只属于服务端。所以，我先把它在应用启动时添加到服务端的公用组件启动程序中（EntryEvent2\_InitServer）去。
@@ -1631,7 +1631,7 @@ public class UnitGateComponent : Entity, IAwake<long>, ITransfer, ISerializeToEn
 \item 【任何时候，活宝妹就是一定要嫁给亲爱的表哥！！！】
 \end{itemize}
 \subsection{【HandCardSprite.cs】}
-\label{sec:org15f5d32}
+\label{sec:org2b8e2db}
 \begin{itemize}
 \item \textbf{【HandCardSprite.cs】} ：这个客户端文件里存在一堆关于Unity 引用的错误。把这个有着巨多错误的类重新添加到了框架里。现在着眼着这些错误（加了这个文件，错误又多了二三十个！！！）。
 \begin{itemize}
@@ -1673,7 +1673,7 @@ public static class Game {
 \item 组件管理类：某些组件，属于双端，但客户端与服务端的逻辑不一样，如PlayerComponent; 某些组件，只属于服务端；有只属于客户端的吗？
 \end{itemize}
 \subsection{三件杂事：【任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
-\label{sec:org09d6996}
+\label{sec:orgb431465}
 \begin{itemize}
 \item 【先花 10 分钟左右，搜下看 emacs-export-to-pdf 与 Skim 应用的自动同步，能理解回调适配过程吗？】还是比较麻烦，改天傍晚或是晚上再凭兴趣来解决，早上看别的
 \begin{itemize}
@@ -1701,7 +1701,7 @@ public static class Game {
 <<<<<<< Updated upstream
 \texttt{=====}
 \subsection{StartConfigComponent: 现框架里有重构了的版本，在理解现ET7 框架的基础上进行必要适配：先把之前总结的再熟悉一下，下午有时间也看看这个}
-\label{sec:orge125272}
+\label{sec:org6ce2a49}
 \begin{itemize}
 \item 下面是两个重复了的消息，需要删除掉：
 \begin{itemize}
@@ -1752,7 +1752,7 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 
 >>>>>>> Stashed changes
 \subsection{ET 框架的【热更新】束缚条约：Model 层与热更新域 HandCardSprite.cs}
-\label{sec:org436a679}
+\label{sec:orga084375}
 \begin{itemize}
 \item 现在重构项目里存在一个问题就是HandCardSprite.cs 类放在了Model 层，有对Unity API 的引用。这在重构后有着严格数据与逻辑分离，Model 层不能有对Unity API 引用的框架束缚里，是不允许的。活宝妹必须把这此个理解透彻，并想出该如何适配以添加重构游戏的需求。现在的相对困难是：【参考项目】里，活宝妹的运行是构建好后，打包成 .exe 文件后作为【客户端】才可以三个玩家【客户端】在运行，而不能有一个【客户端】从Unity 游戏引擎中来运行。也就是说，活宝妹无法 Unity 里实时考查 HandCardSprite.cs 文件所挂载在的预设组件。但它不应该成为主要问题。
 \item 主要问题，仍然是现ET7 重构后，对数据与逻辑，对Entity 与System 有着严格要求与束缚的框架，不允许活宝妹 Model 层里引用Unity API.
@@ -1762,7 +1762,7 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \item 按下面查到的网络上的梳理，大概HandCardSprite.cs 类是需要放进ModelView 程序域里去的。
 \end{itemize}
 \subsubsection{Model:}
-\label{sec:org63fa44d}
+\label{sec:org7e36e3f}
 \begin{itemize}
 \item Model层负责定义实体和组件，在这里要定义实体Unit，以及一些组件（MoveComponent，CombatComponent等）以及还需定义UnitType的枚举，以便后续逻辑的分发处理
 \item 注意：
@@ -1772,12 +1772,12 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \end{itemize}
 \end{itemize}
 \subsubsection{ModelView:}
-\label{sec:org8d31a7f}
+\label{sec:org81a9e13}
 \begin{itemize}
 \item 负责定义与Unity交互的实体和组件，有一些诸如动画组件，GameObject组件用到的数据由Unity提供，就需要将这些实体组件放到这个下面。
 \end{itemize}
 \subsubsection{Hotfix:}
-\label{sec:orgc24bb93}
+\label{sec:orgc892e3a}
 \begin{itemize}
 \item Hotfix负责System行为的定义，提供创建实体和为实体挂载组件的功能。此时定义的UnitFactory工厂就应为不同的实体提供不同的创建方法，例如CreatePlayer，就应先将UnitType置为Player，为其添加MoveComponent组件等待操作。再如CreateNPC，UnitType设置为NPC后，由于npc一般不会移动则无需添加移动组件，可以添加对话组件等待。
 \item 注意：
@@ -1787,7 +1787,7 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \end{itemize}
 \end{itemize}
 \subsubsection{HotfixView:}
-\label{sec:org7fdc231}
+\label{sec:orgf4a6569}
 \begin{itemize}
 \item HotfixView负责需要与Unity交互的System行为，例如加载模型prefab，实例化游戏对象GameObject，若实体中需要用到GameObject对象，则还应为Unit实体添加GameObject组件，里面存有gameObject。若Unit实体还需要在场景中播放动画，还需要为其添加使用了UnityApi的AnimatorComponent。
 \item 同理，在处理与Unity交互的System行为时，不同类型的Unit也可能行为有所不同，在此需要针对UnitType提供不同的行为。
@@ -1915,7 +1915,7 @@ namespace ET.Client {
 \end{itemize}
 
 \subsection{StartConfigComponent: 现框架里有重构了的版本，在理解现ET7 框架的基础上进行必要适配：先把之前总结的再熟悉一下，下午有时间也看看这个}
-\label{sec:orga44e42b}
+\label{sec:orga78fa5b}
 \begin{itemize}
 \item 下面是两个重复了的消息，需要删除掉：
 \begin{itemize}
@@ -1954,7 +1954,14 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【今天早上】：先去读一个帮助工具类程序集：从Json 配置文件 .txt 里（前两天参考网络上的，ET7 重构后，服务端启动的配置是记在 .txt 里）读取配置，并怎么记录到配置文件的过程。感觉不去深入理解【服务端启动过程中】的每个细节，都感觉服务端的启动没读懂。可是，这块儿不知道从哪里下口。。。
 \item 我以为我把其它所有的编译错误，几乎全改完了（除了那个 channelId 不知道是怎么回事儿。。。）现在还在一个个往外冒，说统统把它们消灭掉好了。。。
-\item \textbf{【VS 里两三个文件，每天下午的重复】} ：就没有搞明白，到底是VS 里的延迟，还是他们贱恶作贱活宝妹VS 账户的结果。连续多少天，每天下午那两个文件都要再改一遍。真它妈的发疯犯贱！活宝妹嫁给亲爱的表哥了吗？亲爱的表哥的活宝妹，被他们的贱鸡、贱畜牲折磨致死了吗？都还没有，他们就没有资格对亲爱的表哥的活宝妹发疯犯贱！！！爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
+\item \textbf{【VS 里两三个文件，每天下午的重复】} ：就没有搞明白，到底是VS 里的延迟，还是他们贱恶作贱活宝妹VS 账户的结果。连续多少天，每天下午那两个文件都要再改一遍。真它妈的发疯犯贱！活宝妹嫁给亲爱的表哥了吗？亲爱的表哥的活宝妹，被他们的贱鸡、贱畜牲折磨致死了吗？都还没有，他们就没有资格对亲爱的表哥的活宝妹发疯犯贱！！！爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！今天晚上是真的把那些该删除的几个文件真正清理干净了吗？不要明天下午，亲爱的表哥的活宝妹再来运行，今天的工作，明天又要重篂遍！！！【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\end{itemize}
+
+\begin{center}
+\includegraphics[width=.9\linewidth]{./pic/et4_20230815_220857.png}
+\end{center}
+\begin{itemize}
+\item 明天上午看ModelView 与HotfixView: 感觉这两个程序域从来不知道是怎么回事，也没有项目要用到他们。但是现在的编译错误就出在视图相关。并且重构项目会用到这些。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 今天下午的错误里，有几个对GamerComponent 对 HotfixView 层里的抛错。以前还不曾经细看过  ModelView 与HotfixView. 以后会把这两个域捡起来。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 现在知道 channelId 大概是在什么上下文的时候生成的（当网络客户端连接上网络服务端，被服务端 OnAcceptComplete() 回调回来的时候，就建立一个信道， channelId 成为信道标记号）。但是不知道，它是怎么用的。它可能需要一个如同其它管理类一样的字典来一一记住连接过的信道，但框架里好像是 AddChildWithId() 作为子组件、子控件的形式添加的。所以，这里糊的地方就是：管理类怎么用它，想要某个小服地址的时候，如何拿到那个小服的地址，如何建立起通信会话框的？去框架里找。我搜索什么，有什么线索，才能从框架里找出类似的用法？ \textbf{这个 channelId, 实际上也是物理机上的进程号 fromProcess. 这里，自己迷迷糊糊的地方是： fromProcess 是否等同于，StartProcessConfig 里的 sceneId?}
 \item 理一下框架里几大主要服的大致功能与连接的话：客户端最初登录时，（客户端连注册登录服的过程是：客户端不是使用的【动态路由系统】吗？让路由器建立了两个连注册登录服与网关服的会话框）【注册登录服】先与网关服连接 \textbf{（这个细节去看一下，注册登录服如何连接网关服的？【注册登录服】作为小服，走内网路线 NetInnerComponent，发【跨不跨进程，没关系】消息（ActorMessageSenderComponent.Instance.Call(\ldots{})）给网关服）} ，为客户端分配和拿到一个客户端与网关服连接的Key;【网关服】有与其所管理的各【客户端】的【会话框】；可以试着去找：网关服走内网组件，与其它各小服的通信会话框等的情况【这里不用再找，因为 \textbf{同注册登录服一样，走内网路线，发消息就是了。所以网关服，既要内网组件，与内网其它服收发消息，也要服务端组件NetServerComponent，用于转发收转客户端消息} 】。
@@ -1966,6 +1973,8 @@ Root.Instance.Scene.AddComponent<NetInnerComponent, IPEndPoint>(NetworkHelper.To
 \begin{itemize}
 \item ActorHandleHelper.cs: 里，NetInnerComponent.Instance.Get(fromProcess) 只要用进程号调用，就可以拿到会话框。所以，这里的提示是：我需要去找那些个小服所在的进程号【这里应该是，框架里底层Actor 机制的功能作用单位， \textbf{同一进程上，有同一个 actorId?} 同一进程，以IP 地址与端口唯一标识的话，同一进程上的多线程，各线程各小服，以SceneId 相区分？那么我上面的 fromProcess 可能不一定对。要去检查确认一下】. 现在是就按找到的这个提示，把最后一点儿编译错误改了。笔记本上改的。提交上去，台式机是会运行一下看看还会崩出哪些编译错误？至此感觉改完了。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \end{itemize}
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+\item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 \item 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
