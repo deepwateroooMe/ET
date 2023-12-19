@@ -53,7 +53,7 @@ namespace ET.Server {
                     GamerInfo info = new GamerInfo() { UserID = _gamer.UserID, IsReady = _gamer.IsReady };
                     broadcastMessage.Gamers.Add(info);
                 }
-                // 发送房间玩家信息：这里要换种方式来发消息
+                // 发送房间玩家信息：这里要换种方式来发消息: 【现用这个作例子，来分析，到底是哪一方的 rpcId】：问题是若下面的一行是亲爱的表哥的活宝妹自己加的，加得不一定对
                 ActorMessageSenderComponent.Instance.Send(gamer.GetComponent<UnitGateComponent>().GateSessionActorId, broadcastMessage);
                 List<GamerCardNum> gamersCardNum = new List<GamerCardNum>();
                 List<GamerState> gamersState = new List<GamerState>();

@@ -10,7 +10,7 @@ namespace ET {
                 };
                 // 异步方法全部会回掉到主线程
                 Game.AddSingleton<MainThreadSynchronizationContext>();
-                // 命令行参数: 将命令行参加，解析到Options 单例类里，将来程序里可以用来判断，比如，某个进程是否为当前进程等
+                // 命令行参数: 将命令行参数，解析到Options 单例类里，将来程序里可以用来判断，比如，某个进程是否为当前进程等
                 Parser.Default.ParseArguments<Options>(System.Environment.GetCommandLineArgs())
                     .WithNotParsed(error => throw new Exception($"命令行格式错误! {error}"))
                     .WithParsed(Game.AddSingleton);

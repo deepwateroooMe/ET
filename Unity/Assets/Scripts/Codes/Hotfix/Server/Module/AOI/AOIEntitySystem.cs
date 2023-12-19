@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using Unity.Mathematics;
 namespace ET.Server {
-
 [FriendOf(typeof(AOIEntity))]
     [FriendOf(typeof(Cell))]
     public static class AOIEntitySystem {
@@ -35,15 +34,13 @@ namespace ET.Server {
         public static Dictionary<long, AOIEntity> GetSeePlayers(this AOIEntity self) {
             return self.SeePlayers;
         }
-
-        // cell中的unit进入self的视野
+        // cell中的unit进入self的视野：【我看见了 cell 里的一切！看看这里面，做了什么？】
         public static void SubEnter(this AOIEntity self, Cell cell) {
             cell.SubsEnterEntities.Add(self.Id, self);
             foreach (KeyValuePair<long, AOIEntity> kv in cell.AOIUnits) {
-                if (kv.Key == self.Id) {
+                if (kv.Key == self.Id) // 我也是，这个 cell 里的一个成员
                     continue;
-                }
-                self.EnterSight(kv.Value);
+                self.EnterSight(kv.Value); // <<<<<<<<<<<<<<<<<<<< 定义在下面
             }
         }
         public static void UnSubEnter(this AOIEntity self, Cell cell) {
@@ -52,7 +49,6 @@ namespace ET.Server {
         public static void SubLeave(this AOIEntity self, Cell cell) {
             cell.SubsLeaveEntities.Add(self.Id, self);
         }
-
         // cell中的unit离开self的视野
         public static void UnSubLeave(this AOIEntity self, Cell cell) {
             foreach (KeyValuePair<long, AOIEntity> kv in cell.AOIUnits) {
@@ -64,26 +60,26 @@ namespace ET.Server {
             cell.SubsLeaveEntities.Remove(self.Id);
         }
         // enter进入self视野
-        public static void EnterSight(this AOIEntity self, AOIEntity enter) {
+        public static void EnterSight(this AOIEntity self, AOIEntity enter) { // 代表，看见的，与被看见的两方
             // 有可能之前在Enter，后来出了Enter还在LeaveCell，这样仍然没有删除，继续进来Enter，这种情况不需要处理
+			// 【上面，源】：写的标注，没看懂
             if (self.SeeUnits.ContainsKey(enter.Id)) {
                 return;
             }
             if (!AOISeeCheckHelper.IsCanSee(self, enter)) {
                 return;
             }
-            if (self.Unit.Type == UnitType.Player) {
-                if (enter.Unit.Type == UnitType.Player) {
+            if (self.Unit.Type == UnitType.Player) { // 我是，玩家
+                if (enter.Unit.Type == UnitType.Player) { // 它，也是，玩家
                     self.SeeUnits.Add(enter.Id, enter);
                     enter.BeSeeUnits.Add(self.Id, self);
                     self.SeePlayers.Add(enter.Id, enter);
-                    enter.BeSeePlayers.Add(self.Id, self);
-                    
-                }
-                else {
+					// 我进入 cell, 看见了玩家 enter, 那么玩家 enter 也就同步看见了我！
+                    enter.BeSeePlayers.Add(self.Id, self); // <<<<<<<<<<<<<<<<<<<< 框架里，2 处添加之一：
+                } else { // 它是，怪兽
                     self.SeeUnits.Add(enter.Id, enter);
                     enter.BeSeeUnits.Add(self.Id, self);
-                    enter.BeSeePlayers.Add(self.Id, self);
+                    enter.BeSeePlayers.Add(self.Id, self); // <<<<<<<<<<<<<<<<<<<< 怪兽，被我看见了。。
                 }
             } else {
                 if (enter.Unit.Type == UnitType.Player) {

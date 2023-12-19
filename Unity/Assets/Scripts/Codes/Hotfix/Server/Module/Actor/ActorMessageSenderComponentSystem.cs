@@ -35,23 +35,21 @@ namespace ET.Server {
                 self.TimeoutActorMessageSenders.Clear();
             }
         }
-// 这里，今天早上，把框架里ETTash 封装：原理，与使用场景里，封装调用的过程，再仔细看、理解一遍  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<< 
 // Run() 方法：通过同步异常到ETTask, 通过ETTask 封装的抛异常方式抛出两类异常并返回；和对正常非异常【返回消息】，同步结果到ETTask
 // 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量：异常类型）、【写了个半好】的结果（异常）。结果还没同步到异步任务，待写
         // 【返回消息】的返回过程：是在下面的Call() 方法【发送消息的过程】的调用逻辑里，直接返回异步任务的结果，异步给调用方
         private static void Run(ActorMessageSender self, IActorResponse response) { // 写，同步【封装的异步任务Tcs】的异常或正常结果，只写结果 
 // 这个Run() 方法，Check() 检测到【发送消息超时异常】时，可以调用，用来把【超时异常】抛给调用方
-// 【超时异常】：错误码都是ErrorCore.ERR_ActorTimeout, 所以会从异步任务模块里抛出异常，不用发送错误码【消息】回去，是抛异常。Faulted 与 Succeed 两者之一，不可能同时对
+// 【超时异常】：错误码都是ErrorCore.ERR_ActorTimeout, 所以会从异步任务模块里抛出异常，不用再发送错误【消息】回去，是抛异常。Faulted 与 Succeed 两者之一，不可能同时对
             if (response.Error == ErrorCore.ERR_ActorTimeout) { // 写：发送消息超时异常。因为同步到异步任务 ETTask 里，所以异步任务模块 ETTask会自动抛出异常
                 self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
                 return;
             }
 // 这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用
 // 本文件尾，有正常【返回消息，写框架组件ActorMessageSender 封装的异步任务 Tcs】同步结果到ETTask 的调用。
-
-			// 不知道：亲爱的表哥的活宝妹，先前下面写的，是些什么糊糊东西？  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< 改天细看一下
+			// 不知道：亲爱的表哥的活宝妹，先前下面写的，是些什么糊糊东西？  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< 改天细看一下 
 // ActorMessageSenderComponent 一个组件，一次只执行一个？？（返回？不明白自己当初这里写的是什么意思）消息发送任务，成员变量永远只管当前任务，
-// 也是因为Actor 机制是并发的，一个使者一次只能发一个消息 ...? 这些是在说什么呢？现在说不懂  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<<   
+// 也是因为Actor 机制是并发的，一个使者一次只能发一个消息 ...? 这些是在说什么呢？现在看不懂  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<<   
             if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常（判断条件：消息要抛异常否？是否真有异常？）就先抛异常
                 self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
                 return;
@@ -82,7 +80,7 @@ namespace ET.Server {
             }
             self.TimeoutActorMessageSenders.Clear();
         }
-        // 【发送消息】：框架里所有消息的发送，都走这个方法。【去确认：】 actorId ＝接收者进程、服务器的 actorId ？？？找个发送实例来确认
+        // 【发送消息】：框架里所有消息的发送，都走这个方法。actorId ＝接收者进程、所在服务器的 actorId. 【所有本地图里，可以看见小伙伴 me 的其它小伙伴们。。】
         public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息：这个方法，发所有类型的消息，最基接口IMessage
             if (actorId == 0) 
                 throw new Exception($"actor id is 0: {message}");
@@ -148,8 +146,8 @@ namespace ET.Server {
         public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
             ActorMessageSender actorMessageSender;
 // 下面取、实例化 ActorMessageSender 来看，感觉收消息的 rpcId, 与消息发送者 ActorMessageSender 成一一对应关系。上面的Call() 方法里，创建实例化消息发送者就是这么创始垢 
-            if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) // 这里取不到，是说，这个返回消息的发送已经被处理了？可以去找，这个过程，可能存在重复执行吗？什么情况下，会出现，字典里已不存在这个键了？
-                return;
+            if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) // 这里取不到，是说，这个返回消息的发送已经被处理了？
+                return; // 字典里，键被移除了，就一定是超时异常了！！【就在上面的 check() 逻辑里】
             self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除。直接移除，值是什么？
             Run(actorMessageSender, response); // 写自身组件的；【返回消息】异步任务的结果。
 			// 只是写好结果了，并没有发送结果呀，去找哪里发送的？发送消息的调用方说，只要你把结果写在指定的位置，只要你写好结果通知我调用方了，我就可以读到，不用再、发什么送。。

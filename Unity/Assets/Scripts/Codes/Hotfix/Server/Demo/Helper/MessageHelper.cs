@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 namespace ET.Server {
+	// 【静态帮助类】：全是静态方法。想来应该是挂载在，多进程、多场景、同一个IP 地址的？、同一台物理机【服务器】上的，所以静态
     public static class MessageHelper { // 这个帮助类的重构，是不是进一步简化了呢？重构为：由【地图服】下发命令给【客户端】，创建玩家。需要去理解【地图服】下发命令前的逻辑驱动，什么情况下。。
 
         public static void NoticeUnitAdd(Unit unit, Unit sendUnit) {
@@ -13,13 +14,12 @@ namespace ET.Server {
             removeUnits.Units.Add(sendUnit.Id);
             MessageHelper.SendToClient(unit, removeUnits);
         }
+
         public static void Broadcast(Unit unit, IActorMessage message) {
-            Dictionary<long, AOIEntity> dict = unit.GetBeSeePlayers();
+            Dictionary<long, AOIEntity> dict = unit.GetBeSeePlayers(); // 拿，所有，可以看见当前玩家 unit 的链条。。
             // 网络底层做了优化，同一个消息不会多次序列化. 【TODO】：改天，也要把这个理解透彻
             foreach (AOIEntity u in dict.Values) {
-// Send() 例子来看：1st 参数是，发送者的所在代理的 actorId, 不是接收者的？
-				// 错！要找，上面的字典的【值】，代表发送者还是接收者？
-				// 代表着，所有可以看见我 me 的消息接收者？对吗？【TODO】：感觉这里看得好糊呀。。明明什么都看懂了，可是往这个字典里加的，加的值 value 是哪一方，改天再读。。
+// Send() 例子来看：1st 参数是，接收者——当前地图 cell 里【框架里地图的最小管理单位？】，可以看见我的所有玩家，是接收者 rpcIds. 广播给他们：亲爱的表哥的活宝妹，坐守这里 500 年！！
                 ActorMessageSenderComponent.Instance.Send(u.Unit.GetComponent<UnitGateComponent>().GateSessionActorId, message);
             }
         }
@@ -27,13 +27,13 @@ namespace ET.Server {
         public static void SendToClient(Unit unit, IActorMessage message) { 
             SendActor(unit.GetComponent<UnitGateComponent>().GateSessionActorId, message); // <<<<<<<<<<<<<<<<<<<< 
         }
-        // 发送协议给ActorLocation
+        // 发送协议给ActorLocation: 【感觉这个方法，正确的概率大， 99%】
         public static void SendToLocationActor(long id, IActorLocationMessage message) {
             ActorLocationSenderComponent.Instance.Send(id, message);
         }
-        // 发送协议给Actor
+        // 发送协议给Actor: 【感觉这个方法，正确的概率大， 99%】，可是找不到调用这个静态方法的框架里的用例！！1 个也没有，先看别的【TODO】：
         public static void SendActor(long actorId, IActorMessage message) {
-            ActorMessageSenderComponent.Instance.Send(actorId, message);
+            ActorMessageSenderComponent.Instance.Send(actorId, message); // <<<<<<<<<<<<<<<<<<<< 
         }
         // 发送RPC协议给Actor
         public static async ETTask<IActorResponse> CallActor(long actorId, IActorRequest message) {
