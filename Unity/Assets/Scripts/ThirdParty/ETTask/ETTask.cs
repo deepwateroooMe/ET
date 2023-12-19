@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 namespace ET {
     // 【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要嫁给亲爱的表哥！！爱表哥，爱生活！！！】
+	// 类的定义，极简单：普通类，与泛型类。泛型类用来封装，各种不同类型的返回对象。
     [AsyncMethodBuilder(typeof (ETAsyncTaskMethodBuilder))]
     public class ETTask: ICriticalNotifyCompletion {
         public static Action<Exception> ExceptionHandler;
@@ -29,7 +30,7 @@ namespace ET {
         private void Recycle() { 
             if (!this.fromPool) // 原则：只有从池里取出来的，才返回池
                 return;
-            this.state = AwaiterStatus.Pending; // 【没明白：】回收时还设置为 Pending, 什么时候写的当前结果？应该是在回收前
+            this.state = AwaiterStatus.Pending; // 自生成或是 Recycle 起，就是 Pending, 直到异步任务被分配，出错抛错，或是完成
             this.callback = null;
             // 太多了
             if (queue.Count > 1000) return;
@@ -41,30 +42,30 @@ namespace ET {
         private ETTask() {  }
 
         [DebuggerHidden]
-        private async ETVoid InnerCoroutine() {
-            await this;
+        private async ETVoid InnerCoroutine() { // <<<<<<<<<<<<<<<<<<<< 就是这两个地方，感觉最难懂
+            await this; // 框架内部：适配了 ETVoid? 这里就要把， async 之类的、相关关键字，理解透彻
         }
         [DebuggerHidden]
-        public void Coroutine() {
+        public void Coroutine() { // <<<<<<<<<<<<<<<<<<<< 
             InnerCoroutine().Coroutine();
         }
         [DebuggerHidden]
         public ETTask GetAwaiter() {
             return this;
         }
-        public bool IsCompleted { // 前段时间，看【异步状态机】时，记得哪里，是会每步检查异步任务是否结束的。找出来看一下
+        public bool IsCompleted { // 前段时间，看【异步状态机】时，什么地方调用这个、公用、检测状态函数？
             [DebuggerHidden]
             get {
                 return this.state != AwaiterStatus.Pending; // 只要不是 Pending 状态，就是异步任务执行结束
             }
         }
-        [DebuggerHidden]
-        public void UnsafeOnCompleted(Action action) { // 有谁会调用这个方法吗？
+        [DebuggerHidden] // 唯一的方法：来注册【完成回调函数】
+        public void UnsafeOnCompleted(Action action) { // 【注册：异步任务完成的回调函数】有谁会调用这个方法吗？
             if (this.state != AwaiterStatus.Pending) { // 如果当前异步任务执行结束，就触发非空回调
-                action?.Invoke();
+                action?.Invoke(); // 已完成：直接调用
                 return;
             }
-            this.callback = action; // 任务还没有结束，就纪录回调备用
+            this.callback = action; // 没有结束：纪录回调，备用。完成时会自动调用的
         }
         [DebuggerHidden]
         public void OnCompleted(Action action) { // 有谁会调用这个方法吗？会传回调进来？
@@ -73,14 +74,15 @@ namespace ET {
         [DebuggerHidden]
         public void GetResult() { // 什么地方，调用这个？这个我就是没能找到【我需要：去理解异步状态机中，什么地方什么情况下检查这个结果】才能够把这一块儿理解透彻
             switch (this.state) {
-            case AwaiterStatus.Succeeded: // 状态结束：会回收
+				case AwaiterStatus.Succeeded: // 状态结束：会回收
                     this.Recycle();
                     break;
                 case AwaiterStatus.Faulted:
-                    ExceptionDispatchInfo c = this.callback as ExceptionDispatchInfo;
-                    this.callback = null;
+					// ExceptionDispatchInfo类：系统方法，封装了两个静态方法： Capture() Throw()
+                    ExceptionDispatchInfo c = this.callback as ExceptionDispatchInfo; // .callback 注册的逻辑：只一个方法注册回调 OnUnsafeCompleted(action)
+                    this.callback = null; // 上面，封装了回调在 c 里；这里置空，下面的回收，才能真正回收掉；回调仍会执行一次
                     this.Recycle();
-                    c?.Throw();
+                    c?.Throw(); // 执行非空回调
                     break;
                 default:
                     throw new NotSupportedException("ETTask does not allow call GetResult directly when task not completed. Please use 'await'.");
@@ -97,7 +99,7 @@ namespace ET {
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [DebuggerHidden]
-        public void SetException(Exception e) {
+        public void SetException(Exception e) { // 当出错，抛锚时是 Faulted
             if (this.state != AwaiterStatus.Pending) 
                 throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
             this.state = AwaiterStatus.Faulted;
@@ -105,7 +107,6 @@ namespace ET {
             this.callback = ExceptionDispatchInfo.Capture(e);
             c?.Invoke();
         }
-		// public static ETTask CompletedTask() => throw new NotImplementedException();// 这种，一定查自己不小心干的！！！
 	}
     [AsyncMethodBuilder(typeof (ETAsyncTaskMethodBuilder<>))]
     public class ETTask<T>: ICriticalNotifyCompletion {

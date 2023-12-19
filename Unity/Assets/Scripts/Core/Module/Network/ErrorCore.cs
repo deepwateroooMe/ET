@@ -49,13 +49,13 @@
         // 小于这个Rpc会抛异常，大于这个异常的error需要自己判断处理，也就是说需要处理的错误应该要大于该值
         public const int ERR_Exception = 200000;
         public const int ERR_Cancel = 200001;
-        public static bool IsRpcNeedThrowException(int error) { // 不明白：这里它是如何分类的，不太重要
+        public static bool IsRpcNeedThrowException(int error) { // 感觉这里是：
             if (error == 0) 
                 return false;
             // ws平台返回错误专用的值
             if (error == -1) 
                 return false;
-            if (error > ERR_Exception) 
+            if (error > ERR_Exception) // 标注： rpc 跨进程消息过程中的异常，标记，是否，真正有异常，需要抛出、可以抛出？
                 return false;
             return true;
         }

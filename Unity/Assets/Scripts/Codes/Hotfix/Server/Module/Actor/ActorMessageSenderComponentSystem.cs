@@ -5,7 +5,7 @@ namespace ET.Server {
     [FriendOf(typeof(ActorMessageSenderComponent))]
     public static class ActorMessageSenderComponentSystem {
         // 它自带个计时器，就是说，当服务器繁忙处理不过来，它就极有可能会自动超时，若是超时了，就抛个超时异常回去告知发送者一下，必要时它可以重发。
-        [Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系: 它标记说，这个激活系类，是 XXX 类型；紧跟着，就定义这个 XXX 类型的激活系类
+		[Invoke(TimerInvokeType.ActorMessageSenderChecker)] // 另一个新标签，激活系: 它标记说，这个激活系类，是 XXX 类型；紧跟着，就定义这个 XXX 类型的激活系类
         public class ActorMessageSenderChecker: ATimer<ActorMessageSenderComponent> {
             protected override void Run(ActorMessageSenderComponent self) { // 申明方法的接口是：ATimer<T> 抽象实现类，它实现了 AInvokeHandler<TimerCallback>
                 try {
@@ -15,7 +15,7 @@ namespace ET.Server {
                 }
             }
         }
-        [ObjectSystem]
+        [ObjectSystem] // 自这个组件添加：就自动执行：每1 秒一次的超时自动检测
         public class ActorMessageSenderComponentAwakeSystem: AwakeSystem<ActorMessageSenderComponent> {
             protected override void Awake(ActorMessageSenderComponent self) {
                 ActorMessageSenderComponent.Instance = self;
@@ -35,32 +35,35 @@ namespace ET.Server {
                 self.TimeoutActorMessageSenders.Clear();
             }
         }
-
+// 这里，今天早上，把框架里ETTash 封装：原理，与使用场景里，封装调用的过程，再仔细看、理解一遍  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<< 
 // Run() 方法：通过同步异常到ETTask, 通过ETTask 封装的抛异常方式抛出两类异常并返回；和对正常非异常【返回消息】，同步结果到ETTask
 // 传进来的参数：是一个IActorResponse 实例，是有最小预处理（初始化了最基本成员变量：异常类型）、【写了个半好】的结果（异常）。结果还没同步到异步任务，待写
         // 【返回消息】的返回过程：是在下面的Call() 方法【发送消息的过程】的调用逻辑里，直接返回异步任务的结果，异步给调用方
         private static void Run(ActorMessageSender self, IActorResponse response) { // 写，同步【封装的异步任务Tcs】的异常或正常结果，只写结果 
-            // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout, 所以会从异步任务模块里抛出异常，不用发送错误码【消息】回去，是抛异常
+// 这个Run() 方法，Check() 检测到【发送消息超时异常】时，可以调用，用来把【超时异常】抛给调用方
+// 【超时异常】：错误码都是ErrorCore.ERR_ActorTimeout, 所以会从异步任务模块里抛出异常，不用发送错误码【消息】回去，是抛异常。Faulted 与 Succeed 两者之一，不可能同时对
             if (response.Error == ErrorCore.ERR_ActorTimeout) { // 写：发送消息超时异常。因为同步到异步任务 ETTask 里，所以异步任务模块 ETTask会自动抛出异常
                 self.Tcs.SetException(new Exception($"Rpc error: request, 注意Actor消息超时，请注意查看是否死锁或者没有reply: actorId: {self.ActorId} {self.Request}, response: {response}"));
                 return;
             }
-// 这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用。什么情况下的调用，会走到下面的分支？文件尾，有正常【返回消息，写框架组件ActorMessageAender 封装的异步任务 Tcs】同步结果到ETTask 的调用 
-// ActorMessageSenderComponent 一个组件，一次只执行一个（返回？不明白自己当初这里写的是什么意思）消息发送任务，成员变量永远只管当前任务，
-// 也是因为Actor 机制是并发的，一个使者一次只能发一个消息 ...? 这些是在说什么呢？现在说不懂
-// 【组件管理器的执行频率， Run() 方法的调用频率】：Run() 这个方法，是写【返回消息】结果到异步任务，用于桥接返回给调用方。每有一个返回Actor消息，都会执行一次这个写结果的方法
-            if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常（判断条件：消息要抛异常否？是否真有异常？），就先抛异常
+// 这个Run() 方法，并不是只有 Check() 【发送消息超时异常】一个方法调用
+// 本文件尾，有正常【返回消息，写框架组件ActorMessageSender 封装的异步任务 Tcs】同步结果到ETTask 的调用。
+
+			// 不知道：亲爱的表哥的活宝妹，先前下面写的，是些什么糊糊东西？  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< 改天细看一下
+// ActorMessageSenderComponent 一个组件，一次只执行一个？？（返回？不明白自己当初这里写的是什么意思）消息发送任务，成员变量永远只管当前任务，
+// 也是因为Actor 机制是并发的，一个使者一次只能发一个消息 ...? 这些是在说什么呢？现在说不懂  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<<   
+            if (self.NeedException && ErrorCore.IsRpcNeedThrowException(response.Error)) { // 若是有异常（判断条件：消息要抛异常否？是否真有异常？）就先抛异常
                 self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
                 return;
             }
-            self.Tcs.SetResult(response); // 【写结果】：将【写了个半好】的消息，写进同步到异步任务的结果里；把异步任务的状态设置为完成；
-            // 发送需要【返回消息】的逻辑里，借助临时异步任务变量 tcs, 桥接给ActorMessageSender.
-            // 当这里的结果写好，发送需要【返回消息】的调用逻辑【下面的Call() 方法】里，就可以把 tcs 异步结果返回给调用方。后续逻辑是在调用处桥接好了的
+            self.Tcs.SetResult(response); // 【写结果】：将任务结果，写入【发送者指定的地址 response 】里；把异步任务的状态设置为完成；
+            // 发送、request【返回消息】的、【发送逻辑】里，借助临时异步任务变量 tcs, 桥接【指针指】给了ActorMessageSender.
+            // 这里的结果写在【发送者指定的地址 response 】里：发送消息的调用逻辑【下面的Call() 方法】里，就可以把 tcs 异步任务完成通知到调用方。后续逻辑是在调用处指针指在同一个地方
         }
         private static void Check(this ActorMessageSenderComponent self) { // 【单例组件】的自清理逻辑：遍历所有的发送代理，剔除超时的
             long timeNow = TimeHelper.ServerNow();
-            foreach ((int key, ActorMessageSender value) in self.requestCallback) { // 有序字典
-                // 因为是顺序发送的，所以，检测到第一个不超时的就退出.
+            foreach ((int key, ActorMessageSender value) in self.requestCallback) { // 有序字典：按消息发送时间，从最古代最久远，现刚才。。
+                // 因为是顺序发送的，所以，检测到第一个不超时的就退出. 就是说，及时处理了过程中，所有超时消息。扫到第一个不超时的，之后的都还不会超时
                 // 【顺序发送】，按发送时间（超时）从小到大排列。只要队头最小时间不超时，以后的也不会超时（同组件超时时长一致）；而若消息超时，遍历到第一个不超时的那个消息，退出循环
                 if (timeNow < value.CreateTime + ActorMessageSenderComponent.TIMEOUT_TIME) 
                     break;
@@ -68,7 +71,7 @@ namespace ET.Server {
             }
             foreach (int rpcId in self.TimeoutActorMessageSenders) { // 一一遍历【超时了的消息】 :
                 ActorMessageSender actorMessageSender = self.requestCallback[rpcId];
-                self.requestCallback.Remove(rpcId);
+                self.requestCallback.Remove(rpcId); // 字典里，键被移除了，就一定是超时异常了！！
                 try { // ActorHelper.CreateResponse() 框架系统性的封装：也是通过对消息的发送类型与对应的回复类型的管理，使用帮助类，自动根据类型统一创建回复消息的实例
                     // 对于每个超时了的消息：超时错误码都是：ErrorCore.ERR_ActorTimeout. 也就是，是个异常消息的回复消息实例生成帮助类
                     IActorResponse response = ActorHelper.CreateResponse(actorMessageSender.Request, ErrorCore.ERR_ActorTimeout);
@@ -79,7 +82,7 @@ namespace ET.Server {
             }
             self.TimeoutActorMessageSenders.Clear();
         }
-        // 【发送消息】：框架里所有消息的发送，都走这个方法 
+        // 【发送消息】：框架里所有消息的发送，都走这个方法。【去确认：】 actorId ＝接收者进程、服务器的 actorId ？？？找个发送实例来确认
         public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // 发消息：这个方法，发所有类型的消息，最基接口IMessage
             if (actorId == 0) 
                 throw new Exception($"actor id is 0: {message}");
@@ -136,17 +139,20 @@ namespace ET.Server {
                 Log.Warning($"actor rpc time > 200: {costTime} {iActorRequest}");
             return response; // 返回：异步网络调用的结果
         }
-// 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？去搜索下面调用 Run() 方法的正常结果消息的调用处理频率。。。
+// 【组件管理器的执行频率， Run() 方法的调用频率】：要是消息太多，发不完怎么办呢？去搜索下面调用 Run() 方法的正常结果消息的调用处理频率。。。  // <<<<<<<<<<<<<<<<<<<< 这些先前不懂、先前稚弱不曾深入理解的地方，这次都要自己框架里、翻，自己把答案找出来，才算理解了  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<<   
 // 【ActorHandleHelper 帮助类】：老是调用这里的方法，要去查那个文件。【本质：内网消息处理器的处理逻辑，一旦是返回消息，就会调用 ActorHandleHelper, 会调用这个方法来处理返回消息】        
-// 下面方法：处理IActorResponse 消息，也就是，发回复消息给收消息的人XX, 那么谁发，怎么发，就是这个方法的定义
-        // 当是处理【同一进程的消息】：拿到的消息发送器就是当前组件自己，那么只要把结果同步到当前组件的Tcs 异步任务结果里，异步任务结果就会自动触发调用注册过的回调。全部流程结束
+// 处理【需要回复的IActorResponse 消息】：发，回复消息，给原来发消息的人XX, 那么谁发的，怎么回复，就是这个方法的定义
+// 当处理的是【同一进程的消息】：拿到的消息发送器就是当前组件自己，那么只要把结果同步到当前组件的Tcs 异步任务结果里，异步任务结果就会自动触发调用注册过的回调。全部流程结束
+// 提供 response 参数【回复消息的对象地址】说：虽然是异步网络调用，但是你给我的回复，就写进我 response 指针所指的地方；等你弄完了，通知我一声；我就从这个地方，来读，就可以了
+// 为证实上面的理解，再去找：发送消息的地方，是如何实例一个 IActorResponse 消息的？  // <<<<<<<<<<<<<<<<<<<< // <<<<<<<<<<<<<<<<<<<<  
         public static void HandleIActorResponse(this ActorMessageSenderComponent self, IActorResponse response) {
             ActorMessageSender actorMessageSender;
 // 下面取、实例化 ActorMessageSender 来看，感觉收消息的 rpcId, 与消息发送者 ActorMessageSender 成一一对应关系。上面的Call() 方法里，创建实例化消息发送者就是这么创始垢 
-            if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) // 这里取不到，是说，这个返回消息的发送已经被处理了？
+            if (!self.requestCallback.TryGetValue(response.RpcId, out actorMessageSender)) // 这里取不到，是说，这个返回消息的发送已经被处理了？可以去找，这个过程，可能存在重复执行吗？什么情况下，会出现，字典里已不存在这个键了？
                 return;
-            self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除
-            Run(actorMessageSender, response); // 写自身组件的；【返回消息】异步任务的结果。只是写好结果了，并没有发送结果呀，去找哪里发送的？
+            self.requestCallback.Remove(response.RpcId); // 这个有序字典，就成为实时更新：随时添加，随时删除。直接移除，值是什么？
+            Run(actorMessageSender, response); // 写自身组件的；【返回消息】异步任务的结果。
+			// 只是写好结果了，并没有发送结果呀，去找哪里发送的？发送消息的调用方说，只要你把结果写在指定的位置，只要你写好结果通知我调用方了，我就可以读到，不用再、发什么送。。
         }
     }
 }
