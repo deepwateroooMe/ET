@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 namespace ET {
+	// 这个类，亲爱的表哥的活宝妹，啃过狠久，总有边边角角，还没熟透。。。
     // 进程间通信，网络交互的基础类
     public enum NetworkProtocol { // 服务的几种类型
         TCP,
@@ -47,7 +48,6 @@ namespace ET {
                 MessageAttribute messageAttribute = attrs[0] as MessageAttribute;
                 if (messageAttribute == null)
                     continue;
-                // 
                 this.typeOpcode.Add(type, messageAttribute.Opcode); // 【初始化】：扫描框架里所有消息。每个消息，类型，与操作符是固定不变的
             }
         }
@@ -153,7 +153,6 @@ namespace ET {
             }
         }
 #endregion
-        
 #region 网络线程
         private readonly Dictionary<int, AService> services = new Dictionary<int, AService>();
         private readonly Queue<int> queue = new Queue<int>();

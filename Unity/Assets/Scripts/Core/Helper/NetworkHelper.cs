@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace ET {
     // 帮助类：
     public static class NetworkHelper {
-        // 方法的逻辑细节：极底层。现在并不想花时间去弄懂。
+        // 方法的逻辑细节：极底层。现在并不想花时间去弄懂。这个类没有、不曾细看
         // 只了解什么情况下会调用这个底层方法：有个工监服，实时扫描服务端系统，有没有哪个【进程】死翘翘了？WatcherComponentSystem.cs WatcherHelp.cs 里会调用这个方法
         public static string[] GetAddressIPs() {
             List<string> list = new List<string>();

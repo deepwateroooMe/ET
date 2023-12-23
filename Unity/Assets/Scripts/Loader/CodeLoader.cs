@@ -9,7 +9,7 @@ namespace ET {
         private Assembly model;
 
         public void Start() {
-            if (Define.EnableCodes) { // 这个变量，大概是方便 Unity 的编辑器模式下的使用引用程序集，成为可能。前提：【双端模式】
+            if (Define.EnableCodes) { // 这个变量，大概是方便 Unity 的编辑器模式下的使用引用程序集，成为可能。前提：【双端模式】? 对吗？【TODO】：
                 GlobalConfig globalConfig = Resources.Load<GlobalConfig>("GlobalConfig");
                 if (globalConfig.CodeMode != CodeMode.ClientServer) { // 不是双端模式：抛异常
                     throw new Exception("ENABLE_CODES mode must use ClientServer code mode!");
