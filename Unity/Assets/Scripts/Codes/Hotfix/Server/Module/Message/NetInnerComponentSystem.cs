@@ -27,15 +27,16 @@ namespace ET.Server {
             protected override void Awake(NetInnerComponent self, IPEndPoint address) {
                 NetInnerComponent.Instance = self;
                 switch (self.InnerProtocol) {
-                case NetworkProtocol.TCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new TService(address, ServiceType.Inner));
-                    break;
+					case NetworkProtocol.TCP: {
+						self.ServiceId = NetServices.Instance.AddService(new TService(address, ServiceType.Inner));
+						break;
+					}
+					case NetworkProtocol.KCP: {
+						self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Inner));
+						break;
+					}
                 }
-                case NetworkProtocol.KCP: {
-                    self.ServiceId = NetServices.Instance.AddService(new KService(address, ServiceType.Inner));
-                    break;
-                }
-                }
+				// 向【单例模式】的同【网络模块主线程】注册三大回调事件
                 NetServices.Instance.RegisterAcceptCallback(self.ServiceId, self.OnAccept);
                 NetServices.Instance.RegisterReadCallback(self.ServiceId, self.OnRead);
                 NetServices.Instance.RegisterErrorCallback(self.ServiceId, self.OnError);
@@ -69,11 +70,12 @@ namespace ET.Server {
             session.Error = error;
             session.Dispose();
         }
-        // 这个channelId是由CreateAcceptChannelId生成的
-        private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
-            Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
+        // 这个channelId是由CreateAcceptChannelId生成的：【这里去找一下】，感觉没能明白，怎么返回 channelId 的？？？【TODO】：就是这个回调的参数，不明白
+		// 这个不明白的地方，亲爱的表哥的活宝妹，觉得，框架里，一定有什么地方，应该是会传这些的。要把源头找出来！！
+        private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) { // 【网络服务端】告诉【客户端】说：建立了连接
+            Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 【内网组件】：创建子控件【会话框】内网通讯
             session.RemoteAddress = ipEndPoint;
-            // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
+            // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);  // 这句是，它原本就 comment 掉的？亲爱的表哥的活宝妹，以为自己不小心弄的。。 
         }
         private static Session CreateInner(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
