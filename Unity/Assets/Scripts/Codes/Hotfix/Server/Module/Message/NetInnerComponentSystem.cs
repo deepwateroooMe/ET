@@ -70,8 +70,7 @@ namespace ET.Server {
             session.Error = error;
             session.Dispose();
         }
-        // 这个channelId是由CreateAcceptChannelId生成的：【这里去找一下】，感觉没能明白，怎么返回 channelId 的？？？【TODO】：就是这个回调的参数，不明白
-		// 这个不明白的地方，亲爱的表哥的活宝妹，觉得，框架里，一定有什么地方，应该是会传这些的。要把源头找出来！！
+        // 这个channelId是由CreateAcceptChannelId生成的：【这里去找一下】，
         private static void OnAccept(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) { // 【网络服务端】告诉【客户端】说：建立了连接
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId); // 【内网组件】：创建子控件【会话框】内网通讯
             session.RemoteAddress = ipEndPoint;

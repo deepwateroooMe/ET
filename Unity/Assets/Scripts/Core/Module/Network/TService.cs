@@ -54,12 +54,12 @@ namespace ET {
                 Log.Error($"accept error {socketError}");
                 return;
             }
-            try {
+            try { // 网络通信【创建信道】：网络通信底层，建立通信之前，创建一个通信信道的过程
                 long id = NetServices.Instance.CreateAcceptChannelId();
                 TChannel channel = new TChannel(id, acceptSocket, this);
                 this.idChannels.Add(channel.Id, channel);
                 long channelId = channel.Id;
-                NetServices.Instance.OnAccept(this.Id, channelId, channel.RemoteAddress);
+                NetServices.Instance.OnAccept(this.Id, channelId, channel.RemoteAddress); // 创建后，加入总管主线程的管理里
             }
             catch (Exception exception) {
                 Log.Error(exception);

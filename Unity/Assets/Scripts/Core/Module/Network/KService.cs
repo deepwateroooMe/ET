@@ -215,7 +215,8 @@ namespace ET {
 								this.localConnChannels.Add(kChannel.LocalConn, kChannel);
 								kChannel.RealAddress = realAddress;
 								IPEndPoint realEndPoint = kChannel.RealAddress == null? kChannel.RemoteAddress : NetworkHelper.ToIPEndPoint(kChannel.RealAddress);
-								NetServices.Instance.OnAccept(this.Id, kChannel.Id, realEndPoint);
+// 各种类型服务的底层：向【网络服务模块主线程】发通知，是同步到主线程。亲爱的表哥的活宝妹，就是【一个通信信道】的两个端，哪个是哪个，还有点儿弄不明白
+								NetServices.Instance.OnAccept(this.Id, kChannel.Id, realEndPoint); 
 							}
 							if (kChannel.RemoteConn != remoteConn)
 								break;

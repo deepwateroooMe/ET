@@ -5,7 +5,6 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 namespace ET {
-	// 这个类，亲爱的表哥的活宝妹，啃过狠久，总有边边角角，还没熟透。。。
     // 进程间通信，网络交互的基础类
     public enum NetworkProtocol { // 服务的几种类型
         TCP,
@@ -125,7 +124,15 @@ namespace ET {
                 try {
 // 不同的操作符，传入不同的参数。不同操作符的 action 回调，不同的回调类型与参数，是定义在上面，【主线程的字典回调管理里】
                     switch (op.Op) { // 【主线程中】：只处理了最主要的【必须主线程执行的】三类回调。回调的注册方法在前面。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！】
-					case NetOp.OnAccept: { // 想去找：包装这个【异步操作】的地方，看 channelId 是怎么传进来的
+// 各线程同步的最顶端同步总管：三大主要事件方法，有如下几个主要主件，向这里？注册。
+	// NetInnerComponent NetServerComponent, 也就是ET框架里所有可能的服务端网络组件：【服务端网络组件】与【服务端内网交互网络组件】
+	// 各种不同类型服务的底层：KService TService WService
+// 事件的流通方向：
+	// 这里是座桥：是【异步线程中的服务端】，向主线程同步三大回调。去理，回调的起始、流通方向？OnAccept 感觉基本弄清楚了。另两个事件是一样的原理吗？
+		// 网络通信的最底端、三大不同类型的服务：KService TService WService, 当它们接受了任何相对于它们服务端的【客户端】，都会投向、同步到主线程，这里 NetServices;
+		// NetServices 主线程，将最底层网络服务端的三大回调，分发回调到【处在，异步线程，的服务端】：NetInnerComponent NetServerComponent
+		// 【异步线程中的服务端】：根据主线程回调来的，参数，网络最底层各不同类型服务反馈回来的【所创建的通信信道号】，包装【会话框】，加入到它【异步线程服务端】的客户端的管理字典里管理
+					case NetOp.OnAccept: { // channelId 是怎么传进来的：任何客户端与服务端初建通信时，都会创建通信信道，那时就创建好管理着的，必要时拿来直用标记通信的两端的
                             if (!this.acceptCallback.TryGetValue(op.ServiceId, out var action)) // 拿到先前，网络线程客户端，曾经向服务端注册过的回调
                                 return; // 客户端注册过的回调，被服务端主线程这里，加字典里记着
                             action.Invoke(op.ChannelId, op.Object as IPEndPoint); // 这里回调，真正调用的是网络线程中，他们各客户端自己的不同的实现方法
@@ -200,7 +207,7 @@ namespace ET {
                                 service.Remove(op.ChannelId, (int)op.ActorId);
                             break;
                         }
-                    case NetOp.SendMessage: { // 【会话框上发消息】的最底层：可以追到这里。
+						case NetOp.SendMessage: { // 【会话框上发消息】的最底层：可以追到这里。
                             AService service = this.Get(op.ServiceId);
                             if (service != null) 
 // 再接着就是最底层了。。可以不用弄懂。【服务端】处理好后，消息返回的过程. 那么过程是：远程消息先到达【本进程】服务端，服务端处理本进程返回消息，直接会话框上处理：就是写Tcs 异步结果，异步回请求方。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
@@ -253,6 +260,8 @@ namespace ET {
 // 不是说服务端接受了某个客户端，主线程就一定知道哪个服务端接受了某个客户端的结果，服务端也在异步线程的话，不投递到主线程，异步线程的结果主线程不知道
 // 【投到主线程】：前个游戏的ET-EUI 服务端与不用ET 框架的客户端交互的时候，曾经出现过主线程不知道，客户端使用第三方库来实现同步到主线程中
 		// 亲爱的表哥的活宝妹，这里，就是感觉，这些事件的流通方向，不明白。要连贯起来看【TODO】：
+		// 这里是座桥：是【异步线程中的服务端】，向主线程同步三大回调。去理，回调的起始、流通方向？
+		// 硬件、服务器、操作系统的底端，三大不同类型的服务：KService
         public void OnAccept(int serviceId, long channelId, IPEndPoint ipEndPoint) { // 其它【身在异步线程的、服务端】向主线程，同步其与客户端的连接状态？
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnAccept, ServiceId = serviceId, ChannelId = channelId, Object = ipEndPoint };
             this.mainThreadOperators.Enqueue(netOperator); // 投到主线程中去：【让主线程知晓】
