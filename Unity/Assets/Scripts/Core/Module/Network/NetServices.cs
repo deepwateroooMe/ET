@@ -12,29 +12,29 @@ namespace ET {
         Websocket,
     }
     public enum NetOp: byte { // 定义几种不同的网络操作
-        AddService = 1,
-        RemoveService = 2,
-        OnAccept = 3,
+        AddService = 1,     // 添加
+        RemoveService = 2,  // 删除
+        OnAccept = 3,       // 三大、连接回调
         OnRead = 4,
         OnError = 5,
-        CreateChannel = 6,
-        RemoveChannel = 7,
-        SendMessage = 9,
-        GetChannelConn = 10,
+        CreateChannel = 6, // 建立信道：专用方法，是用来创建新的
+        RemoveChannel = 7, // 移除信道
+        SendMessage = 9,   // 发送消息
+        GetChannelConn = 10, // 只读：现在存在的，不负责创建、任何新的
         ChangeAddress = 11,
     }
 
     public struct NetOperator { // 上面的【网络操作符】：结构包装体，包装这个【特定的、网络操作符】必要的信息
-        public NetOp Op;      // 操作码：几乎唯一标记？
+        public NetOp Op;      // 操作码：几乎唯一标记？是的
         public int ServiceId; // 服务号
         public long ChannelId;// 信道号：【服务号】＋【信道号】＝唯一标记一个【会话框】连接，不标记身哪一端？
         public long ActorId;  // 信使号
         public object Object; // 参数
     }
 
-    // 【这个类】：网络服务，是负责【服务端NetServerComponent】与【客户端NetClientComponnet】交互的中心逻辑部分
+    // 【这个类】：网络服务，是负责【服务端NetServerComponent】与【客户端NetClientComponnet】交互的中心逻辑部分。双端都有，所以包含双端逻辑；各端按所需要用适合自己的逻辑相关部分
     public class NetServices: Singleton<NetServices> { // 【异步网络交互】：主线程与异步线程。异步线程结果必须同步到主线程上去。否则主线程并不知晓
-        private readonly ConcurrentQueue<NetOperator> netThreadOperators = new ConcurrentQueue<NetOperator>();
+        private readonly ConcurrentQueue<NetOperator> netThreadOperators = new ConcurrentQueue<NetOperator>(); // 多线程、进程？安全队列
         private readonly ConcurrentQueue<NetOperator> mainThreadOperators = new ConcurrentQueue<NetOperator>();
 
         public NetServices() { // 【原理】：扫描框架里所有消息，把消息的操作符记字典里
@@ -63,13 +63,14 @@ namespace ET {
 #endregion
 #region 主线程
 		// 这三个：就是主线程，对三类主要网络连接事件的管理逻辑【管理字典】，方便主线程必要的时候查找，调用的。可以把框架翻翻，看看、确认自己想的是对的！！【TODO】：
+		// 【TODO】：那个交待过的、单线程多进程模式，还是单进程多线程模式？在这里与，单线程逻辑，有什么区别？
         private readonly Dictionary<int, Action<long, IPEndPoint>> acceptCallback = new Dictionary<int, Action<long, IPEndPoint>>();
         private readonly Dictionary<int, Action<long, long, object>> readCallback = new Dictionary<int, Action<long, long, object>>();
         private readonly Dictionary<int, Action<long, int>> errorCallback = new Dictionary<int, Action<long, int>>();
         private int serviceIdGenerator;
-// 【主线程中定义】的几个帮助方法：方法的逻辑里是包装异步任务，交由网络异步线程去完成，最终再把结果同步到主线程上来
-        // 【异步任务】：是异步方法，但是这里是，返回已经建立的信道的 reference 索引，还是重新（或是不存在，必要时）或补建信道，并返回信道的 reference ？
-        // 【异步方法】：网络操作大多是异步的。这里只是异步去【读取、或拿到】所需要的信道信息。应该是不需要重新的，是GetChannelConn, 不是 CreateChannel
+// 【主线程中定义】的几个帮助方法：方法的逻辑里是包装异步任务，交由网络异步线程去完成，最终再把结果同步到主线程上来。也就实现了多线程同步，为主线程分担部分责任
+        // 【异步任务】：是异步方法，返回【已经建立的、现在存在的、信道的 reference 索引】，【还是或（或是不存在，必要时）补建信道、或重建信道，并返回信道的 reference? 不是这样的】
+        // 【异步方法】：网络操作大多是异步的。这里只是异步去【读取、或拿到】所需要的信道信息。不需要重新的，是GetChannelConn, 不是 CreateChannel
 // 【分派到异步线程】去处理的方法：各方法逻辑，负责封装加入到异步线程待处理队列中去；异步线程会去执行其队列中的异步任务
         public async Task<(uint, uint)> GetChannelConn(int serviceId, long channelId) {
             TaskCompletionSource<(uint, uint)> tcs = new TaskCompletionSource<(uint, uint)>();
@@ -81,8 +82,9 @@ namespace ET {
             NetOperator netOperator = new NetOperator() { Op = NetOp.ChangeAddress, ServiceId = serviceId, ChannelId = channelId, Object = ipEndPoint};
             this.netThreadOperators.Enqueue(netOperator);
         }
-        // 【双端都用的单例类】：会话框上发消息：封装为进程间网络异步调用，也就是开启一个异步线程来完成任务，结果同步到主线程中去
-        public void SendMessage(int serviceId, long channelId, long actorId, object message) {
+        // 【双端都用的单例类】：会话框上发消息：封装为进程间网络异步调用，也就是开启一个异步线程来完成任务，结果同步到主线程中去。
+		// 是这样吗，怎么感觉读起来表述并不清楚？要分进程内消息，与跨进程消息吧？进程内就直接信道下发下去底层了；跨进程，才多些步骤？
+        public void SendMessage(int serviceId, long channelId, long actorId, object message) { // 这个方法用到的地方狠多，要自己理清思路
             NetOperator netOperator = new NetOperator() { Op = NetOp.SendMessage, ServiceId = serviceId, ChannelId = channelId, ActorId = actorId, Object = message };
             this.netThreadOperators.Enqueue(netOperator);
         }
@@ -104,9 +106,11 @@ namespace ET {
             NetOperator netOperator = new NetOperator() { Op = NetOp.CreateChannel, ServiceId = serviceId, ChannelId = channelId, Object = address};
             this.netThreadOperators.Enqueue(netOperator);
         }
-// 【主线程三大回调逻辑】：可想而知，应该是【客户端】异步线程向【主线程】订阅注册回调。那么Action<X,Y> 是会回调到异步线程【客户端】中去的。（这里不一定是客户端，更准确应该是异步线程）
+// 【主线程三大回调逻辑】：是【客户端？一定是客户端吗？服务端呢？】异步线程向【主线程】订阅注册回调。那么Action<X,Y> 是会回调到异步线程【客户端？】中去的。
+		// 这里，上面，不一定是客户端，也可以是服务端，更准确应该是异步线程
 		// 【网络模块】对三大回调的管理逻辑：加入到自己的管理字典里去，也就是方便主线程必要的时候，调用、回调到异步线程中去
-// 框架里找一个：客户端注册回调的实例使用的例子。网络客户端、内网消息，凡需要拿到服务端回调的地方，如同Demon-client 模式，都需要向服务端注册 
+// 框架里找一个：客户端【不一定，或服务端】注册回调的实例使用的例子。网络客户端、内网消息，服务端组件、热更新域里，凡需要拿到服务端回调的地方，都需要向【主线程注册回调】
+		// 上面几个部件列举：NetClientComponent, NetInnerComponent, NetServerComponent 等的生成系热更新域里 System.cs
         public void RegisterAcceptCallback(int serviceId, Action<long, IPEndPoint> action) { 
             this.acceptCallback.Add(serviceId, action);
         }
@@ -134,15 +138,16 @@ namespace ET {
 		// 【异步线程中的服务端】：根据主线程回调来的，参数，网络最底层各不同类型服务反馈回来的【所创建的通信信道号】，包装【会话框】，加入到它【异步线程服务端】的客户端的管理字典里管理
 					case NetOp.OnAccept: { // channelId 是怎么传进来的：任何客户端与服务端初建通信时，都会创建通信信道，那时就创建好管理着的，必要时拿来直用标记通信的两端的
                             if (!this.acceptCallback.TryGetValue(op.ServiceId, out var action)) // 拿到先前，网络线程客户端，曾经向服务端注册过的回调
-                                return; // 客户端注册过的回调，被服务端主线程这里，加字典里记着
-                            action.Invoke(op.ChannelId, op.Object as IPEndPoint); // 这里回调，真正调用的是网络线程中，他们各客户端自己的不同的实现方法
+                                return; // 客户端注册过的回调，被服务端主线程这里，加字典里记着。不曾注册过什么回调，不用管
+                            action.Invoke(op.ChannelId, op.Object as IPEndPoint); // 调用执行回调，真正调用的是网络线程服务端中，他们各客户端？自己的不同的实现方法。不懂就去找注册回调的过程
                             break;
                         }
-                    case NetOp.OnRead: { // 同步到【主线程】：反方向找，异步线程的发布读事件
+                    case NetOp.OnRead: { // 【异步线程】同步到了【主线程】这里：
+						// 反方向找，异步线程的某端，向主线程注册 readCallback 的地方：凡需要使用网络模块，都会向主线程注册的。网络客户端组件、网络内网组件、网络服务端组件等生成系里
                             if (!this.readCallback.TryGetValue(op.ServiceId, out var action)) {
                                 return;
                             }
-                            action.Invoke(op.ChannelId, op.ActorId, op.Object);
+                            action.Invoke(op.ChannelId, op.ActorId, op.Object); // 调用执行
                             break;
                         }
                         case NetOp.OnError: {
@@ -207,23 +212,23 @@ namespace ET {
                                 service.Remove(op.ChannelId, (int)op.ActorId);
                             break;
                         }
-						case NetOp.SendMessage: { // 【会话框上发消息】的最底层：可以追到这里。
+						case NetOp.SendMessage: { // 【会话框上发消息】的最底层：可以追到这里。仅只这里？亲爱的表哥的活宝妹，现在应该能够理解得再深入一点儿了！！
                             AService service = this.Get(op.ServiceId);
                             if (service != null) 
-// 再接着就是最底层了。。可以不用弄懂。【服务端】处理好后，消息返回的过程. 那么过程是：远程消息先到达【本进程】服务端，服务端处理本进程返回消息，直接会话框上处理：就是写Tcs 异步结果，异步回请求方。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-                                service.Send(op.ChannelId, op.ActorId, op.Object); 
+// 再接着就是最底层了。。可以不用弄懂。【服务端】处理好后，消息返回的过程. 那么过程是：远程消息先到达【本进程】服务端，服务端处理本进程返回消息，直接会话框上处理：就是写Tcs 异步结果，异步回【异步回：ETTask 的封装，异步结果返回、写好后的、订阅通知模式？再看一下全忘了】请求方。【爱表哥，爱生活！！！任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+                                service.Send(op.ChannelId, op.ActorId, op.Object); // 下午：现在，把这个过程再看一遍 
                             break;
                         }
-                        case NetOp.GetChannelConn: {
+						case NetOp.GetChannelConn: { // 这个方法的细节：
                             var tcs = op.Object as TaskCompletionSource<ValueTuple<uint, uint>>;
-                            try {
+                            try { // 就是单一的AService 一种服务类型
                                 AService service = this.Get(op.ServiceId);
                                 if (service == null) 
-                                    break;
-                                tcs.SetResult(service.GetChannelConn(op.ChannelId));
+                                    break; // 这里断掉后，直接抛 e 异常吗？下面？还是说让它自己等，到时候抛、超时异常？
+                                tcs.SetResult(service.GetChannelConn(op.ChannelId)); // 如果信道存在，写结果进封装的异步任务
                             }
                             catch (Exception e) {
-                                tcs.SetException(e);
+                                tcs.SetException(e); // <<<<<<<<<<<<<<<<<<<< 
                             }
                             break;
                         }
@@ -266,10 +271,11 @@ namespace ET {
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnAccept, ServiceId = serviceId, ChannelId = channelId, Object = ipEndPoint };
             this.mainThreadOperators.Enqueue(netOperator); // 投到主线程中去：【让主线程知晓】
         }
-        // 公有方法 OnRead(): 哪里会调用这里吗？
+        // 公有方法 OnRead(): 哪里会调用这里吗？异步线程的、信道的底层，某端收到读到消息后，回调到【异步线程的】这里；这里再同步到中转，同步到主线程上去
+		// 先想明白一个问题：客户端，想要能够网络通信，它能不挂NetService.cs 脚本吗？不能。所以，这个异步线程，可以是服务端，同样也可以是客户端！
         public void OnRead(int serviceId, long channelId, long actorId, object message) { // 【异步线程】：发布？同步？读到消息事件，到【主线程】
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnRead, ServiceId = serviceId, ChannelId = channelId, ActorId = actorId, Object = message };
-            this.mainThreadOperators.Enqueue(netOperator);
+            this.mainThreadOperators.Enqueue(netOperator); // 扔主线程的队列里去
         }
         public void OnError(int serviceId, long channelId, int error) {
             NetOperator netOperator = new NetOperator() { Op = NetOp.OnError, ServiceId = serviceId, ChannelId = channelId, ActorId = error };
@@ -278,7 +284,7 @@ namespace ET {
 #endregion
 #region 主线程kcp id生成
 // 这个因为是NetClientComponent中使用，不会与Accept冲突
-        public uint CreateConnectChannelId() {
+        public uint CreateConnectChannelId() { // 随机生成一个：信道号——身份证般唯一标识号
             return RandomGenerator.RandUInt32();
         }
 #endregion

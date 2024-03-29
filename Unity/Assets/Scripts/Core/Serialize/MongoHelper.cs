@@ -10,7 +10,8 @@ using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Bson.Serialization.Serializers;
 using Unity.Mathematics;
 namespace ET {
-    public static class MongoHelper {
+    public static class MongoHelper { // 对于数据库MongoDb 来说，多进程项目，Bson 跨进程的【序列化、与反序列化】就成为最基本的功能需求
+		// 自定义的【Bson 跨进程序列化与反序列化】类：这个类今天不细看
         private class StructBsonSerialize<TValue>: StructSerializerBase<TValue> where TValue : struct {
             public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TValue value) {
                 Type nominalType = args.NominalType;

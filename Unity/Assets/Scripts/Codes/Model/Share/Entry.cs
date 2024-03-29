@@ -17,12 +17,12 @@
         }
         // 【各种应用程序，第三方库等的初始化 】
         private static async ETTask StartAsync() {
-            WinPeriod.Init();
+            WinPeriod.Init(); // 早上：把这些忘记忘掉的，都再看一遍
             
             MongoHelper.Init();
             ProtobufHelper.Init();
             
-            Game.AddSingleton<NetServices>();
+            Game.AddSingleton<NetServices>(); // 早上：看这个
             Game.AddSingleton<Root>();
             await Game.AddSingleton<ConfigComponent>().LoadAsync();
 

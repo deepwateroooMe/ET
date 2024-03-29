@@ -22,7 +22,7 @@ namespace ET.Client {
             if (session == null) return; // 空：直接返回
 // 更新：一个会话框的最后活动时间，因为有个组件会自动检测闲置会话框（30 秒内没活动），回收长时间不用的废弃会话框
             session.LastRecvTime = TimeHelper.ClientNow(); 
-            OpcodeHelper.LogMsg(self.DomainZone(), message);
+            OpcodeHelper.LogMsg(self.DomainZone(), message); // 这个DomainZone 之类的概念，还没有弄懂
 // 发布事件：事件的接收者，应该是【客户端】的 NetClientComponentOnReadEvent 订阅回调类。这个类会区分回复消息，与客户端请求消息来分别处理。
             EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message}); 
         }
