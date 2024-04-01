@@ -6,7 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 namespace ET {
-	// 【网络模块】：感觉好难，看了无数遍，忘记了无数遍；但是亲爱的表哥的活宝妹，有望这次把它看得比较透彻！明天上午再看一遍，现在先扫一遍，找几个不懂的细节出来
+	// 【网络模块】：小项目或是大项目，不管多大的项目，都需要能够如亲爱的表哥的活宝妹今天这样，把前后需要的逻辑，一定完全全部找出来。要具备无条件阅读读懂任何大型项目相关必要源码的能力！
     public enum NetworkProtocol {
         TCP,
         KCP,
@@ -36,7 +36,7 @@ namespace ET {
         private readonly ConcurrentQueue<NetOperator> mainThreadOperators = new ConcurrentQueue<NetOperator>();
         public NetServices() { 
             HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageAttribute));
-            foreach (Type type in types) { // 快忘记光了：Protobuf 里【内网、外网消息】不同消息类型，与网络操作码，启动时程序域里高效快速扫
+            foreach (Type type in types) { // Protobuf 里【内网、外网消息】不同消息类型，与网络操作码，启动时程序域里高效快速扫
                 object[] attrs = type.GetCustomAttributes(typeof (MessageAttribute), false);
                 if (attrs.Length == 0) {
                     continue;
@@ -75,6 +75,8 @@ namespace ET {
         private readonly Dictionary<int, Action<long, long, object>> readCallback = new Dictionary<int, Action<long, long, object>>();
         private readonly Dictionary<int, Action<long, int>> errorCallback = new Dictionary<int, Action<long, int>>();
         private int serviceIdGenerator;
+		// 主线程【单线程多进程】的逻辑是：把投向主线程的各任务，包装分装进各种不同的【网络异步线程】里去分压。
+		// 主线程，怎么就到异步线程去了？是相当于要求多线程处理呀，就是开个线程去干耗时的网络异步请求之类的，所以会去异步线程。这里可以再多想想
         public async Task<(uint, uint)> GetChannelConn(int serviceId, long channelId) {
             TaskCompletionSource<(uint, uint)> tcs = new TaskCompletionSource<(uint, uint)>();
             NetOperator netOperator = new NetOperator() { Op = NetOp.GetChannelConn, ServiceId = serviceId, ChannelId = channelId, Object = tcs};
@@ -215,9 +217,9 @@ namespace ET {
 							}
 							break;
 						}
-						case NetOp.SendMessage: { // 快速把这个方法翻一遍
+						case NetOp.SendMessage: { // 不再细看一遍了
 							AService service = this.Get(op.ServiceId);
-							if (service != null) {
+							if (service != null) { // 实体服务：将消息发出去，走【信道 ==> Socket 等】向下向底层、内存流上、发送序列化后消息的过程
 								service.Send(op.ChannelId, op.ActorId, op.Object);
 							}
 							break;

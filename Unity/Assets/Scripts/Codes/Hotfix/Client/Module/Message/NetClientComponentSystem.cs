@@ -24,8 +24,8 @@ namespace ET.Client {
             }
             session.LastRecvTime = TimeHelper.ClientNow(); // 更新：信道上会话框、最后活动时间
             OpcodeHelper.LogMsg(self.DomainZone(), message);
-			// 【客户端】读到消息：接下来怎么样？要去找事件的订阅者，去查看订阅者的后续逻辑。明天上午再接着看一遍。
-			// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+			// 【客户端】读到消息：要去找事件的订阅者，去查看订阅者的后续逻辑.【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+			// 客户端热更域：相对顶层，订阅了事件 NetClientComponentOnReadEvent
             EventSystem.Instance.Publish(Root.Instance.Scene, new NetClientComponentOnRead() {Session = session, Message = message});
         }
         private static void OnError(this NetClientComponent self, long channelId, int error) {

@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 namespace ET {
-	// ETTask: 比较诲涩难懂一点儿，明天上再看一下
 	[AsyncMethodBuilder(typeof (ETAsyncTaskMethodBuilder))]
     public class ETTask: ICriticalNotifyCompletion { // ETTask 类封装：自带非0 GC 缓存池，因为还是会产生部分垃圾回收
 		// 【类的、静态成员变量】：为类的、所有实例所共享，使用同一套机制。内嵌【异步任务回收池】
@@ -146,7 +145,7 @@ namespace ET {
         }
         private bool fromPool;
         private AwaiterStatus state;
-        private T value;
+        private T value; // 泛型类：是带有返回结果的。这个用来，存结果
         private object callback; // Action or ExceptionDispatchInfo
         private ETTask() {
         }
@@ -197,16 +196,17 @@ namespace ET {
         public void OnCompleted(Action action) {
             this.UnsafeOnCompleted(action);
         }
-        [DebuggerHidden]
+        [DebuggerHidden] 
         public void SetResult(T result) {
             if (this.state != AwaiterStatus.Pending) {
                 throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
             }
             this.state = AwaiterStatus.Succeeded;
-            this.value = result;
+            this.value = result; // 结果
+			// 回调：这里，应该是能够立即，通知到调用方，结果好了可用的！			
             Action c = this.callback as Action;
             this.callback = null;
-            c?.Invoke();
+            c?.Invoke(); // 注册过的回调的，合理调用。先前看回调是：状态机StateMachine.MoveNext() 作为回调。没看懂 
         }
         [DebuggerHidden]
         public void SetException(Exception e) {
