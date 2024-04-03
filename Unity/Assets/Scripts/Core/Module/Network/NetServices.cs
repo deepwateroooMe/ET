@@ -9,7 +9,7 @@ namespace ET {
 	// 【网络模块】：小项目或是大项目，不管多大的项目，都需要能够如亲爱的表哥的活宝妹今天这样，把前后需要的逻辑，一定完全全部找出来。要具备无条件阅读读懂任何大型项目相关必要源码的能力！
     public enum NetworkProtocol {
         TCP,
-        KCP,
+        KCP, // 内网组件：用的是 KCP 以前没细看，找下不同类型，各用在什么地方
         Websocket,
     }
     public enum NetOp: byte { // 几、网络操作码，类型，分类管理

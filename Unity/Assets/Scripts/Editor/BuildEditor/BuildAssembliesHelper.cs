@@ -6,22 +6,15 @@ using System.Threading;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.Compilation;
-
-namespace ET
-{
-    public static class BuildAssembliesHelper
-    {
+namespace ET {
+	// 打各种程序域里的包：帮助类
+    public static class BuildAssembliesHelper {
         public const string CodeDir = "Assets/Bundles/Code/";
-
-        public static void BuildModel(CodeOptimization codeOptimization, GlobalConfig globalConfig)
-        {
+        public static void BuildModel(CodeOptimization codeOptimization, GlobalConfig globalConfig) {
             List<string> codes;
-
-            switch (globalConfig.CodeMode)
-            {
+            switch (globalConfig.CodeMode) {
                 case CodeMode.Client:
-                    codes = new List<string>()
-                    {
+                    codes = new List<string>() {
                         "Assets/Scripts/Codes/Model/Generate/Client/",
                         "Assets/Scripts/Codes/Model/Share/",
                         "Assets/Scripts/Codes/Model/Client/",
@@ -29,17 +22,15 @@ namespace ET
                     };
                     break;
                 case CodeMode.Server:
-                    codes = new List<string>()
-                    {
+                    codes = new List<string>() {
                         "Assets/Scripts/Codes/Model/Generate/Server/",
                         "Assets/Scripts/Codes/Model/Share/",
                         "Assets/Scripts/Codes/Model/Server/",
                         "Assets/Scripts/Codes/Model/Client/",
                     };
                     break;
-                case CodeMode.ClientServer:
-                    codes = new List<string>()
-                    {
+				case CodeMode.ClientServer: // 现在用的，是这种模式
+                    codes = new List<string>() {
                         "Assets/Scripts/Codes/Model/Share/",
                         "Assets/Scripts/Codes/Model/Client/",
                         "Assets/Scripts/Codes/ModelView/Client/",
@@ -50,45 +41,34 @@ namespace ET
                 default:
                     throw new Exception("not found enum");
             }
-
             BuildAssembliesHelper.BuildMuteAssembly("Model", codes, Array.Empty<string>(), codeOptimization, globalConfig.CodeMode);
-
             File.Copy(Path.Combine(Define.BuildOutputDir, $"Model.dll"), Path.Combine(CodeDir, $"Model.dll.bytes"), true);
             File.Copy(Path.Combine(Define.BuildOutputDir, $"Model.pdb"), Path.Combine(CodeDir, $"Model.pdb.bytes"), true);
             Debug.Log("copy Model.dll to Bundles/Code success!");
         }
-
-        public static void BuildHotfix(CodeOptimization codeOptimization, GlobalConfig globalConfig)
-        {
+        public static void BuildHotfix(CodeOptimization codeOptimization, GlobalConfig globalConfig) {
             string[] logicFiles = Directory.GetFiles(Define.BuildOutputDir, "Hotfix_*");
-            foreach (string file in logicFiles)
-            {
+            foreach (string file in logicFiles) { // 输出目录里：任何文件，都先删除
                 File.Delete(file);
             }
-
             int random = RandomGenerator.RandomNumber(100000000, 999999999);
             string logicFile = $"Hotfix_{random}";
-
             List<string> codes;
-            switch (globalConfig.CodeMode)
-            {
+            switch (globalConfig.CodeMode) {
                 case CodeMode.Client:
-                    codes = new List<string>()
-                    {
+                    codes = new List<string>() {
                         "Assets/Scripts/Codes/Hotfix/Share/",
                         "Assets/Scripts/Codes/Hotfix/Client/",
                         "Assets/Scripts/Codes/HotfixView/Client/",
                     };
                     break;
                 case CodeMode.Server:
-                    codes = new List<string>()
-                    {
+                    codes = new List<string>() {
                         "Assets/Scripts/Codes/Hotfix/Share/", "Assets/Scripts/Codes/Hotfix/Server/", "Assets/Scripts/Codes/Hotfix/Client/",
                     };
                     break;
                 case CodeMode.ClientServer:
-                    codes = new List<string>()
-                    {
+                    codes = new List<string>() {
                         "Assets/Scripts/Codes/Hotfix/Share/",
                         "Assets/Scripts/Codes/Hotfix/Client/",
                         "Assets/Scripts/Codes/HotfixView/Client/",
@@ -98,50 +78,36 @@ namespace ET
                 default:
                     throw new Exception("not found enum");
             }
-
             BuildAssembliesHelper.BuildMuteAssembly("Hotfix", codes, new[] { Path.Combine(Define.BuildOutputDir, "Model.dll") }, codeOptimization,
                 globalConfig.CodeMode);
-
             File.Copy(Path.Combine(Define.BuildOutputDir, "Hotfix.dll"), Path.Combine(CodeDir, $"Hotfix.dll.bytes"), true);
             File.Copy(Path.Combine(Define.BuildOutputDir, "Hotfix.pdb"), Path.Combine(CodeDir, $"Hotfix.pdb.bytes"), true);
             File.Copy(Path.Combine(Define.BuildOutputDir, "Hotfix.dll"), Path.Combine(Define.BuildOutputDir, $"{logicFile}.dll"), true);
             File.Copy(Path.Combine(Define.BuildOutputDir, "Hotfix.pdb"), Path.Combine(Define.BuildOutputDir, $"{logicFile}.pdb"), true);
             Debug.Log("copy Hotfix.dll to Bundles/Code success!");
         }
-
         private static void BuildMuteAssembly(
             string assemblyName, List<string> CodeDirectorys,
-            string[] additionalReferences, CodeOptimization codeOptimization, CodeMode codeMode = CodeMode.Client)
-        {
-            if (!Directory.Exists(Define.BuildOutputDir))
-            {
+            string[] additionalReferences, CodeOptimization codeOptimization, CodeMode codeMode = CodeMode.Client) {
+            if (!Directory.Exists(Define.BuildOutputDir)) {
                 Directory.CreateDirectory(Define.BuildOutputDir);
             }
-
             List<string> scripts = new List<string>();
-            for (int i = 0; i < CodeDirectorys.Count; i++)
-            {
+            for (int i = 0; i < CodeDirectorys.Count; i++) {
                 DirectoryInfo dti = new DirectoryInfo(CodeDirectorys[i]);
                 FileInfo[] fileInfos = dti.GetFiles("*.cs", System.IO.SearchOption.AllDirectories);
-                for (int j = 0; j < fileInfos.Length; j++)
-                {
+                for (int j = 0; j < fileInfos.Length; j++) {
                     scripts.Add(fileInfos[j].FullName);
                 }
             }
-
             string dllPath = Path.Combine(Define.BuildOutputDir, $"{assemblyName}.dll");
             string pdbPath = Path.Combine(Define.BuildOutputDir, $"{assemblyName}.pdb");
             File.Delete(dllPath);
             File.Delete(pdbPath);
-
             Directory.CreateDirectory(Define.BuildOutputDir);
-
             AssemblyBuilder assemblyBuilder = new AssemblyBuilder(dllPath, scripts.ToArray());
-
-            if (codeMode == CodeMode.Client)
-            {
-                assemblyBuilder.excludeReferences = new string[]
-                {
+            if (codeMode == CodeMode.Client) { // 【客户端】模式下：一些Unity 自带的库，是不需要打进包裹里的，徒增麻烦。。
+                assemblyBuilder.excludeReferences = new string[] {
                     "DnsClient.dll", 
                     "MongoDB.Driver.Core.dll", 
                     "MongoDB.Driver.dll", 
@@ -153,65 +119,45 @@ namespace ET
                     "System.Text.Encoding.CodePages.dll"
                 };
             }
-
-            //启用UnSafe
+            // 启用UnSafe
             assemblyBuilder.compilerOptions.AllowUnsafeCode = true;
-
             BuildTargetGroup buildTargetGroup = BuildPipeline.GetBuildTargetGroup(EditorUserBuildSettings.activeBuildTarget);
-
             assemblyBuilder.compilerOptions.CodeOptimization = codeOptimization;
             assemblyBuilder.compilerOptions.ApiCompatibilityLevel = PlayerSettings.GetApiCompatibilityLevel(buildTargetGroup);
             // assemblyBuilder.compilerOptions.ApiCompatibilityLevel = ApiCompatibilityLevel.NET_4_6;
-
             assemblyBuilder.additionalReferences = additionalReferences;
-
             assemblyBuilder.flags = AssemblyBuilderFlags.None;
-            //AssemblyBuilderFlags.None                 正常发布
-            //AssemblyBuilderFlags.DevelopmentBuild     开发模式打包
-            //AssemblyBuilderFlags.EditorAssembly       编辑器状态
+            // AssemblyBuilderFlags.None                 正常发布
+            // AssemblyBuilderFlags.DevelopmentBuild     开发模式打包
+            // AssemblyBuilderFlags.EditorAssembly       编辑器状态
             assemblyBuilder.referencesOptions = ReferencesOptions.UseEngineModules;
-
             assemblyBuilder.buildTarget = EditorUserBuildSettings.activeBuildTarget;
-
             assemblyBuilder.buildTargetGroup = buildTargetGroup;
-
             assemblyBuilder.buildStarted += assemblyPath => Debug.LogFormat("build start：" + assemblyPath);
-
-            assemblyBuilder.buildFinished += (assemblyPath, compilerMessages) =>
-            {
+            assemblyBuilder.buildFinished += (assemblyPath, compilerMessages) => {
                 int errorCount = compilerMessages.Count(m => m.type == CompilerMessageType.Error);
                 int warningCount = compilerMessages.Count(m => m.type == CompilerMessageType.Warning);
-
                 Debug.LogFormat("Warnings: {0} - Errors: {1}", warningCount, errorCount);
-
-                if (warningCount > 0)
-                {
+                if (warningCount > 0) {
                     Debug.LogFormat("有{0}个Warning!!!", warningCount);
                 }
-
-                if (errorCount > 0)
-                {
-                    for (int i = 0; i < compilerMessages.Length; i++)
-                    {
+                if (errorCount > 0) {
+                    for (int i = 0; i < compilerMessages.Length; i++) {
                         if (compilerMessages[i].type == CompilerMessageType.Error)
                         {
                             string filename = Path.GetFullPath(compilerMessages[i].file);
                             Debug.LogError(
-                                $"{compilerMessages[i].message} (at <a href=\"file:///{filename}/\" line=\"{compilerMessages[i].line}\">{Path.GetFileName(filename)}</a>)");
+                                $"{compilerMessages[i].message} (at <a href=\"file:{filename}/\" line=\"{compilerMessages[i].line}\">{Path.GetFileName(filename)}</a>)");
                         }
                     }
                 }
             };
-
-            //开始构建
-            if (!assemblyBuilder.Build())
-            {
+            // 开始构建
+            if (!assemblyBuilder.Build()) {
                 Debug.LogErrorFormat("build fail：" + assemblyBuilder.assemblyPath);
                 return;
             }
-
-            while (EditorApplication.isCompiling)
-            {
+            while (EditorApplication.isCompiling) {
                 // 主线程sleep并不影响编译线程
                 Thread.Sleep(1);
             }

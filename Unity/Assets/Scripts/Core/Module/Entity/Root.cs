@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 namespace ET {
-    // 管理根部的Scene
+    // 管理根部的Scene：【服务器】端的根场景？用的是ET 的命名空间
     public class Root: Singleton<Root>, ISingletonAwake {
         // 管理所有的Entity
         private readonly Dictionary<long, Entity> allEntities = new();
