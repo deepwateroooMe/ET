@@ -16,8 +16,8 @@ namespace ET {
                     break;
                 }
             }
-            this.LoadHotfix(); // 先加载：热更新域
-            IStaticMethod start = new StaticMethod(this.model, "ET.Entry", "Start"); // 再Model 域
+            this.LoadHotfix(); // 先加载：热更新域: 先加载这个，不会找不到，某些变量或是类吗？好好看下，两个域Model Hotfix 加载顺序与细节
+            IStaticMethod start = new StaticMethod(this.model, "ET.Entry", "Start"); // 再Model 域：
             start.Run();
         }
         public void LoadHotfix() {

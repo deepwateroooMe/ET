@@ -35,9 +35,10 @@ namespace ET.Server {
                 Log.Info($"server start........................ {Root.Instance.Scene.Id}");
                 
                 switch (Options.Instance.AppType) {
-                    case AppType.ExcelExporter: {
+					// 今天：重点把这个帮助项目、工具类的、前世今生。。都给努力看明白、读明白。。【TODO】：现在！
+				case AppType.ExcelExporter: { // 【服务端】的2 个帮助工具类项目： Proto2CS 和 ExcelExporter
                         Options.Instance.Console = 1;
-                        ExcelExporter.Export();
+                        ExcelExporter.Export(); // 去看这里的实现逻辑
                         return 0;
                     }
                     case AppType.Proto2CS: {

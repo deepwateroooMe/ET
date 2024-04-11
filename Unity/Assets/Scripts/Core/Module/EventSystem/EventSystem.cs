@@ -74,9 +74,9 @@ namespace ET {
                 }
                 
                 // 记录所有的有BaseAttribute标记的的类型
-                object[] objects = type.GetCustomAttributes(typeof(BaseAttribute), true);
+                object[] objects = type.GetCustomAttributes(typeof(BaseAttribute), true); // 扫这个的时候，会把 BaseAttribute 所有的子类全部扫出来？是的！
                 foreach (object o in objects) {
-                    this.types.Add(o.GetType(), type);
+                    this.types.Add(o.GetType(), type); // 所以，这里 InvokeAttribute ConfigAttribute 等所有子类都扫得到
                 }
             }
             this.typeSystems = new TypeSystems(InstanceQueueIndex.Max);
@@ -138,7 +138,7 @@ namespace ET {
         }
         public HashSet<Type> GetTypes(Type systemAttributeType) {
             if (!this.types.ContainsKey(systemAttributeType)) {
-                return new HashSet<Type>();
+                return new HashSet<Type>(); // 返回空
             }
             return this.types[systemAttributeType];
         }

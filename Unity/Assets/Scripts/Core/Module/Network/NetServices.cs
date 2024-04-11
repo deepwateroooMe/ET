@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 namespace ET {
 	// 【网络模块】：小项目或是大项目，不管多大的项目，都需要能够如亲爱的表哥的活宝妹今天这样，把前后需要的逻辑，一定完全全部找出来。要具备无条件阅读读懂任何大型项目相关必要源码的能力！
+	// 【ET7 框架架构：单线程多进程】；但OS:OSX/Windows/Linux 底层网络部分是多线程？多进程？的。
+	// 之前没理解：怎么，狠多网络异步调用，就出了多线程？把这些都想透彻
     public enum NetworkProtocol {
         TCP,
         KCP, // 内网组件：用的是 KCP 以前没细看，找下不同类型，各用在什么地方
@@ -47,10 +49,10 @@ namespace ET {
                 }
                 this.typeOpcode.Add(type, messageAttribute.Opcode);
             }
-#if !SINGLE_THREAD // 添加了多线程支持？
+#if !SINGLE_THREAD // 添加了多线程支持？把这些也试看、试理解一下，毕竟ET8 加了轻控纤程：这个是哪里给出过定义的呢？
             // 网络线程
-            this.thread = new Thread(this.NetThreadUpdate);
-            this.thread.Start();
+            this.thread = new Thread(this.NetThreadUpdate); // 自己；应该是多线程时，添加线程的方式，注册回调：异步线程的每桢Update()
+            this.thread.Start(); // 线程开始
 #endif
         }
         public override void Dispose() {

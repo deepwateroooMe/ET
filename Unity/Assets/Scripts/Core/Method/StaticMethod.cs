@@ -1,39 +1,25 @@
 using System.Reflection;
-
-namespace ET
-{
-    public class StaticMethod : IStaticMethod
-    {
+namespace ET {
+    public class StaticMethod : IStaticMethod { // 有个自动包装
         private readonly MethodInfo methodInfo;
-
         private readonly object[] param;
-
-        public StaticMethod(Assembly assembly, string typeName, string methodName)
-        {
+        public StaticMethod(Assembly assembly, string typeName, string methodName) {
             this.methodInfo = assembly.GetType(typeName).GetMethod(methodName);
             this.param = new object[this.methodInfo.GetParameters().Length];
         }
-
-        public override void Run()
-        {
+        public override void Run() {
             this.methodInfo.Invoke(null, param);
         }
-
-        public override void Run(object a)
-        {
+        public override void Run(object a) {
             this.param[0] = a;
             this.methodInfo.Invoke(null, param);
         }
-
-        public override void Run(object a, object b)
-        {
+        public override void Run(object a, object b) {
             this.param[0] = a;
             this.param[1] = b;
             this.methodInfo.Invoke(null, param);
         }
-
-        public override void Run(object a, object b, object c)
-        {
+        public override void Run(object a, object b, object c) {
             this.param[0] = a;
             this.param[1] = b;
             this.param[2] = c;
@@ -41,4 +27,3 @@ namespace ET
         }
     }
 }
-

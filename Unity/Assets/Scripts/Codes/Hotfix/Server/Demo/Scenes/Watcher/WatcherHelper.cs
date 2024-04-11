@@ -26,6 +26,7 @@ namespace ET.Server {
             }
             return true;
         }
+		// 根据本物理机的配置Options 和配置文件，使用命令行命令，来重启进程的命令、过程、逻辑
         public static Process StartProcess(int processId, int createScenes = 0) {
             StartProcessConfig startProcessConfig = StartProcessConfigCategory.Instance.Get(processId);
             const string exe = "dotnet";

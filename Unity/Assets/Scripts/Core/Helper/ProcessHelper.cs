@@ -3,35 +3,27 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Path = System.IO.Path;
-
-namespace ET
-{
-    public static class ProcessHelper
-    {
-        public static Process Run(string exe, string arguments, string workingDirectory = ".", bool waitExit = false)
-        {
-            //Log.Debug($"Process Run exe:{exe} ,arguments:{arguments} ,workingDirectory:{workingDirectory}");
-            try
-            {
+namespace ET {
+    public static class ProcessHelper { // 进程帮助类、静态类
+        public static Process Run(string exe, string arguments, string workingDirectory = ".", bool waitExit = false) {
+            // Log.Debug($"Process Run exe:{exe} ,arguments:{arguments} ,workingDirectory:{workingDirectory}");
+            try {
                 bool redirectStandardOutput = true;
                 bool redirectStandardError = true;
                 bool useShellExecute = false;
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                     redirectStandardOutput = false;
                     redirectStandardError = false;
                     useShellExecute = true;
                 }
                 
-                if (waitExit)
-                {
+                if (waitExit) {
                     redirectStandardOutput = true;
                     redirectStandardError = true;
                     useShellExecute = false;
                 }
                 
-                ProcessStartInfo info = new ProcessStartInfo
-                {
+                ProcessStartInfo info = new ProcessStartInfo {
                     FileName = exe,
                     Arguments = arguments,
                     CreateNoWindow = true,
@@ -40,67 +32,46 @@ namespace ET
                     RedirectStandardOutput = redirectStandardOutput,
                     RedirectStandardError = redirectStandardError,
                 };
-
                 Process process = Process.Start(info);
-
-                if (waitExit)
-                {
+                if (waitExit) {
                     WaitExitAsync(process).Coroutine();
                 }
-
                 return process;
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 throw new Exception($"dir: {Path.GetFullPath(workingDirectory)}, command: {exe} {arguments}", e);
             }
         }
-        
-        private static async ETTask WaitExitAsync(Process process)
-        {
+        private static async ETTask WaitExitAsync(Process process) {
             await process.WaitForExitAsync();
 #if UNITY
             Log.Info($"process exit, exitcode: {process.ExitCode} {process.StandardOutput.ReadToEnd()} {process.StandardError.ReadToEnd()}");
 #endif
         }
-        
 #if UNITY
-        private static async Task WaitForExitAsync(this Process self)
-        {
-            if (!self.HasExited)
-            {
+        private static async Task WaitForExitAsync(this Process self) {
+            if (!self.HasExited) {
                 return;
             }
-
-            try
-            {
+            try {
                 self.EnableRaisingEvents = true;
             }
-            catch (InvalidOperationException)
-            {
-                if (self.HasExited)
-                {
+            catch (InvalidOperationException) {
+                if (self.HasExited) {
                     return;
                 }
                 throw;
             }
-
             var tcs = new TaskCompletionSource<bool>();
-
             void Handler(object s, EventArgs e) => tcs.TrySetResult(true);
-            
             self.Exited += Handler;
-
-            try
-            {
-                if (self.HasExited)
-                {
+            try {
+                if (self.HasExited) {
                     return;
                 }
                 await tcs.Task;
             }
-            finally
-            {
+            finally {
                 self.Exited -= Handler;
             }
         }

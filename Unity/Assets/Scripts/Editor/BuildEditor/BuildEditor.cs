@@ -8,6 +8,7 @@ using UnityEditor.Compilation;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 namespace ET {
+
     public enum PlatformType {
         None,
         Android,
@@ -20,6 +21,7 @@ namespace ET {
         Development,
         Release,
     }
+
     public class BuildEditor : EditorWindow {
         private PlatformType activePlatform;
         private PlatformType platformType;
@@ -117,20 +119,20 @@ namespace ET {
                 ShowNotification("Build Model Success!");
             }
             if (GUILayout.Button("BuildHotfix")) {
-                if (Define.EnableCodes) {
+                if (Define.EnableCodes) 
                     throw new Exception("now in ENABLE_CODES mode, do not need Build!");
-                }
                 BuildAssembliesHelper.BuildHotfix(this.codeOptimization, globalConfig);
                 AfterCompiling();
                 
                 ShowNotification("Build Hotfix Success!");
             }
-            if (GUILayout.Button("ExcelExporter")) {
+            if (GUILayout.Button("ExcelExporter")) { // 这里，明明是Unity IDE 双端开发工具：一键打包、更新热更新服务器的过程？
                 // Directory.Delete("Assets/Bundles/Config", true);
-                ToolsEditor.ExcelExporter();
-                
-                // 设置ab包
-                AssetImporter assetImporter = AssetImporter.GetAtPath($"Assets/Bundles/Config");
+                ToolsEditor.ExcelExporter(); // 去把，这个上午看过的过程，再快速地扫一遍
+				// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+
+                // 设置ab包【源】：下面，说是从这个路径来读取资源包；但是客户端的、这个路径的资源包，应该是从网络上下载来，实时更新来的
+                AssetImporter assetImporter = AssetImporter.GetAtPath($"Assets/Bundles/Config"); // 去框架里找：这个方法的实现细节【TODO】：改天再看这个
                 assetImporter.assetBundleName = "Config.unity3d";
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
