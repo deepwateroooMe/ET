@@ -1,58 +1,39 @@
 using System.Collections.Generic;
-
-namespace ET
-{
-    public static class OpcodeHelper
-    {
+namespace ET {
+    public static class OpcodeHelper {
+		// 申明不关注不关心：双端连接的狗屁心跳包、一些基础测试之类的
         [StaticField]
-        private static readonly HashSet<ushort> ignoreDebugLogMessageSet = new HashSet<ushort>
-        {
+        private static readonly HashSet<ushort> ignoreDebugLogMessageSet = new HashSet<ushort> {
             OuterMessage.C2G_Ping,
             OuterMessage.G2C_Ping,
             OuterMessage.C2G_Benchmark,
             OuterMessage.G2C_Benchmark,
             ushort.MaxValue, // ActorResponse
         };
-
-        private static bool IsNeedLogMessage(ushort opcode)
-        {
-            if (ignoreDebugLogMessageSet.Contains(opcode))
-            {
+        private static bool IsNeedLogMessage(ushort opcode) {
+            if (ignoreDebugLogMessageSet.Contains(opcode)) {
                 return false;
             }
-
             return true;
         }
-
-        public static bool IsOuterMessage(ushort opcode)
-        {
+        public static bool IsOuterMessage(ushort opcode) {
             return opcode < OpcodeRangeDefine.OuterMaxOpcode;
         }
-
-        public static bool IsInnerMessage(ushort opcode)
-        {
+        public static bool IsInnerMessage(ushort opcode) {
             return opcode >= OpcodeRangeDefine.InnerMinOpcode;
         }
-
-        public static void LogMsg(int zone, object message)
-        {
+        public static void LogMsg(int zone, object message) {
             ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
-            if (!IsNeedLogMessage(opcode))
-            {
+            if (!IsNeedLogMessage(opcode)) {
                 return;
             }
-            
             Logger.Instance.Debug("zone: {0} {1}", zone, message);
         }
-        
-        public static void LogMsg(long actorId, object message)
-        {
+        public static void LogMsg(long actorId, object message) {
             ushort opcode = NetServices.Instance.GetOpcode(message.GetType());
-            if (!IsNeedLogMessage(opcode))
-            {
+            if (!IsNeedLogMessage(opcode)) {
                 return;
             }
-            
             Logger.Instance.Debug("actorId: {0} {1}", actorId, message);
         }
     }

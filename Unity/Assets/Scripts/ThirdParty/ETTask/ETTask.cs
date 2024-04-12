@@ -212,11 +212,11 @@ namespace ET {
         public void SetException(Exception e) {
             if (this.state != AwaiterStatus.Pending) {
                 throw new InvalidOperationException("TaskT_TransitionToFinal_AlreadyCompleted");
-            }
+			}
             this.state = AwaiterStatus.Faulted;
-            Action c = this.callback as Action;
-            this.callback = ExceptionDispatchInfo.Capture(e);
-            c?.Invoke();
+            Action c = this.callback as Action; // 不知道先前的 callback 有没有、是否为空，
+            this.callback = ExceptionDispatchInfo.Capture(e); // 这里的, 什么时候抛出去的？【TODO】：
+            c?.Invoke(); // 非空就触发调用一下
         }
     }
 }

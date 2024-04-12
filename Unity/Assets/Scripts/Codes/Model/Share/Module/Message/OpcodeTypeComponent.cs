@@ -5,29 +5,27 @@ namespace ET {
     public static class OpcodeTypeComponentSystem {
         [ObjectSystem]
         public class OpcodeTypeComponentAwakeSystem: AwakeSystem<OpcodeTypeComponent> {
+
             protected override void Awake(OpcodeTypeComponent self) {
                 OpcodeTypeComponent.Instance = self;
-                
-                self.requestResponse.Clear();
-                HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageAttribute));
+                self.requestResponse.Clear(); // 清空重扫
+// 事件系统，是【热更新】后第1 个反应、扫描热更域的监控，保障实时更新的
+                HashSet<Type> types = EventSystem.Instance.GetTypes(typeof (MessageAttribute)); 
                 foreach (Type type in types) {
                     object[] att = type.GetCustomAttributes(typeof (MessageAttribute), false);
-                    if (att.Length == 0) {
+                    if (att.Length == 0) 
                         continue;
-                    }
                     MessageAttribute messageAttribute = att[0] as MessageAttribute;
                     if (messageAttribute == null) {
                         continue;
                     }
-                    ushort opcode = messageAttribute.Opcode;
+                    ushort opcode = messageAttribute.Opcode; // 这类消息的唯一标记字段，网络操作码
                     if (OpcodeHelper.IsOuterMessage(opcode) && typeof (IActorMessage).IsAssignableFrom(type)) {
                         self.outrActorMessage.Add(opcode);
                     }
-                
                     // 检查request response
                     if (typeof (IRequest).IsAssignableFrom(type)) {
-                        if (typeof (IActorLocationMessage).IsAssignableFrom(type))
-                        {
+                        if (typeof (IActorLocationMessage).IsAssignableFrom(type)) {
                             self.requestResponse.Add(type, typeof(ActorResponse));
                             continue;
                         }
@@ -60,6 +58,8 @@ namespace ET {
             return response;
         }
     }
+	// 【网络操作码、类型组件】：把这一个类型，提取出来，双端通用——最大限度地双端公用、每端都添加吗？
+	// 双端公用组件：是否如事件系统，程序域加载，或是热更域更新时，扫程序集添加就可以了？去看热更域
     [ComponentOf(typeof(Scene))]
     public class OpcodeTypeComponent: Entity, IAwake, IDestroy { // 组件：怎么用的？
         [StaticField]

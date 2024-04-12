@@ -206,7 +206,7 @@ namespace ET {
                 }
                 IScene preDomain = this.domain; 
                 this.domain = value;
-                if (preDomain == null) { // 前：空。需要做哪些【必要的、初始化工作】？
+                if (preDomain == null) { // 前：空。需要做哪些【必要的、初始化工作】
                     if (this.InstanceId == 0) { // 补号、注册相当于
                         this.InstanceId = IdGenerater.Instance.GenerateInstanceId();
                     }
@@ -246,9 +246,9 @@ namespace ET {
         }
         [BsonElement("Children")]
         [BsonIgnoreIfNull]
-        private List<Entity> childrenDB;
+        private List<Entity> childrenDB; // 几个管理系
         [BsonIgnore]
-        private SortedDictionary<long, Entity> children;
+        private SortedDictionary<long, Entity> children; // 有序字典：【实例 id, 实例】方便查询更新 
         [BsonIgnore]
         public SortedDictionary<long, Entity> Children {
             get {

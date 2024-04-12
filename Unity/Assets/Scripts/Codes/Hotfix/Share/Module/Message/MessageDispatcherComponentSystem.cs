@@ -39,7 +39,7 @@ namespace ET {
                     Type messageType = iMHandler.GetMessageType(); // 获取、各类来往消息的、类型——唯一标识
                     ushort opcode = NetServices.Instance.GetOpcode(messageType); // 消息网络操作码——唯一标识
                     if (opcode == 0) {
-                        Log.Error($"消息opcode为0: {messageType.Name}");
+                        Log.Error($"消息opcode为0: {messageType.Name}"); 
                         continue;
                     }
                     MessageDispatcherInfo messageDispatcherInfo = new (messageHandlerAttribute.SceneType, iMHandler); // 【场景、消息处理器】
@@ -49,7 +49,7 @@ namespace ET {
         }
         private static void RegisterHandler(this MessageDispatcherComponent self, ushort opcode, MessageDispatcherInfo handler) {
             if (!self.Handlers.ContainsKey(opcode)) {
-                self.Handlers.Add(opcode, new List<MessageDispatcherInfo>());
+                self.Handlers.Add(opcode, new List<MessageDispatcherInfo>()); // 同一【网络消息操作码】，可有多个不同的、消息处理场景
             }
             self.Handlers[opcode].Add(handler);
         }
@@ -61,6 +61,7 @@ namespace ET {
                 Log.Error($"消息没有处理: {opcode} {message}");
                 return;
             }
+			// 这里，还是没能想懂【TODO】：
             SceneType sceneType = session.Domain.SceneType; // 特定场景：特定场景下，可以存在多个不同的、针对同类消息的 MessageDispatcherInfo
 			// 理解实际用例：会话框上、下来的一个消息、消息对应的同一场景下，可能存在、多个不同的【消息处理器】：
 			// 考虑先前它们说过的，随时备份出一个分服分身来，同一场景可以有N 个备份与分服，每个备份与分身上，是否会各备一个自己分服分身上的【消息处理器】呢？这么想是合理的！
