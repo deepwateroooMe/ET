@@ -14,7 +14,6 @@ namespace ET {
             this.Tcs = ETTask<IResponse>.Create(true); // 实例实体
         }
     }
-
 	[FriendOf(typeof(Session))]
     public static class SessionSystem {
         [ObjectSystem]
@@ -88,6 +87,8 @@ namespace ET {
         public static void Send(this Session self, IMessage message) {
             self.Send(0, message); // 为什么这里，直接补 rpcId=0 特殊处理，标记的是：【TODO】：
         }
+		// 【TODO】：网络上搜索，并作笔记，网络异步调用时，发送消息，与接收消息的流程图。把2 张图记住，就不会这些底层的细节老是忘记了
+		// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
         public static void Send(this Session self, long actorId, IMessage message) {
             self.LastSendTime = TimeHelper.ClientNow(); // 最后发送时间
             OpcodeHelper.LogMsg(self.DomainZone(), message);

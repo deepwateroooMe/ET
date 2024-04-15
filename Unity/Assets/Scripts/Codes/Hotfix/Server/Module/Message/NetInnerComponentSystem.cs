@@ -82,15 +82,17 @@ namespace ET.Server {
             // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
             return session;
         }
-        // 内网actor session，channelId是进程号
+        // 内网actor session，channelId是进程号【源】：
+		// 就是想拿，发【内网消息】时，去往某个内网服务器的【会话框——本进程，与、目标进程，之间的通信会话框】，没有就创建一个
+		// 【内网组件】：添加在内网服务器各进程上
         public static Session Get(this NetInnerComponent self, long channelId) {
             Session session = self.GetChild<Session>(channelId);
             if (session != null) {
                 return session;
             }
-            IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort;
-            session = self.CreateInner(channelId, ipEndPoint);
+            IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort; // 远和：目标进程的、对外通信开放端口
+            session = self.CreateInner(channelId, ipEndPoint); // 创建【内网、2进程间的会话框】
             return session;
         }
     }
-}
+} // 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！

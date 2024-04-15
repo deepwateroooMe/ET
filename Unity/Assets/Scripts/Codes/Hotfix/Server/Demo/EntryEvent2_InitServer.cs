@@ -4,9 +4,9 @@ namespace ET.Server {
     public class EntryEvent2_InitServer: AEvent<Scene, ET.EventType.EntryEvent2> {
 		// 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
         protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
-            // 发送普通actor消息【源】：普通actor消息，非位置相关IActorLocationXYZ... 今天中午会再看下这几块，亲爱的表哥的活宝妹先前疑惑过的
+            // 发送普通actor消息【源】：普通actor消息，非位置相关IActorLocationXYZ... 今天强大了的亲爱的表哥的活宝妹，再看这些，小 case-a piece of cake 狠简单！
             Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>();
-            // 发送location actor消息: 这个，改天再细看一下
+            // 发送location actor消息: 这个，【TODO】：今天上午2 小时，努力：把边边角角的细节、都看懂看明白了！先再快扫一下，上面那个组件，还有什么不懂的地方吗？
             Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>();
             // 访问location server的组件
             Root.Instance.Scene.AddComponent<LocationProxyComponent>();
