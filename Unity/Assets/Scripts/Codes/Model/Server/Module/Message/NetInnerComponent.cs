@@ -1,5 +1,6 @@
 ﻿using System.Net;
 namespace ET.Server {
+
     public struct ProcessActorId {
         public int Process;
         public long ActorId;

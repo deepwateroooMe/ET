@@ -27,7 +27,7 @@ namespace ET.Server {
             InstanceIdStruct instanceIdStruct = new(actorId);
             int fromProcess = instanceIdStruct.Process;
             instanceIdStruct.Process = Options.Instance.Process;
-            long realActorId = instanceIdStruct.ToLong(); // 一目了然的：【目标实例——收件人】 actorId
+            long realActorId = instanceIdStruct.ToLong(); // 一目了然的：【目标实例——收件人】 actorId, 怎么就知道传进来的是，收件人不是发件人的？【TODO】：
             Entity entity = Root.Instance.Get(realActorId);
             if (entity == null) {
                 IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);

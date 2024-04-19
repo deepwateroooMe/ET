@@ -1,12 +1,13 @@
 using System.Net;
 namespace ET.Server {
-    [Event(SceneType.Process)] // 【服务端】进程：启动组件
+    [Event(SceneType.Process)] // 【服务端】进程：启动组件. 【进程】这个粒度单位
     public class EntryEvent2_InitServer: AEvent<Scene, ET.EventType.EntryEvent2> {
 		// 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
+		// 【进程】上：服务端的、每台物理机、每个进程上，都会添加下面的这些组件
         protected override async ETTask Run(Scene scene, ET.EventType.EntryEvent2 args) {
             // 发送普通actor消息【源】：普通actor消息，非位置相关IActorLocationXYZ... 今天强大了的亲爱的表哥的活宝妹，再看这些，小 case-a piece of cake 狠简单！
             Root.Instance.Scene.AddComponent<ActorMessageSenderComponent>();
-            // 发送location actor消息: 这个，【TODO】：今天上午2 小时，努力：把边边角角的细节、都看懂看明白了！先再快扫一下，上面那个组件，还有什么不懂的地方吗？
+            // 发送location actor消息: 这个，【TODO】：明天上午再看一遍，各种检测机制太多了，不知道算是怎么回事，其它都看懂了
             Root.Instance.Scene.AddComponent<ActorLocationSenderComponent>();
             // 访问location server的组件
             Root.Instance.Scene.AddComponent<LocationProxyComponent>();

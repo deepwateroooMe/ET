@@ -41,10 +41,9 @@ namespace ET.Server {
                 foreach (object attr in attrs) {
                     ActorMessageHandlerAttribute actorMessageHandlerAttribute = attr as ActorMessageHandlerAttribute;
                     Type messageType = imHandler.GetRequestType();
-					// 对【外网消息】：如某服下发客户端的IActorMessage 消息，返回类型是如何处理的？【TODO】：要上下左右联通四通八达地、去想去理解，框架里方方面面点点滴滴的细节
-					// 1 种尝试理解途径： .proto 外网消息里有 IActorMessage 消息的实例；去找生成的对应 .cs 文件，或是这些IActorMessage 实例类型消息，【发送处的、发送逻辑】
-					// 【发送逻辑】里，应该会自己带有、标明有返回类型【TODO】：
-                    Type handleResponseType = imHandler.GetResponseType(); // 【TODO】：细节 IActorMessage 不是没有 responseType 吗，这里是如何处理的？
+					// 对【外网消息】：如某服下发客户端的IActorMessage 消息，返回类型是如何处理的？OuterMessage 是【内网服想要发给客户端，就直接发给网关服】，是永远不会走到这里来的！
+					// 对于任何需要回复消息的 IActorRequest 消息，在其【发送逻辑】的调用过程里，应该会自己带有、标明有返回类型
+                    Type handleResponseType = imHandler.GetResponseType();
                     if (handleResponseType != null) {
                         Type responseType = OpcodeTypeComponent.Instance.GetResponseType(messageType);
                         if (handleResponseType != responseType)

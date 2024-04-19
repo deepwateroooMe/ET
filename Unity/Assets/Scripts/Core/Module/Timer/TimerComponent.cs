@@ -40,20 +40,20 @@ namespace ET {
     }
     public class TimerComponent: Singleton<TimerComponent>, ISingletonUpdate { // 单例类：仅只 CodeLoader 程序域里添加过这个组件，双端都需要用到
         // key: time, value: timer id
-        private readonly MultiMap<long, long> TimeId = new();
+        private readonly MultiMap<long, long> TimeId = new(); // 有序銉增排序的
         private readonly Queue<long> timeOutTime = new();
         private readonly Queue<long> timeOutTimerIds = new();
         private readonly Dictionary<long, TimerAction> timerActions = new();
         private long idGenerator;
         // 记录最小时间，不用每次都去MultiMap取第一个值
         private long minTime = long.MaxValue;
-        private long GetId() {
+        private long GetId() { // 这个组件的、实例自增Id 身份证号
             return ++this.idGenerator;
         }
         private static long GetNow() {
             return TimeHelper.ClientFrameTime();
         }
-        public void Update() {
+        public void Update() { // 每桢更新：触发执行必要的回调
             if (this.TimeId.Count == 0) {
                 return;
             }
@@ -63,31 +63,32 @@ namespace ET {
             }
             foreach (KeyValuePair<long, List<long>> kv in this.TimeId) {
                 long k = kv.Key;
-                if (k > timeNow) {
+                if (k > timeNow) { // 有序键增排序：找到第一个有效最小时间，就退出循环
                     this.minTime = k;
                     break;
                 }
                 this.timeOutTime.Enqueue(k);
             }
-            while (this.timeOutTime.Count > 0) {
+			// 两次遍历， timeOutTime 和timeOutTimerIds.
+			// 两次遍历， timeOutTime: 是排闹钟要闹的、目标时间，为元素；timeOutTimerIds, 是这一桢，需要执行回调的、闹钟实例身份证号
+            while (this.timeOutTime.Count > 0) { 
                 long time = this.timeOutTime.Dequeue();
-                var list = this.TimeId[time];
+                var list = this.TimeId[time]; // 【有序多字典的、键：闹钟目标时间】可能不止一个闹钟实例，这个目标时间要回调，所以是链条、多个
                 for (int i = 0; i < list.Count; ++i) {
                     long timerId = list[i];
                     this.timeOutTimerIds.Enqueue(timerId);
                 }
-                this.TimeId.Remove(time);
+                this.TimeId.Remove(time); // 清除：方便下一桢再填
             }
             while (this.timeOutTimerIds.Count > 0) {
                 long timerId = this.timeOutTimerIds.Dequeue();
                 if (!this.timerActions.Remove(timerId, out TimerAction timerAction)) {
                     continue;
                 }
-                
-                this.Run(timerAction);
+                this.Run(timerAction); // 闹钟到：执行回调、触发执行的地方
             }
         }
-        private void Run(TimerAction timerAction) {
+        private void Run(TimerAction timerAction) { // 私有方法：就是闹钟到、要闹的时候，需要调用这个
             switch (timerAction.TimerClass) { // 三类计时器：
                 case TimerClass.OnceTimer: {
                     EventSystem.Instance.Invoke(timerAction.Type, new TimerCallback() { Args = timerAction.Object });
@@ -111,9 +112,9 @@ namespace ET {
         }
         private void AddTimer(TimerAction timer) {
             long tillTime = timer.StartTime + timer.Time;
-            this.TimeId.Add(tillTime, timer.Id);
-            this.timerActions.Add(timer.Id, timer);
-            if (tillTime < this.minTime) {
+            this.TimeId.Add(tillTime, timer.Id);    // 用【闹钟要闹的、目标时间】排序 
+            this.timerActions.Add(timer.Id, timer); // 对回调进行管理
+            if (tillTime < this.minTime) { // 小便利：不到 minTime 就可以什么也不用做了
                 this.minTime = tillTime;
             }
         }

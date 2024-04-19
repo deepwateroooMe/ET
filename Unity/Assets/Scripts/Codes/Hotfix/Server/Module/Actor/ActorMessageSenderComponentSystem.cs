@@ -66,7 +66,7 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
             }
             self.TimeoutActorMessageSenders.Clear();
         }
-		// 发送IMessage: 必要时【需要回复时】管理回调
+		// 发送IMessage: IMessage 是不需要回复消息的。并且，这里的 actorId 是【消息的、发送者、发送代理】的、实例身份证号
         public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) {
             if (actorId == 0) {
                 throw new Exception($"actor id is 0: {message}");
@@ -77,12 +77,12 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
                 async ETTask HandleMessageInNextFrame() {
                     await TimerComponent.Instance.WaitFrameAsync(); // 等1 秒钟：等到当前桢结束，下一桢执行
 					// 【服务端】同一进程、同一核：可以有多个不同的场景：【服务端、任何、物理机AppType.Server】：一定添加了NetInnerComponent 组件。
-					// 所以同一进程：【IActor 消息的、目标进程】是本进程，就是传向本进程、任何可能的场景的消息，走【内网组件】处理消息；
+					// 所以同一进程：【IMessage 消息的、接收者进程】是本进程，就是传向本进程、任何可能的场景的消息，走【内网组件】处理消息；
 					// 消息目标为【本进程的、任何可能的场景】：走【内网消息组件】——内网组件，添加在任何【服务端、任何、进程】。
 					// 所以由，消息目标——本进程的、内网组件处理
 					// 消息目标为【本进程的、任何可能的场景】：走【内网消息组件】、这里的【短路——快进、操作】是：
 					// 人为手动，帮助逻辑优化，跳过不必要的【网络层、画蛇添足多绕一圈，什么发送、读到消息OnRead() 之类的】，短路调用，要内网组件：【发送、内网收到消息事件】
-                    NetInnerComponent.Instance.HandleMessage(actorId, message); // 去看这个方法：看懂看透【TODO】：现在
+                    NetInnerComponent.Instance.HandleMessage(actorId, message); // 处理逻辑：热更新域里，发布内网读到消息事件；订阅者去处理逻辑
                 }
                 HandleMessageInNextFrame().Coroutine();
                 return;
@@ -92,7 +92,7 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
             session.Send(processActorId.ActorId, message);
         }
         public static int GetRpcId(this ActorMessageSenderComponent self) {
-            return ++self.RpcId;
+            return ++self.RpcId; // 自增变量：标记，这个【进程】上的、ActorMessageSender 实例号？
         }
         public static async ETTask<IActorResponse> Call(
                 this ActorMessageSenderComponent self,
@@ -100,16 +100,18 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
                 IActorRequest request,
                 bool needException = true
         ) {
-            request.RpcId = self.GetRpcId();
+// 粒度【进程上】的组件：ActorMessageSenderComponent, 发送【内网消息】，IActorRequest 的 RpcId 都来自本进程上，多如牛毛的，发送者实例号，自增变量
+            request.RpcId = self.GetRpcId(); 
             if (actorId == 0) {
                 throw new Exception($"actor id is 0: {request}");
             }
             return await self.Call(actorId, request.RpcId, request, needException);
         }
+		// 【跨进程位置消息】的发送：逻辑基本都懂了
         public static async ETTask<IActorResponse> Call(
                 this ActorMessageSenderComponent self,
-                long actorId,
-                int rpcId,
+                long actorId, // IActorRequest 消息的、【接收者进程 actorId】
+                int rpcId,    // IActorRequest 消息的、【发送者进程、本进程发送者实例的 actorId】 
                 IActorRequest iActorRequest,
                 bool needException = true
         ) {
@@ -117,10 +119,11 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
                 throw new Exception($"actor id is 0: {iActorRequest}");
             }
             var tcs = ETTask<IActorResponse>.Create(true);
-            self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException));
-            self.Send(actorId, iActorRequest);
+// 封装：1 个异步任务 tcs 进ActorMessageSender
+            self.requestCallback.Add(rpcId, new ActorMessageSender(actorId, iActorRequest, tcs, needException)); 
+            self.Send(actorId, iActorRequest); // 跨进程位置消息，发出去
             long beginTime = TimeHelper.ServerFrameTime();
-            IActorResponse response = await tcs;
+            IActorResponse response = await tcs; // 异步返回
             long endTime = TimeHelper.ServerFrameTime();
             long costTime = endTime - beginTime;
             if (costTime > 200) {

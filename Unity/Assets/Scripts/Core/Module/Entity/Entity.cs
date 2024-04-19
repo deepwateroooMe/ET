@@ -189,7 +189,7 @@ namespace ET {
         [BsonDefaultValue(0L)]
         [BsonElement]
         [BsonId]
-        public long Id { get; protected set; }
+        public long Id { get; protected set; } // 哪里说：Id 对 entity 纤进程来说是不变的；同一个 entity 的instanceId 纤进程后，可能会变
         [BsonIgnore]
         protected IScene domain; // 说是 Domain, 它的本质，是场景
         [BsonIgnore]
