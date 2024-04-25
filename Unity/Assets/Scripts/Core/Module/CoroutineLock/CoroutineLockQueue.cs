@@ -32,7 +32,8 @@ namespace ET {
 				// 设置协程锁的1 次性闹钟：
                 TimerComponent.Instance.NewOnceTimer(tillTime, TimerCoreInvokeType.CoroutineTimeout, waitCoroutineLock);
             }
-// 用【使用协程锁的、原协程的眼光来看】：原协程的每一段，都是同一类型、不同的实例协程锁，所以这里实时更新【原协程每一协程段】的现、实例协程锁
+// 下面：会等，等到同一【类型、类型】这个 CoroutineLockQueue 里，队列里前一个排队的人干完活儿，返回一把、当前waitCoroutineLock 等到了顺序的协程锁，赋值给currentCoroutineLock
+// 今天、现在、看懂了！！亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
             this.currentCoroutineLock = await waitCoroutineLock.Wait(); 
             return this.currentCoroutineLock;
         }

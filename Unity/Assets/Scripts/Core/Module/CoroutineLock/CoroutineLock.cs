@@ -1,8 +1,10 @@
 using System;
 namespace ET {
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
     public class CoroutineLock: IDisposable {
 		// 【协程】：每次Scheduler 分配它了CPU 的执行时间，执行且仅只执行一个MoveNext() 完成的地方，所以它的【回收】——是设置协程下一段的调用内容、或说回调
-
         private int type;
         private long key;
         private int level; // 层级：细看一下这个参数
@@ -13,7 +15,6 @@ namespace ET {
             coroutineLock.level = count;
             return coroutineLock;
         }
-
         public void Dispose() {
 			// 加入到【协程锁组件的、下一桢待执行的、队列】里：执行协程的下一个逻辑块 level+1
             CoroutineLockComponent.Instance.RunNextCoroutine(this.type, this.key, this.level + 1); 

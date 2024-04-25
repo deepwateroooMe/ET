@@ -15,7 +15,7 @@ namespace ET.Server {
         protected override void Destroy(ActorLocationSender self) {
             Log.Debug($"actor location remove: {self.Id}");
             self.LastSendOrRecvTime = 0;
-            self.ActorId = 0; // 终老病死、尘归尘土归土时，也是 0
+            self.ActorId = 0; // 终老病死、尘归尘土归土时，也是 0; 长时间不活跃，被销毁释放资源时，也置 0
             self.Error = 0;
         }
     }

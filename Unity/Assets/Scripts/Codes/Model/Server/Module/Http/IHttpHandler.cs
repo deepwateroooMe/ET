@@ -1,9 +1,7 @@
 using System.Net;
+namespace ET.Server {
 
-namespace ET.Server
-{
-    public interface IHttpHandler
-    {
+    public interface IHttpHandler {
         ETTask Handle(Scene scene, HttpListenerContext context);
     }
 }

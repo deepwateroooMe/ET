@@ -43,6 +43,7 @@ namespace ET.Server {
                     Type messageType = imHandler.GetRequestType();
 					// 对【外网消息】：如某服下发客户端的IActorMessage 消息，返回类型是如何处理的？OuterMessage 是【内网服想要发给客户端，就直接发给网关服】，是永远不会走到这里来的！
 					// 对于任何需要回复消息的 IActorRequest 消息，在其【发送逻辑】的调用过程里，应该会自己带有、标明有返回类型
+					// 任何的OuterMessage-IActorMessage 都永远只是：【内网服务器】发给【网关服】的，不会、不需要任何的IActorMessage消息处理器，交由网关服直接下发客户端
                     Type handleResponseType = imHandler.GetResponseType();
                     if (handleResponseType != null) {
                         Type responseType = OpcodeTypeComponent.Instance.GetResponseType(messageType);

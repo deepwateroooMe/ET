@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 namespace ET {
-    // 管理根部的Scene：【服务器/客户端】端的根场景
+    // 管理根部的Scene：【服务器/客户端】端的根场景. 需要看懂和真正理解：作为根场景，双端中的特殊作用等
     public class Root: Singleton<Root>, ISingletonAwake {
         // 管理所有的Entity
         private readonly Dictionary<long, Entity> allEntities = new();

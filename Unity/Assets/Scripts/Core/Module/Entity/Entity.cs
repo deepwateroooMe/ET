@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
 namespace ET {
-    [Flags]
+
+	[Flags]
     public enum EntityStatus: byte {
         None = 0,
         IsFromPool = 1,
@@ -14,12 +15,13 @@ namespace ET {
     public interface IScene {
         SceneType SceneType { get; set; }
     }
+
     public partial class Entity: DisposeObject {
 #if ENABLE_VIEW && UNITY_EDITOR
         private UnityEngine.GameObject viewGO;
 #endif
         [BsonIgnore]
-        public long InstanceId { get; protected set; }
+        public long InstanceId { get; protected set; } // 去翻这个细节：protected set 赋值，是怎么弄的？
         protected Entity() {
         }
         [BsonIgnore]
@@ -36,25 +38,26 @@ namespace ET {
                 }
             }
         }
+		// 【TODO】：现在，去细看，这些亲爱的表哥的活宝妹，先前不曾、没能接触到过的底层封装里，是如何系统化来封装这些【自动：上报位置服实例号，与取消注册等】的过程
         [BsonIgnore]
         protected bool IsRegister {
             get => (this.status & EntityStatus.IsRegister) == EntityStatus.IsRegister;
             set {
-                if (this.IsRegister == value) {
+                if (this.IsRegister == value) { // 如果值相同，就不用做什么了
                     return;
                 }
-                if (value) {
+                if (value) { // True:
                     this.status |= EntityStatus.IsRegister;
                 }
-                else {
-                    this.status &= ~EntityStatus.IsRegister;
+                else { // False
+                    this.status &= ~EntityStatus.IsRegister; // 【TODO】：去看 status 的数据驱动变化等？现在
                 }
                 if (!value) {
-                    Root.Instance.Remove(this.InstanceId);
+                    Root.Instance.Remove(this.InstanceId); // 【关键】：销毁时，触发的、框架底层的自动化回收，与各种种种、取消注册销号之类的。。
                 }
                 else {
-                    Root.Instance.Add(this);
-                    EventSystem.Instance.RegisterSystem(this);
+                    Root.Instance.Add(this); // 【关键】：注册时，框架底里的自动化封装，小补顶们，注册上报各种服的过程。。。
+                    EventSystem.Instance.RegisterSystem(this); // 【关键】：向ET 的事件系统，注册本组件 Entity/Component 可能涉及的几个Unity 的回调函数
                 }
 #if ENABLE_VIEW && UNITY_EDITOR
                 if (value) {
@@ -111,12 +114,12 @@ namespace ET {
             }
         }
         [BsonIgnore]
-        public bool IsDisposed => this.InstanceId == 0;
+        public bool IsDisposed => this.InstanceId == 0; // 用这个成员变量，来标记 entity 是否被回收了
         [BsonIgnore]
         protected Entity parent;
         // 可以改变parent，但是不能设置为null
         [BsonIgnore]
-        public virtual Entity Parent {
+        public virtual Entity Parent { // 设置 Entity 实例的【父控件】
             get => this.parent;
             protected set {
                 if (value == null) {
@@ -125,7 +128,8 @@ namespace ET {
                 if (value == this) {
                     throw new Exception($"cant set parent self: {this.GetType().FullName}");
                 }
-                // 严格限制parent必须要有domain,也就是说parent必须在数据树上面
+                // 严格限制parent必须要有domain,也就是说parent必须在数据树上面【源】
+				// 【数据树】相关：像是Model 层对数据的管理；Parent-ChildOf 标签等，这次都弄明白 
                 if (value.Domain == null) {
                     throw new Exception($"cant set parent because parent domain is null: {this.GetType().FullName} {value.GetType().FullName}");
                 }
@@ -135,14 +139,15 @@ namespace ET {
                         Log.Error($"重复设置了Parent: {this.GetType().FullName} parent: {this.parent.GetType().FullName}");
                         return;
                     }
-                    this.parent.RemoveFromChildren(this);
+                    this.parent.RemoveFromChildren(this); // 把当前组件，从前父控件的子控件堆里去掉
                 }
                 this.parent = value;
                 this.IsComponent = false;
-                this.parent.AddToChildren(this);
-                this.Domain = this is IScene? this as IScene : this.parent.domain;
-#if ENABLE_VIEW && UNITY_EDITOR
+                this.parent.AddToChildren(this); // 把当前 entity 加作【父控件的、子控件】
+                this.Domain = this is IScene? this as IScene : this.parent.domain; // 赋值Domain
+#if ENABLE_VIEW && UNITY_EDITOR // 【TODO】：ENABLE_VIEW 什么意思？添加【数据树】的【可视化功能】？这个逻辑块，是与ModelView 或是HotfixView 链接起来的？
                 this.viewGO.GetComponent<ComponentView>().Component = this;
+				// 下面的，就是正常Unity 里，设置控件的父子关系的逻辑了
                 this.viewGO.transform.SetParent(this.Parent == null ?
                         UnityEngine.GameObject.Find("Global").transform : this.Parent.viewGO.transform);
                 foreach (var child in this.Children.Values) {
@@ -190,7 +195,9 @@ namespace ET {
         [BsonElement]
         [BsonId]
         public long Id { get; protected set; } // 哪里说：Id 对 entity 纤进程来说是不变的；同一个 entity 的instanceId 纤进程后，可能会变
-        [BsonIgnore]
+		// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+		// domain 概念: 网搜说，它就是用来标记，Entity 是属于哪个场景的；有了这个成员变量，entity 就可以 access 场景里的索引什么之类的
+		[BsonIgnore]
         protected IScene domain; // 说是 Domain, 它的本质，是场景
         [BsonIgnore]
         public virtual IScene Domain {
@@ -207,6 +214,7 @@ namespace ET {
                 IScene preDomain = this.domain; 
                 this.domain = value;
                 if (preDomain == null) { // 前：空。需要做哪些【必要的、初始化工作】
+					// 因为想把 InstanceId 被赋值的过程看懂，也把 Domain 赋值过程看懂。
                     if (this.InstanceId == 0) { // 补号、注册相当于
                         this.InstanceId = IdGenerater.Instance.GenerateInstanceId();
                     }
@@ -279,12 +287,10 @@ namespace ET {
                 return this.components ??= ObjectPool.Instance.Fetch<SortedDictionary<string, Entity>>();
             }
         }
-        public override void Dispose() {
-            if (this.IsDisposed) {
-                return;
-            }
-            this.IsRegister = false;
-            this.InstanceId = 0;
+        public override void Dispose() { // 通过【回收——资源释放】来，从触发框架的底层、系统化封装的
+            if (this.IsDisposed) return;
+            this.IsRegister = false; // 这是开关阀门。。
+            this.InstanceId = 0; // 任何Entity 资源，被回收时，其实例号都被消为 0 了
             // 清理Children
             if (this.children != null) {
                 foreach (Entity child in this.children.Values) {
@@ -329,7 +335,7 @@ namespace ET {
                     this.parent.RemoveComponent(this);
                 }
                 else {
-                    this.parent.RemoveFromChildren(this);
+                    this.parent.RemoveFromChildren(this); // 回收时，自动从【父控件的、子控件堆里】移除当前销毁的子控件
                 }
             }
             this.parent = null;
@@ -585,8 +591,10 @@ namespace ET {
             Type type = typeof (T);
             T component = Entity.Create(type, isFromPool) as T;
             component.Id = id;
-            component.Parent = this;
-            EventSystem.Instance.Awake(component);
+// 这个Parent 的设置极为重要：Domain==>InstanceId 都是这个过程中，被确定赋值的
+// 【TODO】：进这里继续看，框架封装里，如何封装自动化，向【位置服】注册上报过实例号的？现在
+            component.Parent = this; 
+            EventSystem.Instance.Awake(component); // 子控件的Awake() 生命周期
             return component;
         }
         public T AddChildWithId<T, A>(long id, A a, bool isFromPool = false) where T : Entity, IAwake<A> {

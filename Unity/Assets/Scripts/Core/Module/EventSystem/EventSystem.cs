@@ -57,7 +57,7 @@ namespace ET {
         private readonly Dictionary<Type, List<EventInfo>> allEvents = new();
         private Dictionary<Type, Dictionary<int, object>> allInvokes = new(); 
         private TypeSystems typeSystems;
-        private readonly Queue<long>[] queues = new Queue<long>[InstanceQueueIndex.Max];
+        private readonly Queue<long>[] queues = new Queue<long>[InstanceQueueIndex.Max]; 
         public EventSystem() {
             for (int i = 0; i < this.queues.Length; i++) {
                 this.queues[i] = new Queue<long>();
@@ -148,6 +148,7 @@ namespace ET {
         public Type GetType(string typeName) {
             return this.allTypes[typeName];
         }
+		// 本质上：向ET 核心心脏——事件系统，注册 Entity 实例组件的、如Unity 里的几大生命周期回调函数；用于框架里必要时的回调调用 
         public virtual void RegisterSystem(Entity component) {
             Type type = component.GetType();
             TypeSystems.OneTypeSystems oneTypeSystems = this.typeSystems.GetOneTypeSystems(type);

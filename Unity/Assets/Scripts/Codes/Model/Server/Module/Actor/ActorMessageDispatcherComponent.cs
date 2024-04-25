@@ -9,7 +9,7 @@ namespace ET.Server {
             this.IMActorHandler = imActorHandler;
         }
     }
-    // Actor消息分发组件
+    // Actor消息分发组件: 往返信使太多了，发送者与派发器。。
     [ComponentOf(typeof(Scene))]
     public class ActorMessageDispatcherComponent: Entity, IAwake, IDestroy, ILoad {
         [StaticField]

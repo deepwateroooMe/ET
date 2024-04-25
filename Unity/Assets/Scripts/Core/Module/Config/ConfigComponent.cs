@@ -4,7 +4,8 @@ using System.Threading.Tasks;
 namespace ET {
     // Config组件会扫描所有的有ConfigAttribute标签的配置,加载进来
 	// 感觉，亲爱的表哥的活宝妹，以前还没能把这个【双端、启动过程的、边边角角的、细节弄清楚】今天下午就看这个，两个半小时，看能够看懂多少
-	
+	// 亲爱的表哥的活宝妹，【自顶向下】的机制，把双端的加载过程再看一遍，要把这个上次、还有点儿不懂的配制相关，今天看得更明白！【TODO】：今天下午！
+	// 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
     public class ConfigComponent: Singleton<ConfigComponent> {
 		// ET 双端：结构体的定义。虽然空，但是可以被双端【服务端、客户端】不报空地、使用相同的定义、来执行双端各自的逻辑。双端都有GetAllConfigBytes类定义？
         public struct GetAllConfigBytes {

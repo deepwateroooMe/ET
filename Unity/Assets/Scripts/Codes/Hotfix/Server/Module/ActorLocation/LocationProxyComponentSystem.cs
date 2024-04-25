@@ -13,7 +13,7 @@ namespace ET.Server {
         }
     }
     public static class LocationProxyComponentSystem {
-        private static long GetLocationSceneId(long key) { // 这里是去拿：每个进程上、这个进程上的【位置服】场景的实例号
+        private static long GetLocationSceneId(long key) { // 粒度单位为【每个进程】上的、这个进程上的【位置服】场景的实例号
             return StartSceneConfigCategory.Instance.LocationConfig.InstanceId;
         }
 		// 下面几个：向中央位置服数据库？CRUD 用户位置的【跨进程消息】封装，感觉还没看懂
@@ -27,7 +27,7 @@ namespace ET.Server {
             Log.Info($"location proxy lock {key}, {instanceId} {TimeHelper.ServerNow()}");
             await ActorMessageSenderComponent.Instance.Call(GetLocationSceneId(key),
                 new ObjectLockRequest() { Type = type, Key = key, InstanceId = instanceId, Time = time });
-			// 上面：去找ObjectLockRequest 这类跨进程消息的处理器，应该是中央位置服数据库什么之类的？
+			// ObjectLockRequestHandler 这个类型的跨进程消息的处理器，处理逻辑，也就是要【位置服】给要【纤进程】的Entity.Id 上锁；等它纤完更新新进程位置
         }
         public static async ETTask UnLock(this LocationProxyComponent self, int type, long key, long oldInstanceId, long instanceId) {
             Log.Info($"location proxy unlock {key}, {instanceId} {TimeHelper.ServerNow()}");
@@ -45,13 +45,14 @@ namespace ET.Server {
             }
             // location server配置到共享区，一个大战区可以配置N多个location server,这里暂时为1
 			// GetLocationSceneId(key): 是去拿【同一进程上】的、LocationType 场景、位置小分服的实例号。就是、就近【查找最近的、位置服、分服、服务器分身】实例号
-			// 【跨进程、向位置服的、位置查询】跨进程调用。位置服的处理逻辑，改天再看
             ObjectGetResponse response =
                     (ObjectGetResponse) await ActorMessageSenderComponent.Instance.Call(GetLocationSceneId(key),
                         new ObjectGetRequest() { Type = type, Key = key });
             return response.InstanceId;
         }
+		// 公用静态方法：方便【每个进程上】的、？？来向【位置服】注册位置信息？
         public static async ETTask AddLocation(this Entity self, int type) {
+			// 每个【进程上】提供一个【位置场景(Location Server)】，Actor对象可以将自己的Entity.Id跟InstanceId作为kv存到【位置场景】中
             await LocationProxyComponent.Instance.Add(type, self.Id, self.InstanceId);
         }
         public static async ETTask RemoveLocation(this Entity self, int type) {

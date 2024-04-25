@@ -72,7 +72,7 @@ namespace ET {
             try {
                 // 防止编译时裁剪掉protobuf
                 ProtoBuf.WireType.Fixed64.ToString(); // 随便调用一个Protobuf 里的函数：人为手动添加一个对、ProtoBuf 程序域的调用引用，防裁剪 defensive-programming?
-				// 下面，为什么它需要一个模板呢？
+				// 下面，为什么它需要一个模板呢？生成不同的 .cs 的时候，它只修改宏变量，就可以了，是直接套用模板的
                 template = File.ReadAllText("Template.txt");
                 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                 if (Directory.Exists(ClientClassDir)) { // 删除存在的目录
@@ -110,7 +110,7 @@ namespace ET {
                     if (cs.Contains("s")) {
                         table.S = true;
                     }
-                    ExportExcelClass(p, protoName, table);
+                    ExportExcelClass(p, protoName, table); // 【TODO】：先看这里
                 }
                 foreach (var kv in tables) {
                     if (kv.Value.C) {
@@ -121,7 +121,7 @@ namespace ET {
                     }
                     ExportClass(kv.Key, kv.Value.HeadInfos, ConfigType.cs);
                 }
-                // 动态编译生成的配置代码
+                // 动态编译生成的配置代码【源】：【TODO】：这里也是先前没看懂的。动态编译【服务端、客户端、和双端模式下】动态启动库：四大启动配制类
                 configAssemblies[(int) ConfigType.c] = DynamicBuild(ConfigType.c);
                 configAssemblies[(int) ConfigType.s] = DynamicBuild(ConfigType.s);
                 configAssemblies[(int) ConfigType.cs] = DynamicBuild(ConfigType.cs);
@@ -197,19 +197,19 @@ namespace ET {
                 _ => CSClassDir
             };
         }
-        // 动态编译生成的cs代码：这些还需要编译的细节原理，要看懂。【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+        // 动态编译生成的cs代码：【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
         private static Assembly DynamicBuild(ConfigType configType) {
-            string classPath = GetClassDir(configType);
+            string classPath = GetClassDir(configType); // 每种模式，有其固定的 .cs 文件的存放路径
             List<SyntaxTree> syntaxTrees = new List<SyntaxTree>();
-            List<string> protoNames = new List<string>();
+            List<string> protoNames = new List<string>(); // 文件名，链条
             foreach (string classFile in Directory.GetFiles(classPath, "*.cs")) { // 有四大类的生成的 .cs 文件
                 protoNames.Add(Path.GetFileNameWithoutExtension(classFile));
-                syntaxTrees.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(classFile)));
+                syntaxTrees.Add(CSharpSyntaxTree.ParseText(File.ReadAllText(classFile))); // 语法树。。
             }
-            List<PortableExecutableReference> references = new List<PortableExecutableReference>();
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (Assembly assembly in assemblies) {
-                try {
+            List<PortableExecutableReference> references = new List<PortableExecutableReference>(); // 索引 
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies(); // 现【程序域】里：所有引用到的、必要的程序域、引用索引的添加。要不然某些程序域可能被裁剪吧
+            foreach (Assembly assembly in assemblies) { // 遍历，当前【程序域】里所有包、索引包
+                try { // 【TODO】：这个块，像是什么事也没有做。。。检错吗？出错会抛异常、某端启动不起来。。
                     if (assembly.IsDynamic) {
                         continue;
                     }
@@ -219,11 +219,12 @@ namespace ET {
                 }
                 catch (Exception e) {
                     Console.WriteLine(e);
-                    throw;
+                    throw; // 感觉像是，仅只是为了检错排错。。
                 }
-                PortableExecutableReference reference = MetadataReference.CreateFromFile(assembly.Location);
-                references.Add(reference);
+                PortableExecutableReference reference = MetadataReference.CreateFromFile(assembly.Location); // 每个添加 meta 索引 
+                references.Add(reference); // 记入索引，否则裁剪掉、不要
             }
+			// 【编译成、动态库】
             CSharpCompilation compilation = CSharpCompilation.Create(null,
                 syntaxTrees.ToArray(),
                 references.ToArray(),
@@ -253,7 +254,7 @@ namespace ET {
                 if (worksheet.Name.StartsWith("#")) {
                     continue;
                 }
-                string fieldName = worksheet.Cells[row + 2, col].Text.Trim();
+                string fieldName = worksheet.Cells[row + 2, col].Text.Trim(); // 格式固定，Excel 表格里第3 行是【列的名称】
                 if (fieldName == "") {
                     continue;
                 }
@@ -288,7 +289,7 @@ namespace ET {
             }
 			// 服务端、四大主要的配置类型，生成对应的可【跨进程传递消息】的 ProtoBuf-contract 的 .cs 类
 			string exportPath = Path.Combine(dir, $"{protoName}.cs");
-            using FileStream txt = new FileStream(exportPath, FileMode.Create);
+            using FileStream txt = new FileStream(exportPath, FileMode.Create); // 创建了，相应类型的 .cs 文件
             using StreamWriter sw = new StreamWriter(txt);
             StringBuilder sb = new StringBuilder();
             foreach ((string _, HeadInfo headInfo) in classField) {
@@ -405,7 +406,7 @@ namespace ET {
 		// 亲爱的表哥的活宝妹，今天下午算是找到了无数、亲爱的表哥的活宝妹还看不懂的启动配置相关。。。
 		// 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
         private static void ExportExcelProtobuf(ConfigType configType, string protoName, string relativeDir) {
-            string dir = GetProtoDir(configType, relativeDir);
+            string dir = GetProtoDir(configType, relativeDir); // Unity 同级目录下 Config/Excel/cs/..*.bytes 目标文件
             if (!Directory.Exists(dir)) {
                 Directory.CreateDirectory(dir);
             }

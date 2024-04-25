@@ -1,12 +1,9 @@
 ﻿using System.Net;
 using System.Text;
+namespace ET.Server {
+    public static class HttpHelper {
 
-namespace ET.Server
-{
-    public static class HttpHelper
-    {
-        public static void Response(HttpListenerContext context, object response)
-        {
+        public static void Response(HttpListenerContext context, object response) {
             byte[] bytes = JsonHelper.ToJson(response).ToUtf8();
             context.Response.StatusCode = 200;
             context.Response.ContentEncoding = Encoding.UTF8;

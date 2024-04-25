@@ -12,7 +12,7 @@ namespace ET.Server {
                 // 异步方法全部会回掉到主线程
                 Game.AddSingleton<MainThreadSynchronizationContext>();
                 
-                // 命令行参数
+                // 命令行参数【源】：【TODO】：这里也还是没太看懂
                 Parser.Default.ParseArguments<Options>(args)
                     .WithNotParsed(error => throw new Exception($"命令行格式错误! {error}"))
                     .WithParsed(Game.AddSingleton);
@@ -33,12 +33,12 @@ namespace ET.Server {
                 ProtobufHelper.Init();
                 
                 Log.Info($"server start........................ {Root.Instance.Scene.Id}");
-                
-                switch (Options.Instance.AppType) {
-					// 今天：重点把这个帮助项目、工具类的、前世今生。。都给努力看明白、读明白。。【TODO】：现在！
+				// 下面，这些，【帮助工具】：各自会有个、几乎专用进程
+                switch (Options.Instance.AppType) { // AppType 进程级别的
+// 今天下午第1 件事：重点把这个帮助项目、工具类的、前世今生。。都给努力看明白、读明白。。【TODO】：现在！
 				case AppType.ExcelExporter: { // 【服务端】的2 个帮助工具类项目： Proto2CS 和 ExcelExporter
                         Options.Instance.Console = 1;
-                        ExcelExporter.Export(); // 去看这里的实现逻辑
+                        ExcelExporter.Export(); 
                         return 0;
                     }
                     case AppType.Proto2CS: {

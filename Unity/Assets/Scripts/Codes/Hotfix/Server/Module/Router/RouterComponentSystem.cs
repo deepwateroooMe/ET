@@ -2,332 +2,246 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-
-namespace ET.Server
-{
+namespace ET.Server {
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+	// 亲爱的表哥的活宝妹，今天上午，算是把这个读得相对比较懂一点儿了。可是动态路由、网络软路由连接，底层的细节仍然不懂，需要改天再挖掘一遍！！【TODO】：
     [FriendOf(typeof (RouterComponent))]
     [FriendOf(typeof (RouterNode))]
-    public static class RouterComponentSystem
-    {
+    public static class RouterComponentSystem {
         [ObjectSystem]
-        public class RouterComponentAwakeSystem: AwakeSystem<RouterComponent, IPEndPoint, string>
-        {
-            protected override void Awake(RouterComponent self, IPEndPoint outerAddress, string innerIP)
-            {
+        public class RouterComponentAwakeSystem: AwakeSystem<RouterComponent, IPEndPoint, string> {
+            protected override void Awake(RouterComponent self, IPEndPoint outerAddress, string innerIP) {
+				// 创建：对外、对内，通信管道 socket 
                 self.OuterSocket = new Socket(outerAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
                 self.OuterSocket.Bind(outerAddress);
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) { // 非OSX 平台下，感觉UDP 的发送接收缓冲区，可以狠大 16 倍
                     self.OuterSocket.SendBufferSize = 16 * Kcp.OneM;
                     self.OuterSocket.ReceiveBufferSize = 16 * Kcp.OneM;
                 }
-
                 self.InnerSocket = new Socket(outerAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
                 self.InnerSocket.Bind(new IPEndPoint(IPAddress.Parse(innerIP), 0));
-
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                     self.InnerSocket.SendBufferSize = 16 * Kcp.OneM;
                     self.InnerSocket.ReceiveBufferSize = 16 * Kcp.OneM;
                 }
-                
-                NetworkHelper.SetSioUdpConnReset(self.OuterSocket);
+                NetworkHelper.SetSioUdpConnReset(self.OuterSocket); // 【TODO】：不知道这些是在干什么。。
                 NetworkHelper.SetSioUdpConnReset(self.InnerSocket);
             }
         }
-
         [ObjectSystem]
-        public class RouterComponentDestroySystem: DestroySystem<RouterComponent>
-        {
-            protected override void Destroy(RouterComponent self)
-            {
+        public class RouterComponentDestroySystem: DestroySystem<RouterComponent> {
+            protected override void Destroy(RouterComponent self) {
                 self.OuterSocket.Dispose();
                 self.InnerSocket.Dispose();
                 self.OuterNodes.Clear();
                 self.IPEndPoint = null;
             }
         }
-
         [ObjectSystem]
-        public class RouterComponentUpdateSystem: UpdateSystem<RouterComponent>
-        {
-            protected override void Update(RouterComponent self)
-            {
+        public class RouterComponentUpdateSystem: UpdateSystem<RouterComponent> {
+            protected override void Update(RouterComponent self) {
                 long timeNow = TimeHelper.ClientNow();
                 self.RecvOuter(timeNow);
                 self.RecvInner(timeNow);
-
                 // 每秒钟检查一次
-                if (timeNow - self.LastCheckTime > 1000)
-                {
+                if (timeNow - self.LastCheckTime > 1000) {
                     self.CheckConnectTimeout(timeNow);
                     self.LastCheckTime = timeNow;
                 }
             }
         }
-
-        private static IPEndPoint CloneAddress(this RouterComponent self)
-        {
+        private static IPEndPoint CloneAddress(this RouterComponent self) {
             IPEndPoint ipEndPoint = (IPEndPoint) self.IPEndPoint;
             return new IPEndPoint(ipEndPoint.Address, ipEndPoint.Port);
         }
-
         // 接收udp消息
-        private static void RecvOuter(this RouterComponent self, long timeNow)
-        {
-            while (self.OuterSocket != null && self.OuterSocket.Available > 0)
-            {
-                try
-                {
-                    int messageLength = self.OuterSocket.ReceiveFrom(self.Cache, ref self.IPEndPoint);
-                    self.RecvOuterHandler(messageLength, timeNow);
+        private static void RecvOuter(this RouterComponent self, long timeNow) {
+            while (self.OuterSocket != null && self.OuterSocket.Available > 0) { // 对外通信端口，当前状态可以接收消息，就去接收消息数据
+                try {
+                    int messageLength = self.OuterSocket.ReceiveFrom(self.Cache, ref self.IPEndPoint); // 从远程接收到自己的 Cache 数据缓存区
+                    self.RecvOuterHandler(messageLength, timeNow); // 接收到数据，调用自己的【接收数据回调处理】
                 }
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     Log.Error(e);
                 }
             }
         }
-
-        private static void CheckConnectTimeout(this RouterComponent self, long timeNow)
-        {
+        private static void CheckConnectTimeout(this RouterComponent self, long timeNow) {
             // 检查连接过程超时
-            using (ListComponent<long> listComponent = ListComponent<long>.Create())
-            {
-                foreach (var kv in self.ConnectIdNodes)
-                {
-                    if (timeNow < kv.Value.LastRecvOuterTime + 10 * 1000)
-                    {
+            using (ListComponent<long> listComponent = ListComponent<long>.Create()) {
+                foreach (var kv in self.ConnectIdNodes) {
+					// 排错的是：连接超过10n 秒，但是仍然没能【验证】成功的，网络中的软路由节点
+                    if (timeNow < kv.Value.LastRecvOuterTime + 10 * 1000) {
                         continue;
                     }
-
                     listComponent.Add(kv.Value.Id);
                 }
-
-                foreach (long id in listComponent)
-                {
+                foreach (long id in listComponent) {
                     self.OnError(id, ErrorCore.ERR_KcpRouterConnectFail);
                 }
             }
-
             // 外网消息超时就断开，内网因为会一直重发，没有重连之前内网连接一直存在，会导致router一直收到内网消息
-            using (ListComponent<long> listComponent = ListComponent<long>.Create())
-            {
-                foreach (var kv in self.OuterNodes)
-                {
+            using (ListComponent<long> listComponent = ListComponent<long>.Create()) {
+                foreach (var kv in self.OuterNodes) {
                     // 比session超时应该多10秒钟
-                    if (timeNow < kv.Value.LastRecvOuterTime + ConstValue.SessionTimeoutTime + 10 * 1000)
-                    {
+                    if (timeNow < kv.Value.LastRecvOuterTime + ConstValue.SessionTimeoutTime + 10 * 1000) {
                         continue;
                     }
-
                     listComponent.Add(kv.Value.Id);
                 }
-
-                foreach (long id in listComponent)
-                {
+                foreach (long id in listComponent) {
                     self.OnError(id, ErrorCore.ERR_KcpRouterTimeout);
                 }
             }
         }
-
-        private static void RecvInner(this RouterComponent self, long timeNow)
-        {
-            while (self.InnerSocket != null && self.InnerSocket.Available > 0)
-            {
-                try
-                {
+        private static void RecvInner(this RouterComponent self, long timeNow) {
+            while (self.InnerSocket != null && self.InnerSocket.Available > 0) {
+                try {
                     int messageLength = self.InnerSocket.ReceiveFrom(self.Cache, ref self.IPEndPoint);
                     self.RecvInnerHandler(messageLength, timeNow);
                 }
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     Log.Error(e);
                 }
             }
         }
-
-        private static void RecvOuterHandler(this RouterComponent self, int messageLength, long timeNow)
-        {
+		// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+		// 这个网络端口消息接收，处理逻辑：根据【动态路由】时、本路由对外接收端口中、接收到的消息的【不同类型】，来作出动态路由连接过程中的、各种同步排错、各种同步 sync 逻辑
+        private static void RecvOuterHandler(this RouterComponent self, int messageLength, long timeNow) {
             // 长度小于1，不是正常的消息
-            if (messageLength < 1)
-            {
+            if (messageLength < 1) {
                 return;
             }
-
             // accept
-            byte flag = self.Cache[0];
-            switch (flag)
-            {
-                case KcpProtocalType.RouterReconnectSYN:
-                {
-                    if (messageLength < 13)
-                    {
+            byte flag = self.Cache[0]; // 第1 字节【8 个char】：是个标记位 flag
+            switch (flag) {
+			case KcpProtocalType.RouterReconnectSYN: { // 路由器间建立联接时的、握手同步消息，传的不是数据，是IP 地址
+                    if (messageLength < 13) {
                         break;
                     }
-
-                    uint outerConn = BitConverter.ToUInt32(self.Cache, 1);
-                    uint innerConn = BitConverter.ToUInt32(self.Cache, 5);
-                    uint connectId = BitConverter.ToUInt32(self.Cache, 9);
-                    string realAddress = self.Cache.ToStr(13, messageLength - 13);
-
+                    uint outerConn = BitConverter.ToUInt32(self.Cache, 1); // int 4 字节
+                    uint innerConn = BitConverter.ToUInt32(self.Cache, 5); // int 4 字节
+                    uint connectId = BitConverter.ToUInt32(self.Cache, 9); // int 4 字节
+                    string realAddress = self.Cache.ToStr(13, messageLength - 13); // 整个消息，自第14 字节的、后半部分，全是IP 地址
                     RouterNode routerNode;
-
                     // RouterAck之后ConnectIdNodes会删除，加入到OuterNodes中来
-                    if (!self.OuterNodes.TryGetValue(outerConn, out routerNode))
-                    {
-                        self.ConnectIdNodes.TryGetValue(connectId, out routerNode);
-                        if (routerNode == null)
-                        {
+                    if (!self.OuterNodes.TryGetValue(outerConn, out routerNode)) {  // 但还没有、验证的、路由节点
+                        self.ConnectIdNodes.TryGetValue(connectId, out routerNode); // 连接着的？ 
+                        if (routerNode == null) { // 没有连接，还是断开了，正在重连的
                             Log.Info($"router create reconnect: {self.IPEndPoint} {realAddress} {connectId} {outerConn} {innerConn}");
                             routerNode = self.New(realAddress, connectId, outerConn, innerConn, self.CloneAddress());
                             // self.OuterNodes 这里不能add，因为还没验证完成,要在RouterAck中加入
                         }
                     }
-
-                    if (routerNode.ConnectId != connectId)
-                    {
+                    if (routerNode.ConnectId != connectId) {
                         Log.Warning($"kcp router router reconnect connectId diff1: {routerNode.SyncIpEndPoint} {(IPEndPoint) self.IPEndPoint}");
                         break;
                     }
-                    
-                    // 不是自己的，outerConn冲突, 直接break,也就是说这个软路由上有个跟自己outerConn冲突的连接，就不能连接了
-                    // 这个路由连接不上，客户端会换个软路由，所以没关系
-                    if (routerNode.InnerConn != innerConn)
-                    {
+					// 【TODO】：下面的，没看懂，上午晚点儿再查
+                    // 不是自己的，outerConn冲突, 直接break,也就是说这个软路由上有个跟自己outerConn冲突的连接，就不能连接了【源】
+                    // 这个路由连接不上，客户端会换个软路由，所以没关系【源】
+                    if (routerNode.InnerConn != innerConn) {
                         Log.Warning($"kcp router router reconnect inner conn diff1: {routerNode.SyncIpEndPoint} {(IPEndPoint) self.IPEndPoint}");
                         break;
                     }
-                    
-                    if (routerNode.OuterConn != outerConn)
-                    {
+
+                    if (routerNode.OuterConn != outerConn) {
                         Log.Warning($"kcp router router reconnect outer conn diff1: {routerNode.SyncIpEndPoint} {(IPEndPoint) self.IPEndPoint}");
                         break;
                     }
-
                     // 校验ip，连接过程中ip不能变化
-                    if (!Equals(routerNode.SyncIpEndPoint, self.IPEndPoint))
-                    {
+                    if (!Equals(routerNode.SyncIpEndPoint, self.IPEndPoint)) { // 【TODO】：想不明白，什么情况下，它是可能会变化的？
                         Log.Warning($"kcp router syn ip is diff1: {routerNode.SyncIpEndPoint} {(IPEndPoint) self.IPEndPoint}");
                         break;
                     }
-
                     // 校验内网地址
-                    if (routerNode.InnerAddress != realAddress)
-                    {
+					// 【动态路由】连接的过程中，可能会出各种错，感觉它们各节点、状态狠不稳的样子。。 sync 过程中，可能会出各种错，所以上面、这里、一一排查
+                    if (routerNode.InnerAddress != realAddress) {
                         Log.Warning($"router sync error2: {routerNode.OuterConn} {routerNode.InnerAddress} {outerConn} {realAddress}");
                         break;
                     }
-                    
-                    if (++routerNode.RouterSyncCount > 40)
-                    {
+					// 跟这个【路由节点】同步了40 次，也还没能同步成功，算了吧。。。
+                    if (++routerNode.RouterSyncCount > 40) { 
                         self.OnError(routerNode.Id, ErrorCore.ERR_KcpRouterRouterSyncCountTooMuchTimes);
                         break;
                     }
-
-                    // 转发到内网
-                    self.Cache.WriteTo(0, KcpProtocalType.RouterReconnectSYN);
+                    // 转发到内网【源】：【TODO】：说的是什么意思呢
+                    self.Cache.WriteTo(0, KcpProtocalType.RouterReconnectSYN); // 同样的、路由节点建立连接的握手同步消息
                     self.Cache.WriteTo(1, outerConn);
                     self.Cache.WriteTo(5, innerConn);
                     self.Cache.WriteTo(9, connectId);
-                    self.InnerSocket.SendTo(self.Cache, 0, 13, SocketFlags.None, routerNode.InnerIpEndPoint);
-
-                    if (!routerNode.CheckOuterCount(timeNow))
-                    {
-                        self.OnError(routerNode.Id, ErrorCore.ERR_KcpRouterTooManyPackets);
+// 从自己节点的缓存区，发送到、去验证的、网络中的软路由节点？
+                    self.InnerSocket.SendTo(self.Cache, 0, 13, SocketFlags.None, routerNode.InnerIpEndPoint); 
+                    if (!routerNode.CheckOuterCount(timeNow)) {
+						// 正在验证的【路由节点】超级忙，每秒包裹超过了 1000 个
+                        self.OnError(routerNode.Id, ErrorCore.ERR_KcpRouterTooManyPackets); // 会从【连接着的、路由节点】里，移除这个连接未验证的路由节点
                     }
-
                     break;
                 }
-                case KcpProtocalType.RouterSYN:
-                {
-                    if (messageLength < 13)
-                    {
+			case KcpProtocalType.RouterSYN: { // 接收到：来自网络中、其它【路由节点】的连接邀请
+                    if (messageLength < 13) {
                         break;
                     }
-
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 1);
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 5);
                     uint connectId = BitConverter.ToUInt32(self.Cache, 9);
                     string realAddress = self.Cache.ToStr(13, messageLength - 13);
-
                     RouterNode routerNode;
-
                     self.ConnectIdNodes.TryGetValue(connectId, out routerNode);
-                    if (routerNode == null)
-                    {
+                    if (routerNode == null) { // 与本节点：没有连接
                         outerConn = NetServices.Instance.CreateConnectChannelId();
                         routerNode = self.New(realAddress, connectId, outerConn, innerConn, self.CloneAddress());
                         Log.Info($"router create: {realAddress} {connectId} {outerConn} {innerConn} {routerNode.SyncIpEndPoint}");
+						// 不需要验证，直接加进自己验证过的字典管理里
                         self.OuterNodes.Add(routerNode.OuterConn, routerNode);
                     }
-
-                    if (++routerNode.RouterSyncCount > 40)
-                    {
-                        self.OnError(routerNode.Id, ErrorCore.ERR_KcpRouterRouterSyncCountTooMuchTimes);
+                    if (++routerNode.RouterSyncCount > 40) { // 同步 sync 次数超标
+                        self.OnError(routerNode.Id, ErrorCore.ERR_KcpRouterRouterSyncCountTooMuchTimes); // 从2 个字典里、移除
                         break;
                     }
-
                     // 校验ip，连接过程中ip不能变化
-                    if (!Equals(routerNode.SyncIpEndPoint, self.IPEndPoint))
-                    {
+                    if (!Equals(routerNode.SyncIpEndPoint, self.IPEndPoint)) {
                         Log.Warning($"kcp router syn ip is diff1: {routerNode.SyncIpEndPoint} {self.IPEndPoint}");
                         break;
                     }
-
                     // 校验内网地址
-                    if (routerNode.InnerAddress != realAddress)
-                    {
+                    if (routerNode.InnerAddress != realAddress) {
                         Log.Warning($"router sync error2: {routerNode.OuterConn} {routerNode.InnerAddress} {outerConn} {realAddress}");
                         break;
                     }
-
                     self.Cache.WriteTo(0, KcpProtocalType.RouterACK);
                     self.Cache.WriteTo(1, routerNode.InnerConn);
                     self.Cache.WriteTo(5, routerNode.OuterConn);
                     self.OuterSocket.SendTo(self.Cache, 0, 9, SocketFlags.None, routerNode.SyncIpEndPoint);
-
-                    if (!routerNode.CheckOuterCount(timeNow))
-                    {
+                    if (!routerNode.CheckOuterCount(timeNow)) {
                         self.OnError(routerNode.Id, ErrorCore.ERR_KcpRouterTooManyPackets);
                     }
-
                     break;
                 }
-                case KcpProtocalType.SYN:
-                {
+                case KcpProtocalType.SYN: {
                     // 长度!=13，不是accpet消息
-                    if (messageLength != 9)
-                    {
+                    if (messageLength != 9) {
                         break;
                     }
-
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 5);
-
-                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouter))
-                    {
+                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouter)) {
                         Log.Warning($"kcp router syn not found outer nodes: {outerConn} {innerConn}");
                         break;
                     }
-
-                    if (++kcpRouter.SyncCount > 20)
-                    {
+                    if (++kcpRouter.SyncCount > 20) {
                         self.OnError(kcpRouter.Id, ErrorCore.ERR_KcpRouterSyncCountTooMuchTimes);
                         break;
                     }
-
                     // 校验ip，连接过程中ip不能变化
                     IPEndPoint ipEndPoint = (IPEndPoint) self.IPEndPoint;
-                    if (!Equals(kcpRouter.SyncIpEndPoint.Address, ipEndPoint.Address))
-                    {
+                    if (!Equals(kcpRouter.SyncIpEndPoint.Address, ipEndPoint.Address)) {
                         Log.Warning($"kcp router syn ip is diff3: {kcpRouter.SyncIpEndPoint.Address} {ipEndPoint.Address}");
                         break;
                     }
-                    
-                    // 发了syn过来，那么RouterSyn就成功了，可以删除ConnectId
+                    // 发了syn过来，那么RouterSyn就成功了【相当于是，验证，成功了吗？】，可以删除ConnectId
                     self.ConnectIdNodes.Remove(kcpRouter.ConnectId);
-
+					// 两节点连接初始、创建该【路由节点】是以【本路由器】的眼光标记；现在，更新它的必要参数					
                     kcpRouter.LastRecvOuterTime = timeNow;
                     kcpRouter.OuterIpEndPoint = self.CloneAddress();
                     // 转发到内网, 带上客户端的地址
@@ -337,152 +251,108 @@ namespace ET.Server
                     byte[] addressBytes = ipEndPoint.ToString().ToByteArray();
                     Array.Copy(addressBytes, 0, self.Cache, 9, addressBytes.Length);
                     Log.Info($"kcp router syn: {outerConn} {innerConn} {kcpRouter.InnerIpEndPoint} {kcpRouter.OuterIpEndPoint}");
+					// 将长度为【9+addressBytes.Length】的、新验证的【路由节点】KcpProtocalType.SYN 消息，同步到、所有连接着【本路由节点】的内网
                     self.InnerSocket.SendTo(self.Cache, 0, 9 + addressBytes.Length, SocketFlags.None, kcpRouter.InnerIpEndPoint);
-
-                    if (!kcpRouter.CheckOuterCount(timeNow))
-                    {
+					// 【TODO】：上面，本节点自己发布到内网之后，再排错，感觉顺序倒了。。
+                    if (!kcpRouter.CheckOuterCount(timeNow)) { // 每秒上 1000 个包裹
                         self.OnError(kcpRouter.Id, ErrorCore.ERR_KcpRouterTooManyPackets);
                     }
-
                     break;
                 }
-                case KcpProtocalType.FIN: // 断开
-                {
+				case KcpProtocalType.FIN: { // 断开
                     // 长度!=13，不是DisConnect消息
-                    if (messageLength != 13)
-                    {
+                    if (messageLength != 13) {
                         break;
                     }
-
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 1);
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 5);
-
-                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouter))
-                    {
+                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouter)) {
                         Log.Warning($"kcp router outer fin not found outer nodes: {outerConn} {innerConn}");
                         break;
                     }
-
                     // 比对innerConn
-                    if (kcpRouter.InnerConn != innerConn)
-                    {
+                    if (kcpRouter.InnerConn != innerConn) {
                         Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouter.Status}");
                         break;
                     }
-
                     kcpRouter.LastRecvOuterTime = timeNow;
                     Log.Info($"kcp router outer fin: {outerConn} {innerConn} {kcpRouter.InnerIpEndPoint}");
                     self.InnerSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouter.InnerIpEndPoint);
-
-                    if (!kcpRouter.CheckOuterCount(timeNow))
-                    {
+                    if (!kcpRouter.CheckOuterCount(timeNow)) {
                         self.OnError(kcpRouter.Id, ErrorCore.ERR_KcpRouterTooManyPackets);
                     }
-
                     break;
                 }
-                case KcpProtocalType.MSG:
-                {
+                case KcpProtocalType.MSG: {
                     // 长度<9，不是Msg消息
-                    if (messageLength < 9)
-                    {
+                    if (messageLength < 9) {
                         break;
                     }
-
                     // 处理chanel
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 5); // local
-
-                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouter))
-                    {
+                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouter)) {
                         Log.Warning($"kcp router msg not found outer nodes: {outerConn} {innerConn}");
                         break;
                     }
-
-                    if (kcpRouter.Status != RouterStatus.Msg)
-                    {
+                    if (kcpRouter.Status != RouterStatus.Msg) {
                         Log.Warning($"router node status error: {innerConn} {outerConn} {kcpRouter.Status}");
                         break;
                     }
-
                     // 比对innerConn
-                    if (kcpRouter.InnerConn != innerConn)
-                    {
+                    if (kcpRouter.InnerConn != innerConn) {
                         Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouter.Status}");
                         break;
                     }
-
+					// 【TODO】：把下面【源】注释，看懂，出错的原因
                     // 重连的时候，没有经过syn阶段，可能没有设置OuterIpEndPoint，重连请求Router的Socket跟发送消息的Socket不是同一个，所以udp出来的公网地址可能会变化
-                    if (!Equals(kcpRouter.OuterIpEndPoint, self.IPEndPoint))
-                    {
+                    if (!Equals(kcpRouter.OuterIpEndPoint, self.IPEndPoint)) {
                         kcpRouter.OuterIpEndPoint = self.CloneAddress();
                     }
-
                     kcpRouter.LastRecvOuterTime = timeNow;
-
                     self.InnerSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouter.InnerIpEndPoint);
-
-                    if (!kcpRouter.CheckOuterCount(timeNow))
-                    {
+                    if (!kcpRouter.CheckOuterCount(timeNow)) {
                         self.OnError(kcpRouter.Id, ErrorCore.ERR_KcpRouterTooManyPackets);
                     }
-
                     break;
                 }
             }
         }
-
-        private static void RecvInnerHandler(this RouterComponent self, int messageLength, long timeNow)
-        {
+        private static void RecvInnerHandler(this RouterComponent self, int messageLength, long timeNow) {
             // 长度小于1，不是正常的消息
-            if (messageLength < 1)
-            {
+            if (messageLength < 1) {
                 return;
             }
-
             // accept
             byte flag = self.Cache[0];
-
-            switch (flag)
-            {
-                case KcpProtocalType.RouterReconnectACK:
-                {
+            switch (flag) {
+                case KcpProtocalType.RouterReconnectACK: {
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 1);
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 5);
                     uint connectId = BitConverter.ToUInt32(self.Cache, 9);
-                    if (!self.ConnectIdNodes.TryGetValue(connectId, out RouterNode kcpRouterNode))
-                    {
+                    if (!self.ConnectIdNodes.TryGetValue(connectId, out RouterNode kcpRouterNode)) {
                         Log.Warning($"router node error: {innerConn} {connectId}");
                         break;
                     }
-
                     // 必须校验innerConn，防止伪造
-                    if (innerConn != kcpRouterNode.InnerConn)
-                    {
+                    if (innerConn != kcpRouterNode.InnerConn) {
                         Log.Warning(
                             $"router node innerConn error: {innerConn} {kcpRouterNode.InnerConn} {outerConn} {kcpRouterNode.OuterConn} {kcpRouterNode.Status}");
                         break;
                     }
-
                     // 必须校验outerConn，防止伪造
-                    if (outerConn != kcpRouterNode.OuterConn)
-                    {
+                    if (outerConn != kcpRouterNode.OuterConn) {
                         Log.Warning(
                             $"router node outerConn error: {innerConn} {kcpRouterNode.InnerConn} {outerConn} {kcpRouterNode.OuterConn} {kcpRouterNode.Status}");
                         break;
                     }
-
                     kcpRouterNode.Status = RouterStatus.Msg;
-
                     kcpRouterNode.LastRecvInnerTime = timeNow;
-
                     // 校验成功才加到outerNodes中, 如果这里有冲突，外网将连接失败，不过几率极小
-                    if (!self.OuterNodes.ContainsKey(outerConn))
-                    {
+                    if (!self.OuterNodes.ContainsKey(outerConn)) {
                         self.OuterNodes.Add(outerConn, kcpRouterNode);
                         self.ConnectIdNodes.Remove(connectId);
                     }
-
                     // 转发出去
                     self.Cache.WriteTo(0, KcpProtocalType.RouterReconnectACK);
                     self.Cache.WriteTo(1, kcpRouterNode.InnerConn);
@@ -491,163 +361,115 @@ namespace ET.Server
                     self.OuterSocket.SendTo(self.Cache, 0, 9, SocketFlags.None, kcpRouterNode.SyncIpEndPoint);
                     break;
                 }
-
-                case KcpProtocalType.ACK:
-                {
+                case KcpProtocalType.ACK: {
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 5); // local
-
-                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode))
-                    {
+                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
                         Log.Warning($"kcp router ack not found outer nodes: {outerConn} {innerConn}");
                         break;
                     }
                     
                     kcpRouterNode.Status = RouterStatus.Msg;
-
                     kcpRouterNode.InnerConn = innerConn;
-
                     kcpRouterNode.LastRecvInnerTime = timeNow;
                     // 转发出去
                     Log.Info($"kcp router ack: {outerConn} {innerConn} {kcpRouterNode.OuterIpEndPoint}");
                     self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
                     break;
                 }
-                case KcpProtocalType.FIN: // 断开
-                {
+				case KcpProtocalType.FIN: { // 断开
                     // 长度!=13，不是DisConnect消息
-                    if (messageLength != 13)
-                    {
+                    if (messageLength != 13) {
                         break;
                     }
-
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 1);
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 5);
-
-                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode))
-                    {
+                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
                         Log.Warning($"kcp router inner fin not found outer nodes: {outerConn} {innerConn}");
                         break;
                     }
-
                     // 比对innerConn
-                    if (kcpRouterNode.InnerConn != innerConn)
-                    {
+                    if (kcpRouterNode.InnerConn != innerConn) {
                         Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouterNode.Status}");
                         break;
                     }
-
                     // 重连，这个字段可能为空，需要客户端发送消息上来才能设置
-                    if (kcpRouterNode.OuterIpEndPoint == null)
-                    {
+                    if (kcpRouterNode.OuterIpEndPoint == null) {
                         break;
                     }
-
                     kcpRouterNode.LastRecvInnerTime = timeNow;
                     Log.Info($"kcp router inner fin: {outerConn} {innerConn} {kcpRouterNode.OuterIpEndPoint}");
                     self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
-
                     break;
                 }
-                case KcpProtocalType.MSG:
-                {
+                case KcpProtocalType.MSG: {
                     // 长度<9，不是Msg消息
-                    if (messageLength < 9)
-                    {
+                    if (messageLength < 9) {
                         break;
                     }
-
                     // 处理chanel
                     uint innerConn = BitConverter.ToUInt32(self.Cache, 1); // remote
                     uint outerConn = BitConverter.ToUInt32(self.Cache, 5); // local
-
-                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode))
-                    {
+                    if (!self.OuterNodes.TryGetValue(outerConn, out RouterNode kcpRouterNode)) {
                         Log.Warning($"kcp router inner msg not found outer nodes: {outerConn} {innerConn}");
                         break;
                     }
-
                     // 比对innerConn
-                    if (kcpRouterNode.InnerConn != innerConn)
-                    {
+                    if (kcpRouterNode.InnerConn != innerConn) {
                         Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouterNode.Status}");
                         break;
                     }
-
                     // 重连，这个字段可能为空，需要客户端发送消息上来才能设置
-                    if (kcpRouterNode.OuterIpEndPoint == null)
-                    {
+                    if (kcpRouterNode.OuterIpEndPoint == null) {
                         break;
                     }
-
                     kcpRouterNode.LastRecvInnerTime = timeNow;
                     self.OuterSocket.SendTo(self.Cache, 0, messageLength, SocketFlags.None, kcpRouterNode.OuterIpEndPoint);
                     break;
                 }
             }
         }
-
-        public static RouterNode Get(this RouterComponent self, uint outerConn)
-        {
+        public static RouterNode Get(this RouterComponent self, uint outerConn) {
             RouterNode routerNode = null;
             self.OuterNodes.TryGetValue(outerConn, out routerNode);
             return routerNode;
         }
-
-        private static RouterNode New(this RouterComponent self, string innerAddress, uint connectId, uint outerConn, uint innerConn, IPEndPoint syncEndPoint)
-        {
+		// 动态路由：创建一个新的路由节点。写法，用【当前路由节点 me】的眼光，来描述网络里，其它路由节点。相对当前路由节点来说的，内与外
+        private static RouterNode New(this RouterComponent self, string innerAddress, uint connectId, uint outerConn, uint innerConn, IPEndPoint syncEndPoint) {
             RouterNode routerNode = self.AddChild<RouterNode>();
             routerNode.ConnectId = connectId;
             routerNode.OuterConn = outerConn;
             routerNode.InnerConn = innerConn;
-
             routerNode.InnerIpEndPoint = NetworkHelper.ToIPEndPoint(innerAddress);
             routerNode.SyncIpEndPoint = syncEndPoint;
             routerNode.InnerAddress = innerAddress;
             routerNode.LastRecvInnerTime = TimeHelper.ClientNow();
-
-            self.ConnectIdNodes.Add(connectId, routerNode);
-
-            routerNode.Status = RouterStatus.Sync;
-
+            self.ConnectIdNodes.Add(connectId, routerNode); // 连接了，就加这里，还没验证
+            routerNode.Status = RouterStatus.Sync; // 同步
             Log.Info($"router new: outerConn: {outerConn} innerConn: {innerConn} {syncEndPoint}");
-
             return routerNode;
         }
-
-        public static void OnError(this RouterComponent self, long id, int error)
-        {
+        public static void OnError(this RouterComponent self, long id, int error) {
             RouterNode routerNode = self.GetChild<RouterNode>(id);
-            if (routerNode == null)
-            {
+            if (routerNode == null) {
                 return;
             }
-
             Log.Info($"router node remove: {routerNode.OuterConn} {routerNode.InnerConn} {error}");
             self.Remove(id);
         }
-
-        private static void Remove(this RouterComponent self, long id)
-        {
+        private static void Remove(this RouterComponent self, long id) {
             RouterNode routerNode = self.GetChild<RouterNode>(id);
-            if (routerNode == null)
-            {
+            if (routerNode == null) {
                 return;
             }
-
             self.OuterNodes.Remove(routerNode.OuterConn);
-
             RouterNode connectRouterNode;
-            if (self.ConnectIdNodes.TryGetValue(routerNode.ConnectId, out connectRouterNode))
-            {
-                if (connectRouterNode.Id == routerNode.Id)
-                {
+            if (self.ConnectIdNodes.TryGetValue(routerNode.ConnectId, out connectRouterNode)) {
+                if (connectRouterNode.Id == routerNode.Id) {
                     self.ConnectIdNodes.Remove(routerNode.ConnectId);
                 }
             }
-
             Log.Info($"router remove: {routerNode.Id} outerConn: {routerNode.OuterConn} innerConn: {routerNode.InnerConn}");
-
             routerNode.Dispose();
         }
     }

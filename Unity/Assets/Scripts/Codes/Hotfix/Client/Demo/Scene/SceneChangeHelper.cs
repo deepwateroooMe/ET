@@ -1,12 +1,11 @@
-﻿namespace ET.Client
-{
-    public static class SceneChangeHelper
-    {
+﻿namespace ET.Client {
+    public static class SceneChangeHelper {
         // 场景切换协程
-        public static async ETTask SceneChangeTo(Scene clientScene, string sceneName, long sceneInstanceId)
-        {
+
+		// 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
+		// 亲爱的表哥的活宝妹，这里想要找：一个新场景加载后，会自动化哪些工作逻辑？
+        public static async ETTask SceneChangeTo(Scene clientScene, string sceneName, long sceneInstanceId) {
             clientScene.RemoveComponent<AIComponent>();
-            
             CurrentScenesComponent currentScenesComponent = clientScene.GetComponent<CurrentScenesComponent>();
             currentScenesComponent.Scene?.Dispose(); // 删除之前的CurrentScene，创建新的
             Scene currentScene = SceneFactory.CreateCurrentScene(sceneInstanceId, clientScene.Zone, sceneName, currentScenesComponent);
@@ -20,7 +19,6 @@
             Unit unit = UnitFactory.Create(currentScene, m2CCreateMyUnit.Unit);
             unitComponent.Add(unit);
             clientScene.RemoveComponent<AIComponent>();
-            
             EventSystem.Instance.Publish(currentScene, new EventType.SceneChangeFinish());
             // 通知等待场景切换的协程
             clientScene.GetComponent<ObjectWait>().Notify(new Wait_SceneChangeFinish());

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 namespace ET.Server {
-
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 // 为什么需要，区分这些类型呢？分门别类地管理之类的【TODO】：去查细节
 	[UniqueId(0, 100)]
-    public static class LocationType { 
+    public static class LocationType { // 几种不同的类型 
         public const int Unit = 0;
         public const int Player = 1;
         public const int Friend = 2;
@@ -11,7 +11,7 @@ namespace ET.Server {
         public const int Max = 100;
     }
 
-	[ChildOf(typeof(LocationOneType))]
+	[ChildOf(typeof(LocationOneType))] // 这里 ChildOf, 它在热更域里，使用的时候，是真正添加为子控件 Component的
     public class LockInfo: Entity, IAwake<long, CoroutineLock>, IDestroy {
         public long LockInstanceId; // 锁的是：【被查询位置的、被查目标】的实例号
         public CoroutineLock CoroutineLock;
