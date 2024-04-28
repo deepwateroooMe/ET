@@ -1,84 +1,60 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-
-namespace ET.Client
-{
+namespace ET.Client {
     [FriendOf(typeof(UI))]
-    public static class UISystem
-    {
+    public static class UISystem {
         [ObjectSystem]
-        public class UIAwakeSystem : AwakeSystem<UI, string, GameObject>
-        {
-            protected override void Awake(UI self, string name, GameObject gameObject)
-            {
+        public class UIAwakeSystem : AwakeSystem<UI, string, GameObject> {
+            protected override void Awake(UI self, string name, GameObject gameObject) {
                 self.nameChildren.Clear();
                 gameObject.layer = LayerMask.NameToLayer(LayerNames.UI);
                 self.Name = name;
                 self.GameObject = gameObject;
             }
         }
-		
         [ObjectSystem]
-        public class UIDestroySystem : DestroySystem<UI>
-        {
-            protected override void Destroy(UI self)
-            {
-                foreach (UI ui in self.nameChildren.Values)
-                {
+        public class UIDestroySystem : DestroySystem<UI> {
+            protected override void Destroy(UI self) {
+                foreach (UI ui in self.nameChildren.Values) {
                     ui.Dispose();
                 }
-			
                 UnityEngine.Object.Destroy(self.GameObject);
                 self.nameChildren.Clear();
             }
         }
-
-        public static void SetAsFirstSibling(this UI self)
-        {
+        public static void SetAsFirstSibling(this UI self) {
             self.GameObject.transform.SetAsFirstSibling();
         }
-
-        public static void Add(this UI self, UI ui)
-        {
+        public static void Add(this UI self, UI ui) {
             self.nameChildren.Add(ui.Name, ui);
         }
-
-        public static void Remove(this UI self, string name)
-        {
+        public static void Remove(this UI self, string name) {
             UI ui;
-            if (!self.nameChildren.TryGetValue(name, out ui))
-            {
+            if (!self.nameChildren.TryGetValue(name, out ui)) {
                 return;
             }
             self.nameChildren.Remove(name);
             ui.Dispose();
         }
-
-        public static UI Get(this UI self, string name)
-        {
+        public static UI Get(this UI self, string name) { // 这里是，Get() Add() 两个方法，合并成一个了吗？看着像是【TODO】：
             UI child;
-            if (self.nameChildren.TryGetValue(name, out child))
-            {
+            if (self.nameChildren.TryGetValue(name, out child)) {
                 return child;
             }
             GameObject childGameObject = self.GameObject.transform.Find(name)?.gameObject;
-            if (childGameObject == null)
-            {
-                return null;
+            if (childGameObject == null) {
+                return null; // 因为，如果当前控件、子控件找不到，会返回空
             }
-            child = self.AddChild<UI, string, GameObject>(name, childGameObject);
+			// 只有添加新子控件时，才会执行下面的逻辑
+            child = self.AddChild<UI, string, GameObject>(name, childGameObject); 
             self.Add(child);
             return child;
         }
     }
-    
-    [ChildOf()]
-    public sealed class UI: Entity, IAwake<string, GameObject>, IDestroy
-    {
+    [ChildOf()] // UI 控件，以及其、可能会有的、所有的直接Children 控件管理维护
+    public sealed class UI: Entity, IAwake<string, GameObject>, IDestroy {
         public GameObject GameObject { get; set; }
-		
         public string Name { get; set; }
-
         public Dictionary<string, UI> nameChildren = new Dictionary<string, UI>();
     }
 }

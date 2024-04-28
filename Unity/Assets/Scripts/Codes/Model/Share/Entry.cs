@@ -7,6 +7,7 @@
         public struct EntryEvent3 {
         } 
     }
+
     public static class Entry {
         public static void Init() { // 占位符，免得启动程序域 Model 被App 应用裁剪
         }
@@ -30,7 +31,9 @@
             // 这里、某端的启动进程，想成一台物理机上的某个进程；静态类，就本进程随时可用可达
             Game.AddSingleton<NetServices>(); // Mode 程序域里：服务端的【网络模块】。去看Game: Game 是Unity 3 大主要回调的双端桥染实现静态类 
             Game.AddSingleton<Root>(); // 加了【端：双端任何一端、粒度单位：每个核每个进程】的根游戏场景
+
             // 接下来：按先后顺序，执行函数定义、要求的几大事件，每个调用，可能消耗多桢。。不管多少桢。。
+			// 亲爱的表哥的活宝妹，今天上午，1 小时左右，就从这里，去看【客户端】的启动逻辑【TODO】：现在！！！
             await Game.AddSingleton<ConfigComponent>().LoadAsync(); // 【双端、任何一端】的配置、启动过程，大部分读懂了，仍有不少细节，要去翻框架确认细节！
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent1());
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent2());

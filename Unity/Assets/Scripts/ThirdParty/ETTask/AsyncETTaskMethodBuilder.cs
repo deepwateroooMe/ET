@@ -2,124 +2,91 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security;
-
-namespace ET
-{
-    public struct ETAsyncTaskMethodBuilder
-    {
-        private ETTask tcs;
-
+namespace ET {
+	// 【TODO】：它怎么会是个结构体，作什么用的？
+    public struct ETAsyncTaskMethodBuilder {
+        private ETTask tcs; // 仅有这一个成员变量 
         // 1. Static Create method.
         [DebuggerHidden]
-        public static ETAsyncTaskMethodBuilder Create()
-        {
+        public static ETAsyncTaskMethodBuilder Create() {
+			// 静态创建一个、【ETAsyncTaskMethod 构建器】：初始化成员变量
             ETAsyncTaskMethodBuilder builder = new ETAsyncTaskMethodBuilder() { tcs = ETTask.Create(true) };
             return builder;
         }
-
         // 2. TaskLike Task property.
         [DebuggerHidden]
         public ETTask Task => this.tcs;
-
         // 3. SetException
         [DebuggerHidden]
-        public void SetException(Exception exception)
-        {
+        public void SetException(Exception exception) {
             this.tcs.SetException(exception);
         }
-
         // 4. SetResult
         [DebuggerHidden]
-        public void SetResult()
-        {
+        public void SetResult() {
             this.tcs.SetResult();
         }
-
         // 5. AwaitOnCompleted
         [DebuggerHidden]
-        public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine
-        {
+        public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine {
             awaiter.OnCompleted(stateMachine.MoveNext);
         }
-
         // 6. AwaitUnsafeOnCompleted
         [DebuggerHidden]
         [SecuritySafeCritical]
-        public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
-        {
+        public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine {
             awaiter.OnCompleted(stateMachine.MoveNext);
         }
-
         // 7. Start
         [DebuggerHidden]
-        public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine
-        {
+        public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine {
             stateMachine.MoveNext();
         }
-
         // 8. SetStateMachine
         [DebuggerHidden]
-        public void SetStateMachine(IAsyncStateMachine stateMachine)
-        {
+        public void SetStateMachine(IAsyncStateMachine stateMachine) {
         }
     }
-
-    public struct ETAsyncTaskMethodBuilder<T>
-    {
+    public struct ETAsyncTaskMethodBuilder<T> {
         private ETTask<T> tcs;
-
         // 1. Static Create method.
         [DebuggerHidden]
-        public static ETAsyncTaskMethodBuilder<T> Create()
-        {
+        public static ETAsyncTaskMethodBuilder<T> Create() {
             ETAsyncTaskMethodBuilder<T> builder = new ETAsyncTaskMethodBuilder<T>() { tcs = ETTask<T>.Create(true) };
             return builder;
         }
-
         // 2. TaskLike Task property.
         [DebuggerHidden]
         public ETTask<T> Task => this.tcs;
-
         // 3. SetException
         [DebuggerHidden]
-        public void SetException(Exception exception)
-        {
+        public void SetException(Exception exception) {
             this.tcs.SetException(exception);
         }
-
         // 4. SetResult
         [DebuggerHidden]
-        public void SetResult(T ret)
-        {
+        public void SetResult(T ret) {
             this.tcs.SetResult(ret);
         }
-
         // 5. AwaitOnCompleted
         [DebuggerHidden]
-        public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine
-        {
+        public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : INotifyCompletion where TStateMachine : IAsyncStateMachine {
             awaiter.OnCompleted(stateMachine.MoveNext);
         }
-
         // 6. AwaitUnsafeOnCompleted
         [DebuggerHidden]
         [SecuritySafeCritical]
-        public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine
-        {
+        public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : ICriticalNotifyCompletion where TStateMachine : IAsyncStateMachine {
             awaiter.OnCompleted(stateMachine.MoveNext);
         }
-
         // 7. Start
         [DebuggerHidden]
-        public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine
-        {
+        public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : IAsyncStateMachine {
             stateMachine.MoveNext();
         }
-
         // 8. SetStateMachine
         [DebuggerHidden]
-        public void SetStateMachine(IAsyncStateMachine stateMachine)
-        {
+        public void SetStateMachine(IAsyncStateMachine stateMachine) {
         }
     }
 }

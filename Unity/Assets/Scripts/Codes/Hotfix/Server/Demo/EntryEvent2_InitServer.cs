@@ -1,6 +1,7 @@
 using System.Net;
 namespace ET.Server {
-    [Event(SceneType.Process)] // 【服务端】进程：启动组件. 【进程】这个粒度单位
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+	[Event(SceneType.Process)] // 【服务端】进程：启动组件. 【进程】这个粒度单位
     public class EntryEvent2_InitServer: AEvent<Scene, ET.EventType.EntryEvent2> {
 		// 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
 		// 【进程】上：服务端的、每台物理机、每个进程上，都会添加下面的这些组件
@@ -27,7 +28,7 @@ namespace ET.Server {
                     }
                     break;
                 }
-                case AppType.Watcher: {
+				case AppType.Watcher: { // 这个进程：改天再看一下
                     StartMachineConfig startMachineConfig = WatcherHelper.GetThisMachineConfig();
                     WatcherComponent watcherComponent = Root.Instance.Scene.AddComponent<WatcherComponent>();
                     watcherComponent.Start(Options.Instance.CreateScenes);

@@ -248,7 +248,7 @@ namespace ET {
                 }
                 if (!this.IsCreated) {
                     this.IsCreated = true;
-                    EventSystem.Instance.Deserialize(this); // ECS: 一切皆组件！反序列化，这个Entity。。
+                    EventSystem.Instance.Deserialize(this); // ECS: 一切皆组件！反序列化，这个Entity。。【TODO】：不知道这个是怎么回事儿
                 }
             }
         }

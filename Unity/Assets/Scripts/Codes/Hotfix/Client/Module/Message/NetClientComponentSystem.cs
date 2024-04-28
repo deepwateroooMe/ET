@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 namespace ET.Client {
+	// 【客户端网络组件】：
     [FriendOf(typeof(NetClientComponent))]
     public static class NetClientComponentSystem {
         [ObjectSystem]
@@ -48,11 +49,13 @@ namespace ET.Client {
         }
         public static Session Create(this NetClientComponent self, IPEndPoint routerIPEndPoint, IPEndPoint realIPEndPoint, uint localConn) {
             long channelId = localConn;
+			// 刚才不是不懂 Session.Domain.SceneType 吗？这里就是【客户端】场景的场景类型呀。因为子Domain 继承父控件的Domain, 就是客户端场景的类型
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-            session.RemoteAddress = realIPEndPoint;
+            session.RemoteAddress = realIPEndPoint; // 【会话框】远程是【Realms 服】。所以这里看【客户端】与【Realms 服】是通过【路由器】转发的、完全随机、动态、安全防攻击
             if (self.Domain.SceneType != SceneType.Benchmark) {
-                session.AddComponent<SessionIdleCheckerComponent>();
+                session.AddComponent<SessionIdleCheckerComponent>(); // 【会话框】30 秒不活动、超时自检测机制
             }
+			// 下面，CreateChannel() 就写好了，【会话框】的本地？成【路由器】地址与端口等，借助路由器中转，建立起客户端与Realms 服间的通信连接
             NetServices.Instance.CreateChannel(self.ServiceId, session.Id, routerIPEndPoint);
             return session;
         }

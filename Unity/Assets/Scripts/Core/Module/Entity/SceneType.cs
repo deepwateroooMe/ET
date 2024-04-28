@@ -10,8 +10,8 @@ namespace ET {
         Http = 1 << 5,
         Location = 1 << 6,
         Map = 1 << 7,
-        Router = 1 << 8,
-        RouterManager = 1 << 9,
+        Router = 1 << 8,        // 【场景】：可以是，路由器场景 
+        RouterManager = 1 << 9, // 【场景】：可以是，路由器 Manager场景 
         Robot = 1 << 10,
         BenchmarkClient = 1 << 11,
         BenchmarkServer = 1 << 12,

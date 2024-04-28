@@ -69,7 +69,7 @@ namespace ET {
             IResponse ret;
             try {
                 cancellationToken?.Add(CancelAction); // 必要时，注册：取消的回调
-                ret = await rpcInfo.Tcs; // 等结果。 await 使Tcs.SetResult() 后，结果就可以返回这里。内部状态机原理需要看懂。【TODO】：
+                ret = await rpcInfo.Tcs; // 等结果。 await 使上面的OnResponse() 里Tcs.SetResult(response) 后，结果就可以返回这里 ret。内部状态机原理需要看懂。【TODO】：
             }
             finally {
                 cancellationToken?.Remove(CancelAction);
@@ -87,13 +87,12 @@ namespace ET {
         public static void Send(this Session self, IMessage message) {
             self.Send(0, message); // 为什么这里，直接补 rpcId=0 特殊处理，标记的是：【TODO】：
         }
-		// 【TODO】：网络上搜索，并作笔记，网络异步调用时，发送消息，与接收消息的流程图。把2 张图记住，就不会这些底层的细节老是忘记了
 		// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
         public static void Send(this Session self, long actorId, IMessage message) {
             self.LastSendTime = TimeHelper.ClientNow(); // 最后发送时间
             OpcodeHelper.LogMsg(self.DomainZone(), message);
 // 过程：主线程，包装派给异步线程；异步线程通过特定服务实例、向下走【信道、管道】内存流上发、序列化后消息的过程
-            NetServices.Instance.SendMessage(self.ServiceId, self.Id, actorId, message); 
+            NetServices.Instance.SendMessage(self.ServiceId, self.Id, actorId, message); // 【TODO】：现在看下这个过程 
         }
     }
     [ChildOf]

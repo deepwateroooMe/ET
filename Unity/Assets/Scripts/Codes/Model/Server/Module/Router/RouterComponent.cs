@@ -5,7 +5,7 @@ using System.Net.Sockets;
 namespace ET.Server {
 	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 
-	// 【动态路由组件】：先前看过这个模块，看得一片天昏地暗..
+	// 【动态路由组件】：
 	[ComponentOf(typeof(Scene))]
     public class RouterComponent: Entity, IAwake<IPEndPoint, string>, IDestroy, IUpdate {
 		// 对内、对外的、通信信道管道

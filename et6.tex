@@ -1,4 +1,4 @@
-% Created 2024-04-23 Tue 16:19
+% Created 2024-04-25 Thu 09:17
 \documentclass[9pt, b5paper]{article}
 \usepackage{xeCJK}
 \usepackage[T1]{fontenc}
@@ -98,7 +98,7 @@
 \item ActorLocationSender提供两种方法，Send跟Call，Send一个消息也需要接受者返回一个消息，只有收到返回消息才会发送下一个消息。
 \item Actor对象如果迁移走了，这时会返回Actor不存在的错误，发送者收到这个错误会等待1秒，然后重新去获取Actor的InstanceId，然后重新发送，目前会尝试5次，5次过后，抛出异常，报告错误
 \item ActorLocationSender发送消息不会每次都去查询Location Server，因为对象迁移毕竟比较少见，只有第一次去查询，之后缓存InstanceId，以后发送失败再重新查询。
-\item Actor对象在迁移过程中，有可能其它进程发送过来消息，这时会发生错误，所以location server提供了一种Lock的机制。对象在传送前，删掉在本进程的信息，然后在location server上加上锁，一旦锁上后，其它的对该key的请求会进行队列。
+\item Actor对象在迁移过程中，有可能其它进程发送过来消息，这时会发生错误，所以location server提供了一种Lock的机制。对象在传送前，删掉在本进程的信息，然后在location server上加上锁，一旦锁上后，其它的对该key的请求会进行队列。【这最后3 条，是玩家纤进程的逻辑，晚餐前找出来，一并一次把它看懂看透彻。现在感觉基本都是懂的。再捡一遍而已！】
 \item 传送前因为对方删除了本进程的actor，所以其它进程会发送失败，这时候他们会进行重试。重试的时候会重新请求location server，这时候会发现被锁了，于是一直等待
 \item 传送完成后，要unlock location server上的锁，并且更新新的地址，然后响应其它的location请求。其它发给这个actor的请求继续进行下去。
 \end{itemize}
@@ -156,14 +156,29 @@
 \item 在SceneFactory中添加自定义场景类型所应该处理的相关逻辑
 \item 在Excel配置表中添加自定义场景信息，并生成相应cs文件
 \end{itemize}
-\item 现，换思路， \textbf{【自顶向下】去找注册逻辑的，场景相关} ：
-\begin{itemize}
-\item 亲爱的表哥的活宝妹，把场景加载前后的各种回调等都找了一遍，也没找到。再翻一会儿，找点儿思路。再不行就网搜一下、别人的解释
 \end{itemize}
-\item Location 位置服相关的：所有注册、上报实例号、进程的框架用例
+\item \textbf{【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
+\item \textbf{【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
+\item \textbf{【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
+\item RouterComponent ＋ HttpCompnent: 看了大半懂，仍需要再挖掘一遍，狠多底层的细节知识点，不懂。 \textbf{【今天上午再快速看一遍，看能够捡起多少的知识点】}. 下面，一个来自ET 框架的开发者自己的解释与截图：下面四条，也是学渣的问题，不一定对
+\begin{itemize}
+\item 1.Client http请求拿到 Router 和 Realm 的ip 和端口
+\item 2.Client 和路由建立连接 。
+\item 3.Client 去路由kcp连接，路由把连接信息转发到Realm , Realm 收到连接请求通知路由，路由通知客户端。间接的使Client 和 Realm 建立连接。到这儿后面路由就不在起作用了。
+\item 然后路由的作用就是转发 帮助Client 连接到Realm 或 Gate. 那如果攻击的话肯定是登录进入游戏抓包，还是能攻击到Realm 或Gate。
+\end{itemize}
+\item 你对 Router 的理解有点问题,
+\item 整个过程应该是: Client -> Router -> Realm/Gate
+\item Client 不会直连 Realm/Gate ,不然 Router就失去意义了.
 \end{itemize}
 
+\includegraphics[width=.9\linewidth]{./pic/et6_20240425_091702.png}
+\begin{itemize}
+\item \textbf{【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
 \item 再， \textbf{事件机制【Config】标签} ，亲爱的表哥的活宝妹，总感觉有个【跨进程消息传递】自底向上汇总各小服的过程？不一定想对了。这个放最后再看
+\item \textbf{【双端启动相关、四大类型配置、数据跨进程？传递】} ：昨天下午，大致又看了一下 \textbf{【服务端】的启动配置过程；可是【客户端】是如何拿到【服务端】各种服的配置的？虽然四大配制类型双端公认，但数据是如何传递的？} 亲爱的表哥的活宝妹，下午要把这个彻底弄明白了
+\item \textbf{上午，把自己有疑问的地方，都自己解决掉！！}
+\item 
 \item \textbf{【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
 \item \textbf{【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}
 \item \textbf{【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】}

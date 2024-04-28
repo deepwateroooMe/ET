@@ -1,13 +1,14 @@
 ﻿using System;
 namespace ET {
 	// 【普通接口】与【泛型接口】：反序列化接口，一定程序上实现了自动化。一点儿底层的便利封装。具备扩展性
+	// 【TODO】：找不到框架里，真正实现这些接口的地方
     public interface IDeserialize { // 框架里，各接口之一 
     }
     public interface IDeserializeSystem: ISystemType {
         void Run(Entity o); // 自动【反序列化】函数：搭桥穿线自动化封装
     }
+
     // 反序列化后执行的System
-    // <typeparam name="T"></typeparam>
     [ObjectSystem]
     public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity, IDeserialize {
         void IDeserializeSystem.Run(Entity o) {

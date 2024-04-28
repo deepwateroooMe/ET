@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ET {
 	// 【网络模块】：小项目或是大项目，不管多大的项目，都需要能够如亲爱的表哥的活宝妹今天这样，把前后需要的逻辑，一定完全全部找出来。要具备无条件阅读读懂任何大型项目相关必要源码的能力！
 	// 【ET7 框架架构：单线程多进程】；但OS:OSX/Windows/Linux 底层网络部分是多线程？多进程？的。
-	// 之前没理解：怎么，狠多网络异步调用，就出了多线程？把这些都想透彻
+
     public enum NetworkProtocol {
         TCP,
         KCP, // 内网组件：用的是 KCP 以前没细看，找下不同类型，各用在什么地方
@@ -26,6 +26,7 @@ namespace ET {
         GetChannelConn = 10,
         ChangeAddress = 11,
     }
+
     public struct NetOperator { // 结构体
         public NetOp Op; // 操作码
         public int ServiceId;
@@ -33,6 +34,7 @@ namespace ET {
         public long ActorId;
         public object Object; // 参数
     }
+
     public class NetServices: Singleton<NetServices>, ISingletonUpdate { // 双端【单线程多进程】
         private readonly ConcurrentQueue<NetOperator> netThreadOperators = new ConcurrentQueue<NetOperator>();
         private readonly ConcurrentQueue<NetOperator> mainThreadOperators = new ConcurrentQueue<NetOperator>();

@@ -38,11 +38,11 @@ namespace ET {
             Dictionary<Type, byte[]> configBytes = EventSystem.Instance.Invoke<GetAllConfigBytes, Dictionary<Type, byte[]>>(new GetAllConfigBytes());
             foreach (Type type in configBytes.Keys) {
                 byte[] oneConfigBytes = configBytes[type];
-                this.LoadOneInThread(type, oneConfigBytes); // <<<<<<<<<<<<<<<<<<<< 
+                this.LoadOneInThread(type, oneConfigBytes); // 【TODO】：这里写的像是，开启一个进程中的多线程一样，可是没看懂，它是线程？？？
             }
-        }
-		// 【双端、任何一端、配置扫描加载】：亲爱的表哥的活宝妹，以前看得好想当然，现在才感觉，好多细节不懂
-		// 【ET 框架事件系统】：说是ET 心脏，感觉看懂了，可是事件机制里 Invoke 后，双端不同物理机、进程、各自回调，又跨进程返回配制？的过程
+        } 
+		// 【双端、任何一端、配置扫描加载】：亲爱的表哥的活宝妹，上午去看【客户端的启动逻辑】看懂看透彻！！
+		// 【ET 框架事件系统】：说是ET 心脏，感觉看懂了，可是事件机制里 Invoke 后，双端不同物理机、进程、各自回调，又跨进程返回配制？的过程？？
 		// 这次，上面的这些细节，得看懂了
 		// 先，去找：事件系统 Invoke 后，双端，哪些逻辑、逻辑主要步骤、原理
         public async ETTask LoadAsync() {
@@ -69,5 +69,4 @@ namespace ET {
             }
         }
     }
-}
- // 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
+} // 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！

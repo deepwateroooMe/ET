@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 namespace ET {
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+	// 不知道这个组件，有什么功用？【TODO】：
     public static class WaitTypeError {
         public const int Success = 0;
         public const int Destroy = 1;
@@ -112,4 +114,4 @@ namespace ET {
     public class ObjectWait: Entity, IAwake, IDestroy {
         public Dictionary<Type, object> tcss = new Dictionary<Type, object>();
     }
-}
+} // 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】

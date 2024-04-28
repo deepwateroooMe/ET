@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Net;
 namespace ET.Server {
-	// 亲爱的表哥的活宝妹，就是自己想不明白，这几个模块，是在干什么。。。【TODO】：
+
+	// RouterManager 的组件：用来处理，来自其它路由场景的、请求的
 	
     // http请求分发器【源】：
     [ComponentOf(typeof(Scene))]

@@ -19,6 +19,7 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
         public class ActorMessageSenderComponentAwakeSystem: AwakeSystem<ActorMessageSenderComponent> {
             protected override void Awake(ActorMessageSenderComponent self) {
                 ActorMessageSenderComponent.Instance = self;
+				// 每秒钟，就来1 次？
                 self.TimeoutCheckTimer = TimerComponent.Instance.NewRepeatedTimer(1000, TimerInvokeType.ActorMessageSenderChecker, self);
             }
         }
