@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 namespace ET.Server {
 	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-// 为什么需要，区分这些类型呢？分门别类地管理之类的【TODO】：去查细节
+	// 为什么需要，区分这些类型呢？分门别类地管理之类的.
+	// 如果不分门别类，位置服把它们都当同一类型，协程锁队列过长，影响效率，防碍了多线程多进程提效。分门别类后，位置服至少可以多进程减压、提速、提高反应灵敏性
 	[UniqueId(0, 100)]
     public static class LocationType { // 几种不同的类型 
         public const int Unit = 0;

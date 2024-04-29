@@ -92,8 +92,9 @@ namespace ET.Server {
         public static async ETTask<long> Get(this LocationOneType self, long key) {
             int coroutineLockType = (self.LocationType << 16) | CoroutineLockType.Location;
             using (await CoroutineLockComponent.Instance.Wait(coroutineLockType, key)) {
+				// ET 框架里，用户玩家登录【网关服】时，就会自动注册上报【位置服】玩家的位置。全框架，此唯一一处【注册上报位置服】但可以涵盖几乎所用使用场景
+				// 【纤进程】时的逻辑稍不同：纤前先上锁；纤完后解锁，有专门类处理
                 self.locations.TryGetValue(key, out long instanceId); // 字典里有就返回，没有返回缺省值
-				// 【TODO】：这里，亲爱的表哥的活宝妹，就是翻框架，去寻找：哪里，是否，曾经，自动化，向位置服注册上报过实例号？换个思路，自顶向下，去找双端场景加载时的逻辑
                 Log.Info($"location get key: {key} instanceId: {instanceId}");
                 return instanceId;
             }

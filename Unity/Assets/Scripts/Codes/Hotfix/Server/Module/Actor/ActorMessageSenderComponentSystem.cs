@@ -41,8 +41,7 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
                 self.Tcs.SetException(new Exception($"Rpc error: actorId: {self.ActorId} request: {self.Request}, response: {response}"));
                 return;
             }
-// 现在ETTask 大部分逻辑都懂，但仍然不懂：内部状态机的运行逻辑，还仍然不懂【TODO】： tcs结果写好，调用方Send().tcs-return 的过程不懂
-            self.Tcs.SetResult(response); 
+            self.Tcs.SetResult(response); // tcs结果写好，调用方 await 这个结果的地方，就能够第一时间得到通知，并使调用方协程的逻辑块，往下执行
         }
         private static void Check(this ActorMessageSenderComponent self) {
             long timeNow = TimeHelper.ServerNow();
@@ -68,7 +67,7 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
             self.TimeoutActorMessageSenders.Clear();
         }
 		// 发送IMessage: IMessage 是不需要回复消息的。并且，这里的 actorId 是【消息的、发送者、发送代理】的、实例身份证号
-        public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) {
+        public static void Send(this ActorMessageSenderComponent self, long actorId, IMessage message) { // actorId 代表：目标接收者进程号
             if (actorId == 0) {
                 throw new Exception($"actor id is 0: {message}");
             }
@@ -88,8 +87,8 @@ namespace ET.Server { // 【亲爱的表哥的活宝妹，任何时候，亲爱�
                 HandleMessageInNextFrame().Coroutine();
                 return;
             }
-			// 不同进程：【TODO】：
-            Session session = NetInnerComponent.Instance.Get(processActorId.Process); // 不同进程，哪怕同一物理机，还有什么端口问题。。
+			// 不同进程：走【内网消息】，拿【内网连通的、会话框】、会话框上把消息发出去
+            Session session = NetInnerComponent.Instance.Get(processActorId.Process); // 拿到现存在的会话框，或是创建，与此进程端口的会话框，方便通信
             session.Send(processActorId.ActorId, message);
         }
         public static int GetRpcId(this ActorMessageSenderComponent self) {

@@ -12,8 +12,7 @@ namespace ET.Server {
 			// 【服务端】任何场景：都具备收发邮件功能 
             scene.AddComponent<MailBoxComponent, MailboxType>(MailboxType.UnOrderMessageDispatcher);
             switch (scene.SceneType) {
-				// 【TODO】：就是感觉，完全没看懂过，下面的2 个【网络、路由相关】的场景. 亲爱的表哥的活宝妹，今天上午就看这个！！这几个对亲爱的表哥的活宝妹目前的理解，比较困难一点儿
-				case SceneType.Router: 
+				case SceneType.Router:  // 【动态软路由】模块
                     scene.AddComponent<RouterComponent, IPEndPoint, string>(startSceneConfig.OuterIPPort,
                         startSceneConfig.StartProcessConfig.InnerIP
                     );

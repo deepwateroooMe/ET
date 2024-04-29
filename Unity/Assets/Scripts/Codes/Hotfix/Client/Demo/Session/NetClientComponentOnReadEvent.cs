@@ -11,9 +11,9 @@
                 session.OnResponse(response);    // 【返回消息】极简单：收消息【客户端】在本进程上，【会话框】上把消息结果写回去 Tcs.SetResult(response) 就可以了
                 return;
             }
-            // 普通消息或者是Rpc请求消息：消息派发组件。感觉这里没看懂没看透彻
+			// 除了IResponse 之外，就剩下两2 种： IMessage IRequest
+            // 普通消息或者是Rpc请求消息：消息派发组件
 			// 普通消息或者是Rpc请求消息：到达本进程，也是到达了消息的【被请求方】进程，要下发下放到、各司其职的各小服场景，由它们的功能逻辑来处理
-			// 【TODO】：亲爱的表哥的活宝妹，这里，脑袋里，还差一个系统概念与理解。现在再看一遍
 			// 【TODO】：普通消息或者是Rpc请求消息【源】；【普通消息】就是IRequest IMessage, 【Rpc 请求消息】是IActorRequest IActorMessage.
             MessageDispatcherComponent.Instance.Handle(session, message); // 处理逻辑：下发给具体的场景，让场景里的消息处理器去处理
             await ETTask.CompletedTask;

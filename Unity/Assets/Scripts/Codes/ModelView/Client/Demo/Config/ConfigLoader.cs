@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 namespace ET.Client {
 	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
 	[Invoke] // ConfigComponent 的【客户端】实现逻辑
 	// 【双端、都】CodeLoader==>Entry.Start()==>LoadAsync()==>ConfigComponent 
 	// 【客户端】：Unity/Assets/Config/Excel/... 里，也是有着【服务端】的配置 excel 相关文件，启动时是会【扫这些配置文件的】？【TODO】：确认一下
@@ -14,7 +15,6 @@ namespace ET.Client {
         public override Dictionary<Type, byte[]> Handle(ConfigComponent.GetAllConfigBytes args) {
             Dictionary<Type, byte[]> output = new Dictionary<Type, byte[]>();
 // 程序域加载时，系统性一次性全扫过、所有 BaseAttribute 的继承类。
-// 换个头绪，去找程序域里的【Config】标签，是否一定是，ExcelExporter 导出的服务端四大配制类的 .cs 文件？【TODO】：
 			// 【客户端】：返回EventSystem 先前扫到的、个性化标签【Config】的几种类型，大概六七种
             HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute));  
             if (Define.IsEditor) { // 编辑器模式下：配置的路径地址

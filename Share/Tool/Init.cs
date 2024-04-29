@@ -12,7 +12,7 @@ namespace ET.Server {
                 // 异步方法全部会回掉到主线程
                 Game.AddSingleton<MainThreadSynchronizationContext>();
                 
-                // 命令行参数【源】：【TODO】：这里也还是没太看懂
+                // 命令行参数【源】：基本上是懂的。试想工具应用导表、生成 .cs 和 bytes 之后，【服务端】的第一个进程如何启动？还是需要命令行命令。这里对命令行命令Parse 成Opetions
                 Parser.Default.ParseArguments<Options>(args)
                     .WithNotParsed(error => throw new Exception($"命令行格式错误! {error}"))
                     .WithParsed(Game.AddSingleton);

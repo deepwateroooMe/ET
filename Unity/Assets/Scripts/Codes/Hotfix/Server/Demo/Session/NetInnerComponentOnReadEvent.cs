@@ -11,7 +11,7 @@ namespace ET.Server {
                 switch (message) {
 					case IActorResponse iActorResponse: {
 						// Actor 消息发送时，巧妙封装 ETTask<IActorResponse> tcs 成员变量，是返回消息，就把结果写回去就可以了
-						// 【TODO】：ETTask 底层原理、状态机、各种状态，如SetResult() 后的回调等，感觉不透彻, 这个可以改天上午再看一下
+						// ETTask 底层原理、状态机、各种状态，如SetResult() 后的回调【语言的语法树？会封装，当程序员SetResult() 后，状态机层层叠叠的封装，会把结果第一时间返回给 await tcs; 的调用方】理解上欠缺一点儿，但大概的原理懂
                         ActorHandleHelper.HandleIActorResponse(iActorResponse);
                         break;
                     }

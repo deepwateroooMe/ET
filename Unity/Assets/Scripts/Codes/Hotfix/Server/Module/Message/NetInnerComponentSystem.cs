@@ -76,8 +76,8 @@ namespace ET.Server {
         }
         private static Session CreateInner(this NetInnerComponent self, long channelId, IPEndPoint ipEndPoint) {
             Session session = self.AddChildWithId<Session, int>(channelId, self.ServiceId);
-            session.RemoteAddress = ipEndPoint;
-            NetServices.Instance.CreateChannel(self.ServiceId, channelId, ipEndPoint);
+            session.RemoteAddress = ipEndPoint; // 远程地址
+            NetServices.Instance.CreateChannel(self.ServiceId, channelId, ipEndPoint); // 创建信道：写会话框的另一端
             // session.AddComponent<InnerPingComponent>();
             // session.AddComponent<SessionIdleCheckerComponent, int, int, int>(NetThreadComponent.checkInteral, NetThreadComponent.recvMaxIdleTime, NetThreadComponent.sendMaxIdleTime);
             return session;
@@ -90,7 +90,7 @@ namespace ET.Server {
             if (session != null) {
                 return session;
             }
-            IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort; // 远和：目标进程的、对外通信开放端口
+            IPEndPoint ipEndPoint = StartProcessConfigCategory.Instance.Get((int) channelId).InnerIPPort; // 远程：目标进程的、对外通信开放端口 
             session = self.CreateInner(channelId, ipEndPoint); // 创建【内网、2进程间的会话框】
             return session;
         }

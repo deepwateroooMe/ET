@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 namespace ET {
 	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-	// 不知道这个组件，有什么功用？【TODO】：
+	// 天下框架都是封装。。
     public static class WaitTypeError {
         public const int Success = 0;
         public const int Destroy = 1;
@@ -54,7 +54,7 @@ namespace ET {
             public void SetResult() {
                 var t = tcs;
                 this.tcs = null;
-                t.SetResult(new K() { Error = WaitTypeError.Destroy });
+                t.SetResult(new K() { Error = WaitTypeError.Destroy }); // 缺省结果：是出错销毁了
             }
         }
         public static async ETTask<T> Wait<T>(this ObjectWait self, ETCancellationToken cancellationToken = null) where T : struct, IWaitType {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 namespace ET.Server {
-    // Actor消息分发组件
+    // Actor消息分发组件: 粒度单位，【进程】上的组件
     [FriendOf(typeof(ActorMessageDispatcherComponent))]
     public static class ActorMessageDispatcherComponentHelper {
         [ObjectSystem]
@@ -65,7 +65,7 @@ namespace ET.Server {
         }
         public static async ETTask Handle(this ActorMessageDispatcherComponent self, Entity entity, int fromProcess, object message) {
             List<ActorMessageDispatcherInfo> list; // 一台物理机、某个进程上的、总管：对本进程内N 多场景统管【链条】
-			// 【链条】：【TODO 需要确认，可能没理解透彻】：仍把同一进程上、同类型场景、不止一个节点的、多个同类型场景，理解为【分身分服】
+			// 【链条】：仍把同一进程上、同类型场景、不止一个节点的、多个同类型场景，理解为【分身分服】
 			// 当某种类型服务器，因功能或游戏特性受压时，随时备份分身、1 个场景、分开多个N 个场景，来应对服务器处理压力，所以需要【链条】，同进程同类型场景，也不止一个！
             if (!self.ActorMessageHandlers.TryGetValue(message.GetType(), out list)) {
                 throw new Exception($"not found message handler: {message} {entity.GetType().FullName}");

@@ -1,6 +1,6 @@
 ﻿using System;
 namespace ET.Server {
-	// 静态帮助类：注意区分：普通Actor 消息，与位置 Actor 往返消息，是否共用这个类？【TODO】：晚点儿、看完位置消息后、会能够确认
+	// 静态帮助类：注意区分：普通Actor 消息，与位置 Actor 往返消息，是否共用这个类？有共用的地方，也有不同的地方。LocationActor 相关，必要的时候需要先查询位置服，才再底层普通 Actor 消息发送
 	// 静态帮助类ActorHandleHelper: 多少个服务器？进程？，使用这个类？想明白这个，才是下面，单线程【多线程】多进程，访问、某个进程目标场景邮箱、要用协程锁的理由
     public static class ActorHandleHelper {
 		// Reply(): 这个过程，感觉读了千百遍了：目标进程为【本进程同进程】就短路不走网络层；否则内网会话框、发内网消息到目标进程上去
@@ -27,7 +27,7 @@ namespace ET.Server {
             InstanceIdStruct instanceIdStruct = new(actorId);
             int fromProcess = instanceIdStruct.Process;
             instanceIdStruct.Process = Options.Instance.Process;
-            long realActorId = instanceIdStruct.ToLong(); // 一目了然的：【目标实例——收件人】 actorId, 怎么就知道传进来的是，收件人不是发件人的？【TODO】：
+            long realActorId = instanceIdStruct.ToLong(); // 一目了然的：【目标实例——收件人】 actorId
             Entity entity = Root.Instance.Get(realActorId);
             if (entity == null) {
                 IActorResponse response = ActorHelper.CreateResponse(iActorRequest, ErrorCore.ERR_NotFoundActor);
@@ -42,7 +42,7 @@ namespace ET.Server {
                 return;
             }
             switch (mailBoxComponent.MailboxType) {
-				// 2 种类型区别：派发器用协程锁；无序不用协程锁，原因？【TODO】：现在
+				// 2 种类型区别：派发器用协程锁；无序不用协程锁？哪里说【无序不用协程锁】了？下面的Using 协程锁，不就是锁着对应【CoroutineLockType.Mailbox, realActorId】的队列吗？队列里FIFO
 				case MailboxType.MessageDispatcher: { // Init_Share: 【双端、任何一端、进程上】都挂载这种【消息派发器】：
 					// 以【目标实例——收件人】 actorId 为键的、协程锁，为什么，先前的亲爱的表哥的活宝妹，就是傻傻瓣不清楚？现在看多简单？先前的亲爱的表哥的活宝妹，一定是笨哭了。。。
 					// 多个处理针对同一个实体的Mailbox消息处理，处理需要按照先后顺序【摘抄自网络】一看就明白的呀。。。先前的亲爱的表哥的活宝妹、笨宝妹；现在的聪明活宝木头妹。。。
@@ -60,7 +60,8 @@ namespace ET.Server {
                 }
 				case MailboxType.UnOrderMessageDispatcher: { // 无序的：不用协程锁。【服务端、任何场景】都挂载这种派发器
 					// 将、到达【本进程】的内网消息，下派发到、各司其职的、司特定功能的、多个备份分身小服，去处理【负责回复消息什么的】
-					// 现在，快速看一遍：回复消息回去的过程：底层封装消息的自动回复；自动回复是？【TODO】：现在
+					// 【进程】上的组件 ActorMessageDispatcherComponent, 负责根据【 entity 所代表的场景类型】来分派给，此特定场景下的处理器去处理
+					// 进程上的管理组件，只负责分发、分派消息给不同处理器，所以可以无序，不用协程锁
                     await ActorMessageDispatcherComponent.Instance.Handle(entity, fromProcess, iActorRequest); 
                     break;
                 }

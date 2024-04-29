@@ -16,8 +16,6 @@ namespace ET.Server { // 【服务端】
                 "StartZoneConfigCategory",
             };
 			// 【Config】：这里有个，双端任何一端启动时，根据Excel 配置文件、利用ExcelExporter 工具，写Options 启动各进程，并写配置文件的过程
-			// 【TODO】：上面，先前看第1 遍时写的，现在再去看一遍，现在！！
-			// 上面，看过，但看得不透彻。亲爱的表哥的活宝妹，下午要再细看一遍，务必把，亲爱的表哥的活宝妹注意到、意识到的问题，全部解决掉，看正看懂！
             HashSet<Type> configTypes = EventSystem.Instance.GetTypes(typeof (ConfigAttribute));
             foreach (Type configType in configTypes) {
                 string configFilePath;
@@ -34,7 +32,7 @@ namespace ET.Server { // 【服务端】
     public class GetOneConfigBytes: AInvokeHandler<ConfigComponent.GetOneConfigBytes, byte[]> {
         public override byte[] Handle(ConfigComponent.GetOneConfigBytes args) {
             byte[] configBytes = File.ReadAllBytes($"../Config/{args.ConfigName}.bytes");
-			// 【TODO】：上面的问题是，上面的 .bytes 文件，是哪里，什么时候生成的？把逻辑找出来。今天下午
+			// 上面的 .bytes 文件，是哪里，什么时候生成的？是AppType.Tools 里 ExcelExporter 工具导出来，导在【服务端】的Config 路径下的多个 .bytes 文件
             return configBytes;
         }
     }

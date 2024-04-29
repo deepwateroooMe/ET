@@ -31,7 +31,7 @@ namespace ET.Client {
         }
         public static async ETTask<UI> OnCreate(this UIEventComponent self, UIComponent uiComponent, string uiType, UILayer uiLayer) {
             try {
-                UI ui = await self.UIEvents[uiType].OnCreate(uiComponent, uiLayer);
+                UI ui = await self.UIEvents[uiType].OnCreate(uiComponent, uiLayer); // 手动调用、手动链接
                 return ui;
             }
             catch (Exception e) {

@@ -13,7 +13,7 @@ namespace ET.Client {
             if (!self.UIs.TryGetValue(uiType, out UI ui)) {
                 return;
             }
-            UIEventComponent.Instance.OnRemove(self, uiType);
+            UIEventComponent.Instance.OnRemove(self, uiType); // 这，就是AUIEvent 2 个回调事件的手动链接
             self.UIs.Remove(uiType);
             ui.Dispose();
         }

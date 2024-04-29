@@ -5,7 +5,7 @@ namespace ET.Server {
     // 自带超时检测机制：机制说，位置消息的发送者，近期，没活跃度，可能掉线了或是下线了？视为超时
     [ChildOf(typeof(ActorLocationSenderComponent))]
     public class ActorLocationSenderOneType: Entity, IAwake<int>, IDestroy {
-        public const long TIMEOUT_TIME = 60 * 1000;
+        public const long TIMEOUT_TIME = 60 * 1000; // 这种类型：ActorLocationSenderOneType 超时时间为 1 分钟
         public long CheckTimer;
         public int LocationType;
     }

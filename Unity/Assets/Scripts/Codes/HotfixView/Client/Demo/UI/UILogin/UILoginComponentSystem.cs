@@ -1,10 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 namespace ET.Client {
-	
     [FriendOf(typeof(UILoginComponent))]
     public static class UILoginComponentSystem {
-
 		[ObjectSystem]
         public class UILoginComponentAwakeSystem : AwakeSystem<UILoginComponent> {
             protected override void Awake(UILoginComponent self) {
@@ -16,7 +14,6 @@ namespace ET.Client {
                 self.password = rc.Get<GameObject>("Password");
             }
         }
-
         public static void OnLogin(this UILoginComponent self) {
             LoginHelper.Login(
                 self.DomainScene(), 

@@ -4,6 +4,8 @@ using System.Net.Sockets;
 namespace ET.Client {
     public static class LoginHelper {
 		// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
+
+		// 感觉，这些框架示范项目的登录逻辑等，其实都熟悉透彻了，一看就懂
         public static async ETTask Login(Scene clientScene, string account, string password) {
             try {
                 // 创建一个ETModel层的Session
@@ -31,6 +33,7 @@ namespace ET.Client {
                 G2C_LoginGate g2CLoginGate = (G2C_LoginGate)await gateSession.Call(
                     new C2G_LoginGate() { Key = r2CLogin.Key, GateId = r2CLogin.GateId});
                 Log.Debug("登陆gate成功!");
+				// 逻辑，从这里，继续往下一个UI 控件推进
                 await EventSystem.Instance.PublishAsync(clientScene, new EventType.LoginFinish());
             }
             catch (Exception e) {

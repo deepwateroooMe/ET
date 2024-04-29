@@ -17,7 +17,8 @@
         public static Scene ClientScene(this Entity entity) {
             return ClientSceneManagerComponent.Instance.Get(entity.DomainZone());
         }
-		// 对【客户端】场景，取是取先前添加过的一个子控件。【TODO】：【客户端】场景创建的逻辑，如何与【服务端】的这个管理者命令的？
+		// 对【客户端】场景，取先前添加过的一个子控件。【TODO】：【客户端】场景创建的逻辑，如何与【服务端】的这个管理者命令的？没明白，先前这里的问题是什么
+		// 框架【双端】都添加了这个ClientSceneManagerComponent 组件
         public static Scene Get(this ClientSceneManagerComponent self, long id) {
             Scene scene = self.GetChild<Scene>(id);
             return scene;

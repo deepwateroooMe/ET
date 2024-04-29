@@ -110,7 +110,7 @@ namespace ET {
                     if (cs.Contains("s")) {
                         table.S = true;
                     }
-                    ExportExcelClass(p, protoName, table); // 【TODO】：先看这里
+                    ExportExcelClass(p, protoName, table); 
                 }
                 foreach (var kv in tables) {
                     if (kv.Value.C) {
@@ -121,7 +121,8 @@ namespace ET {
                     }
                     ExportClass(kv.Key, kv.Value.HeadInfos, ConfigType.cs);
                 }
-                // 动态编译生成的配置代码【源】：【TODO】：这里也是先前没看懂的。动态编译【服务端、客户端、和双端模式下】动态启动库：四大启动配制类
+                // 动态编译生成的配置代码【源】：这里构建的动态库后，晚点儿文件末尾，当生成【跨进程】可用的 .bytes 文件时，动态库、依赖库里所有的 Type 都是会创建实例的
+				// 所以，这个动态编译，虽然以前没怎么真正多实现过，但必要
                 configAssemblies[(int) ConfigType.c] = DynamicBuild(ConfigType.c);
                 configAssemblies[(int) ConfigType.s] = DynamicBuild(ConfigType.s);
                 configAssemblies[(int) ConfigType.cs] = DynamicBuild(ConfigType.cs);

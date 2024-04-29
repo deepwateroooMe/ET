@@ -20,7 +20,6 @@
             // 上面，虽然是函数调用方式，但是下面的异步函数。。【不会报空或是出异常】：因为双端某端启动，这是【启动过程】，函数里要求的几大要件——一件一件去完成，不管用了多少桢。。。
             // 所以，不影响双端、任何一端的启动，也不会报空或是异常。Init.cs 加载了双端共享的必需要的组件
         }
-		// 【TODO】：亲爱的表哥的活宝妹，觉得，双端启动时，是可能存在：【根场景的，启动加载、完成前、后】的回调之类的。检查这些双端根场景相关的细节！今天下午做这些
         // 上面，虽然是函数调用方式，但是下面的异步函数：还是最终、都会、四个定义要求的先后事件、全部按顺利执行完，不管用了多少桢。。。
         private static async ETTask StartAsync() {
             WinPeriod.Init();
@@ -33,8 +32,7 @@
             Game.AddSingleton<Root>(); // 加了【端：双端任何一端、粒度单位：每个核每个进程】的根游戏场景
 
             // 接下来：按先后顺序，执行函数定义、要求的几大事件，每个调用，可能消耗多桢。。不管多少桢。。
-			// 亲爱的表哥的活宝妹，今天上午，1 小时左右，就从这里，去看【客户端】的启动逻辑【TODO】：现在！！！
-            await Game.AddSingleton<ConfigComponent>().LoadAsync(); // 【双端、任何一端】的配置、启动过程，大部分读懂了，仍有不少细节，要去翻框架确认细节！
+            await Game.AddSingleton<ConfigComponent>().LoadAsync(); // 【双端、任何一端】的配置、启动过程
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent1());
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent2());
             await EventSystem.Instance.PublishAsync(Root.Instance.Scene, new EventType.EntryEvent3());

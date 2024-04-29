@@ -4,7 +4,6 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 namespace ET.Server {
 	// 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】
-	// 亲爱的表哥的活宝妹，今天上午，算是把这个读得相对比较懂一点儿了。可是动态路由、网络软路由连接，底层的细节仍然不懂，需要改天再挖掘一遍！！【TODO】：
     [FriendOf(typeof (RouterComponent))]
     [FriendOf(typeof (RouterNode))]
     public static class RouterComponentSystem {
@@ -24,7 +23,7 @@ namespace ET.Server {
                     self.InnerSocket.SendBufferSize = 16 * Kcp.OneM;
                     self.InnerSocket.ReceiveBufferSize = 16 * Kcp.OneM;
                 }
-                NetworkHelper.SetSioUdpConnReset(self.OuterSocket); // 【TODO】：不知道这些是在干什么。。
+                NetworkHelper.SetSioUdpConnReset(self.OuterSocket); 
                 NetworkHelper.SetSioUdpConnReset(self.InnerSocket);
             }
         }
@@ -137,7 +136,6 @@ namespace ET.Server {
                         Log.Warning($"kcp router router reconnect connectId diff1: {routerNode.SyncIpEndPoint} {(IPEndPoint) self.IPEndPoint}");
                         break;
                     }
-					// 【TODO】：下面的，没看懂，上午晚点儿再查
                     // 不是自己的，outerConn冲突, 直接break,也就是说这个软路由上有个跟自己outerConn冲突的连接，就不能连接了【源】
                     // 这个路由连接不上，客户端会换个软路由，所以没关系【源】
                     if (routerNode.InnerConn != innerConn) {
@@ -150,7 +148,7 @@ namespace ET.Server {
                         break;
                     }
                     // 校验ip，连接过程中ip不能变化
-                    if (!Equals(routerNode.SyncIpEndPoint, self.IPEndPoint)) { // 【TODO】：想不明白，什么情况下，它是可能会变化的？
+                    if (!Equals(routerNode.SyncIpEndPoint, self.IPEndPoint)) {
                         Log.Warning($"kcp router syn ip is diff1: {routerNode.SyncIpEndPoint} {(IPEndPoint) self.IPEndPoint}");
                         break;
                     }
@@ -165,7 +163,7 @@ namespace ET.Server {
                         self.OnError(routerNode.Id, ErrorCore.ERR_KcpRouterRouterSyncCountTooMuchTimes);
                         break;
                     }
-                    // 转发到内网【源】：【TODO】：说的是什么意思呢
+                    // 转发到内网【源】：
                     self.Cache.WriteTo(0, KcpProtocalType.RouterReconnectSYN); // 同样的、路由节点建立连接的握手同步消息
                     self.Cache.WriteTo(1, outerConn);
                     self.Cache.WriteTo(5, innerConn);
@@ -253,7 +251,6 @@ namespace ET.Server {
                     Log.Info($"kcp router syn: {outerConn} {innerConn} {kcpRouter.InnerIpEndPoint} {kcpRouter.OuterIpEndPoint}");
 					// 将长度为【9+addressBytes.Length】的、新验证的【路由节点】KcpProtocalType.SYN 消息，同步到、所有连接着【本路由节点】的内网
                     self.InnerSocket.SendTo(self.Cache, 0, 9 + addressBytes.Length, SocketFlags.None, kcpRouter.InnerIpEndPoint);
-					// 【TODO】：上面，本节点自己发布到内网之后，再排错，感觉顺序倒了。。
                     if (!kcpRouter.CheckOuterCount(timeNow)) { // 每秒上 1000 个包裹
                         self.OnError(kcpRouter.Id, ErrorCore.ERR_KcpRouterTooManyPackets);
                     }
@@ -304,7 +301,6 @@ namespace ET.Server {
                         Log.Warning($"router node innerConn error: {innerConn} {outerConn} {kcpRouter.Status}");
                         break;
                     }
-					// 【TODO】：把下面【源】注释，看懂，出错的原因
                     // 重连的时候，没有经过syn阶段，可能没有设置OuterIpEndPoint，重连请求Router的Socket跟发送消息的Socket不是同一个，所以udp出来的公网地址可能会变化
                     if (!Equals(kcpRouter.OuterIpEndPoint, self.IPEndPoint)) {
                         kcpRouter.OuterIpEndPoint = self.CloneAddress();

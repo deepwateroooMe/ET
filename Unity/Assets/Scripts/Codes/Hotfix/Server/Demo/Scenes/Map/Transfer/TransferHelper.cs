@@ -24,7 +24,7 @@ namespace ET.Server {
                 }
             }
             unit.Dispose();
-
+			// 【玩家纤进程】：上报【位置服】上锁，直到其纤进程结束
             await LocationProxyComponent.Instance.Lock(LocationType.Unit, unitId, unitInstanceId); // 框架里一个使用用例，这个逻辑过程狠简单
             await ActorMessageSenderComponent.Instance.Call(sceneInstanceId, request);
         } // 【亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！】

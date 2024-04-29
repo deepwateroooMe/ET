@@ -23,9 +23,9 @@ namespace ET.Server {
         public class AwakeSystem: AwakeSystem<ActorLocationSenderOneType, int> {
             protected override void Awake(ActorLocationSenderOneType self, int locationType) {
                 self.LocationType = locationType;
-				// 【TODO】：不知道过期时间，2 分钟，写在哪里？
-                // 每10s扫描一次过期的actorproxy进行回收,过期时间是2分钟【每 10 秒钟，是重复闹钟的周期检测，回收过期代理；也是文件后面的发送重试最多试10 秒钟】
+                // 每10s扫描一次过期的actorproxy进行回收,过期时间是2分钟
                 // 可能由于bug或者进程挂掉，导致ActorLocationSender发送的消息没有确认，结果无法自动删除，每一分钟清理一次这种ActorLocationSender
+				// 【过期时间现在应该是 1 分钟；每 10 秒钟，是重复闹钟的周期检测，回收过期代理；也是文件后面的发送重试最多试10 秒钟】
                 self.CheckTimer = TimerComponent.Instance.NewRepeatedTimer(10 * 1000, TimerInvokeType.ActorLocationSenderChecker, self);
             }
         }
@@ -213,7 +213,7 @@ namespace ET.Server {
                         // 等待0.5s再发送
                         await TimerComponent.Instance.WaitAsync(500);
                         if (actorLocationSender.InstanceId != instanceId)
-                        { // 任何时候，收件人因纤进程而改变了实例号 instanceId, 都抛异常。。【TODO】：去确认这个模块这里的设计逻辑
+                        { // 任何时候，收件人因纤进程而改变了实例号 instanceId, 或是超时被回收，都抛异常。。
                             throw new RpcException(ErrorCore.ERR_ActorLocationSenderTimeout4, $"{iActorRequest}");
                         }
                         actorLocationSender.ActorId = 0;

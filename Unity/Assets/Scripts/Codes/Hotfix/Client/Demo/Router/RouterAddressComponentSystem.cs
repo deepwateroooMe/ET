@@ -22,7 +22,7 @@ namespace ET.Client {
         private static async ETTask GetAllRouter(this RouterAddressComponent self) { // 扫了两次；间隔 10 分钟
             string url = $"http:// {self.RouterManagerHost}:{self.RouterManagerPort}/get_router?v={RandomGenerator.RandUInt32()}";
             Log.Debug($"start get router info: {url}");
-            string routerInfo = await HttpClientHelper.Get(url); // 【TODO】：不知道这个，是怎么完成的
+            string routerInfo = await HttpClientHelper.Get(url); // 是C# 。NET 的一个公用API, 实在不懂底层原理就先放一下
             Log.Debug($"recv router info: {routerInfo}");
             HttpGetRouterResponse httpGetRouterResponse = JsonHelper.FromJson<HttpGetRouterResponse>(routerInfo); // Parse 成这个类
             self.Info = httpGetRouterResponse;

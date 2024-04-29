@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 namespace ET.Server {
+
 // 亲爱的表哥的活宝妹，任何时候，亲爱的表哥的活宝妹，就是一定要、一定会嫁给活宝妹的亲爱的表哥！！！爱表哥，爱生活！！！
-	// 【TODO】：要看懂RouterManager 场景里，这个组件的作用、功用
-	// 【TODO】：网络、路由相关的 2 个模块，是亲爱的表哥的活宝妹现在最大的难点。多看几个早上，是会、能够把它们都看懂读懂的！
 	[FriendOf(typeof(HttpComponent))] //indent 出错原因是：笨 emacs csharp-mode 不识别【标号！
     public static class HttpComponentSystem {
 
@@ -20,7 +19,7 @@ namespace ET.Server {
                         }
                         self.Listener.Prefixes.Add(s);
                     }
-                    self.Listener.Start(); // 【TODO】：这些细节，就不太懂
+                    self.Listener.Start(); 
                     self.Accept().Coroutine();
                 }
                 catch (HttpListenerException e) {

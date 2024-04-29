@@ -24,7 +24,8 @@ namespace ET.Server {
             }
         }
         public static void SendToClient(Unit unit, IActorMessage message) {
-			// 亲爱的表哥的活宝妹，现在就把这个 Actor 位置服组件，给快速看懂！！【TODO】：现在
+			// 【位置消息】的一个用例：这里是用 LocationType.Player 类型的 ActorLocationSenderOneType 上发 Send() 消息
+			// 前面，当玩家用户登录【网关服】时，就已经向【位置服】注册上报过 unit.Id 的位置消息。虽然正在【纤进程】正被锁着，但是只要纤完一解锁，消息就能够到达
             ActorLocationSenderComponent.Instance.Get(LocationType.Player).Send(unit.Id, message);
         }
         
