@@ -1,10 +1,9 @@
-﻿namespace ET
-{
+﻿namespace ET {
+	// 主场景：
     [Invoke((long)SceneType.Main)]
-    public class FiberInit_Main: AInvokeHandler<FiberInit, ETTask>
-    {
-        public override async ETTask Handle(FiberInit fiberInit)
-        {
+    public class FiberInit_Main: AInvokeHandler<FiberInit, ETTask> {
+
+        public override async ETTask Handle(FiberInit fiberInit) {
             Scene root = fiberInit.Fiber.Root;
            
             await EventSystem.Instance.PublishAsync(root, new EntryEvent1());

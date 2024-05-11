@@ -1,61 +1,37 @@
-﻿namespace ET
-{
-    public interface ISingletonReverseDispose
-    {
-        
+﻿namespace ET {
+    public interface ISingletonReverseDispose { // 怎么会出这种？
     }
-    
-    public abstract class ASingleton: DisposeObject
-    {
+	
+    public abstract class ASingleton: DisposeObject {
         internal abstract void Register();
     }
-    
-    public abstract class Singleton<T>: ASingleton where T: Singleton<T>
-    {
+    public abstract class Singleton<T>: ASingleton where T: Singleton<T> {
         private bool isDisposed;
-        
         [StaticField]
         private static T instance;
-        
         [StaticField]
-        public static T Instance
-        {
-            get
-            {
+        public static T Instance {
+            get {
                 return instance;
             }
-            private set
-            {
+            private set {
                 instance = value;
             }
         }
-
-        internal override void Register()
-        {
+        internal override void Register() {
             Instance = (T)this;
         }
-
-        public bool IsDisposed()
-        {
+        public bool IsDisposed() {
             return this.isDisposed;
         }
-
-        protected virtual void Destroy()
-        {
-            
+        protected virtual void Destroy() {
         }
-
-        public override void Dispose()
-        {
-            if (this.isDisposed)
-            {
+        public override void Dispose() {
+            if (this.isDisposed) {
                 return;
             }
-            
             this.isDisposed = true;
-
             this.Destroy();
-            
             Instance = null;
         }
     }

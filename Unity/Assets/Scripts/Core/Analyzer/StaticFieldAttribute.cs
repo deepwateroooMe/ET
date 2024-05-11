@@ -1,36 +1,25 @@
 ﻿using System;
+namespace ET {
 
-namespace ET
-{
-    /// <summary>
-    /// 静态字段需加此标签
-    /// valueToAssign: 初始化时的字段值
-    /// assignNewTypeInstance: 从默认构造函数初始化
-    /// </summary>
+    // 静态字段需加此标签
+    // valueToAssign: 初始化时的字段值
+    // assignNewTypeInstance: 从默认构造函数初始化
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-    public class StaticFieldAttribute: Attribute
-    {
-        public readonly object valueToAssign;
+    public class StaticFieldAttribute: Attribute {
 
+        public readonly object valueToAssign;
         public readonly bool assignNewTypeInstance;
-        
-        public StaticFieldAttribute()
-        {
+        public StaticFieldAttribute() {
             this.valueToAssign  = null;
             this.assignNewTypeInstance = false;
         }
-        
-        public StaticFieldAttribute(object valueToAssign )
-        {
+        public StaticFieldAttribute(object valueToAssign ) {
             this.valueToAssign  = valueToAssign ;
             this.assignNewTypeInstance = false;
         }
-        
-        public StaticFieldAttribute(bool assignNewTypeInstance)
-        {
+        public StaticFieldAttribute(bool assignNewTypeInstance) {
             this.valueToAssign  = null;
             this.assignNewTypeInstance = assignNewTypeInstance;
         }
     }
 }
-
