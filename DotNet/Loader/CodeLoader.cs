@@ -15,7 +15,9 @@ namespace ET {
                     break;
                 }
             }
-            Assembly hotfixAssembly = this.LoadHotfix();
+            Assembly hotfixAssembly = this.LoadHotfix(); // 【TODO】：记得一两年前？亲爱的表哥的活宝妹第一次运行这个框架，这个加载热更新域，还有个什么机关？
+			// 【TODO】：这里加的，为什么是这几个程序域？CodeLoader, Hotfix, Model,【world 相关】
+			// 【world 相关】：World详解，几种Singleton,线程安全的思考(ReloadDl ReloadConfig)，找到临界区【TODO】：这里像是还有点儿知识点，改天弄懂
             World.Instance.AddSingleton<CodeTypes, Assembly[]>(new[] { typeof (World).Assembly, typeof(Init).Assembly, this.assembly, hotfixAssembly });
             IStaticMethod start = new StaticMethod(this.assembly, "ET.Entry", "Start"); // CodeTypes 帮助加载双端
             start.Run();

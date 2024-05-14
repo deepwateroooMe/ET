@@ -2,7 +2,7 @@
 using System.Threading;
 using CommandLine;
 namespace ET {
-    public class Init {
+    public class Init { // 它在：CodeLoader 程序域里
 
         public void Start() {
             try {

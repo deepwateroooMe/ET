@@ -12,6 +12,7 @@ namespace ET {
         ThreadPool,
     }
     public class FiberManager: Singleton<FiberManager>, ISingletonAwake, ISingletonReverseDispose {
+		// 【纤程】的3 种调度机制：源码读懂了，但是感觉脑袋里还没懂？【TODO】：
         private readonly IScheduler[] schedulers = new IScheduler[3]; // 对应上面3 种不同的调度机制，每种类型一个 IScheduler 实现
         private int idGenerator = 10000000; // 10000000以下为保留的用于StartSceneConfig的fiber id, 1个区配置1000个纤程，可以配置10000个区
         private ConcurrentDictionary<int, Fiber> fibers = new();
@@ -55,7 +56,6 @@ namespace ET {
                     try {
                         // 根据Fiber的SceneType分发Init,必须在Fiber线程中执行【源】：
 						// 新添加的【Invoke((long)SceneType.XX)】FiberInit_xyz.cs 类，都分别处理各种逻辑。这里调用的是Main. 这么就【纤程】后链接到先前ET7.2 的相同部分
-						// 上面，亲爱的表哥的活宝妹第一次看时，就只找了点儿逻辑，并没有真正看明白
                         await EventSystem.Instance.Invoke<FiberInit, ETTask>((long)sceneType, new FiberInit() {Fiber = fiber});
                         tcs.SetResult(true);
                     }

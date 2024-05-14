@@ -1,10 +1,11 @@
 ﻿namespace ET {
-    public interface ISingletonReverseDispose { // 怎么会出这种？
-    }
 	
+    public interface ISingletonReverseDispose {
+    }
     public abstract class ASingleton: DisposeObject {
         internal abstract void Register();
     }
+
     public abstract class Singleton<T>: ASingleton where T: Singleton<T> {
         private bool isDisposed;
         [StaticField]

@@ -10,9 +10,9 @@ namespace ET {
     }
     public class Fiber: IDisposable {
         // 该字段只能框架使用，绝对不能改成public，改了后果自负
-        [StaticField]
+        [StaticField] // 感觉像是看懂了，可是不知道【构造器赋值】的地方在哪里【TODO】：
         [ThreadStatic]
-        internal static Fiber Instance;
+        internal static Fiber Instance; // 【TODO】：去找，这个地方是怎么赋值的？
         public bool IsDisposed;
         public int Id;
         public int Zone;
@@ -32,11 +32,13 @@ namespace ET {
         public ThreadSynchronizationContext ThreadSynchronizationContext { get; }
         public ILog Log { get; }
         private readonly Queue<ETTask> frameFinishTasks = new();
+		// 用【线程】模拟【纤程】：每个纤程，需要 EntitySystem, 邮箱、纤程上下文【当线程上下文】用，其它辅助如日志等
         internal Fiber(int id, int zone, SceneType sceneType, string name) {
             this.Id = id;
             this.Zone = zone;
             this.EntitySystem = new EntitySystem();
             this.Mailboxes = new Mailboxes();
+			// 每创建一个新纤程，都创建一个【异步线程的、上下文】
             this.ThreadSynchronizationContext = new ThreadSynchronizationContext();
 #if UNITY
             this.Log = Logger.Instance.Log;

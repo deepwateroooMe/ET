@@ -5,10 +5,8 @@ using System.Reflection;
 using HybridCLR;
 using UnityEngine;
 
-namespace ET
-{
-    public class CodeLoader: Singleton<CodeLoader>, ISingletonAwake
-    {
+namespace ET {
+    public class CodeLoader: Singleton<CodeLoader>, ISingletonAwake {
         private Assembly modelAssembly;
         private Assembly modelViewAssembly;
 
@@ -16,24 +14,19 @@ namespace ET
         private Dictionary<string, TextAsset> aotDlls;
         private bool enableDll;
 
-        public void Awake()
-        {
+        public void Awake() {
             this.enableDll = Resources.Load<GlobalConfig>("GlobalConfig").EnableDll;
         }
 
-        public async ETTask DownloadAsync()
-        {
-            if (!Define.IsEditor)
-            {
+        public async ETTask DownloadAsync() {
+            if (!Define.IsEditor) {
                 this.dlls = await ResourcesComponent.Instance.LoadAllAssetsAsync<TextAsset>($"Assets/Bundles/Code/Unity.Model.dll.bytes");
                 this.aotDlls = await ResourcesComponent.Instance.LoadAllAssetsAsync<TextAsset>($"Assets/Bundles/AotDlls/mscorlib.dll.bytes");
             }
         }
 
-        public void Start()
-        {
-            if (!Define.IsEditor)
-            {
+        public void Start() {
+            if (!Define.IsEditor) {
                 byte[] modelAssBytes = this.dlls["Unity.Model.dll"].bytes;
                 byte[] modelPdbBytes = this.dlls["Unity.Model.pdb"].bytes;
                 byte[] modelViewAssBytes = this.dlls["Unity.ModelView.dll"].bytes;
@@ -44,10 +37,8 @@ namespace ET
                 //modelViewAssBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.ModelView.dll.bytes"));
                 //modelViewPdbBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.ModelView.pdb.bytes"));
 
-                if (Define.EnableIL2CPP)
-                {
-                    foreach (var kv in this.aotDlls)
-                    {
+                if (Define.EnableIL2CPP) {
+                    foreach (var kv in this.aotDlls) {
                         TextAsset textAsset = kv.Value;
                         RuntimeApi.LoadMetadataForAOTAssembly(textAsset.bytes, HomologousImageMode.SuperSet);
                     }
@@ -55,10 +46,8 @@ namespace ET
                 this.modelAssembly = Assembly.Load(modelAssBytes, modelPdbBytes);
                 this.modelViewAssembly = Assembly.Load(modelViewAssBytes, modelViewPdbBytes);
             }
-            else
-            {
-                if (this.enableDll)
-                {
+            else {
+                if (this.enableDll) {
                     byte[] modelAssBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.Model.dll.bytes"));
                     byte[] modelPdbBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.Model.pdb.bytes"));
                     byte[] modelViewAssBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.ModelView.dll.bytes"));
@@ -66,11 +55,9 @@ namespace ET
                     this.modelAssembly = Assembly.Load(modelAssBytes, modelPdbBytes);
                     this.modelViewAssembly = Assembly.Load(modelViewAssBytes, modelViewPdbBytes);
                 }
-                else
-                {
+                else {
                     Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                    foreach (Assembly ass in assemblies)
-                    {
+                    foreach (Assembly ass in assemblies) {
                         string name = ass.GetName().Name;
                         if (name == "Unity.Model")
                         {
@@ -91,8 +78,7 @@ namespace ET
             
             (Assembly hotfixAssembly, Assembly hotfixViewAssembly) = this.LoadHotfix();
 
-            World.Instance.AddSingleton<CodeTypes, Assembly[]>(new[]
-            {
+            World.Instance.AddSingleton<CodeTypes, Assembly[]>(new[] {
                 typeof (World).Assembly, typeof (Init).Assembly, this.modelAssembly, this.modelViewAssembly, hotfixAssembly,
                 hotfixViewAssembly
             });
@@ -101,16 +87,14 @@ namespace ET
             start.Run();
         }
 
-        private (Assembly, Assembly) LoadHotfix()
-        {
+        private (Assembly, Assembly) LoadHotfix() {
             byte[] hotfixAssBytes;
             byte[] hotfixPdbBytes;
             byte[] hotfixViewAssBytes;
             byte[] hotfixViewPdbBytes;
             Assembly hotfixAssembly = null;
             Assembly hotfixViewAssembly = null;
-            if (!Define.IsEditor)
-            {
+            if (!Define.IsEditor) {
                 hotfixAssBytes = this.dlls["Unity.Hotfix.dll"].bytes;
                 hotfixPdbBytes = this.dlls["Unity.Hotfix.pdb"].bytes;
                 hotfixViewAssBytes = this.dlls["Unity.HotfixView.dll"].bytes;
@@ -123,10 +107,8 @@ namespace ET
                 hotfixAssembly = Assembly.Load(hotfixAssBytes, hotfixPdbBytes);
                 hotfixViewAssembly = Assembly.Load(hotfixViewAssBytes, hotfixViewPdbBytes);
             }
-            else
-            {
-                if (this.enableDll)
-                {
+            else {
+                if (this.enableDll) {
                     hotfixAssBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.Hotfix.dll.bytes"));
                     hotfixPdbBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.Hotfix.pdb.bytes"));
                     hotfixViewAssBytes = File.ReadAllBytes(Path.Combine(Define.CodeDir, "Unity.HotfixView.dll.bytes"));
@@ -134,11 +116,9 @@ namespace ET
                     hotfixAssembly = Assembly.Load(hotfixAssBytes, hotfixPdbBytes);
                     hotfixViewAssembly = Assembly.Load(hotfixViewAssBytes, hotfixViewPdbBytes);
                 }
-                else
-                {
+                else {
                     Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                    foreach (Assembly ass in assemblies)
-                    {
+                    foreach (Assembly ass in assemblies) {
                         string name = ass.GetName().Name;
                         if (name == "Unity.Hotfix")
                         {
@@ -160,12 +140,10 @@ namespace ET
             return (hotfixAssembly, hotfixViewAssembly);
         }
 
-        public void Reload()
-        {
+        public void Reload() {
             (Assembly hotfixAssembly, Assembly hotfixViewAssembly) = this.LoadHotfix();
 
-            CodeTypes codeTypes = World.Instance.AddSingleton<CodeTypes, Assembly[]>(new[]
-            {
+            CodeTypes codeTypes = World.Instance.AddSingleton<CodeTypes, Assembly[]>(new[] {
                 typeof (World).Assembly, typeof (Init).Assembly, this.modelAssembly, this.modelViewAssembly, hotfixAssembly,
                 hotfixViewAssembly
             });

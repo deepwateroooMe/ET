@@ -1,6 +1,6 @@
 ﻿using System;
 namespace ET {
-
+	// 【TODO】：框架里有几处使用的地方，但是用法都一致。这个类没看懂，那2 个标记。。
     // 静态字段需加此标签
     // valueToAssign: 初始化时的字段值
     // assignNewTypeInstance: 从默认构造函数初始化
